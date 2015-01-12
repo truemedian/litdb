@@ -16,65 +16,80 @@ limitations under the License.
 
 local LineEmitter = require('../lib/emitter').LineEmitter
 
-local exports = {}
+require('tap')(function(test)
+  test('test_line_emitter_single_chunk', function(expect)
+    local count, lines, le, onData, onEnd
 
-exports['test_line_emitter_single_chunk'] = function(test, asserts)
-  local count = 0
-  local lines = {'test1', 'test2', 'test3', 'test4'}
-  local le = LineEmitter:new()
+    count = 0
+    lines = {'test1', 'test2', 'test3', 'test4'}
 
-  le:on('data', function(line)
-    count = count + 1
-    asserts.equals(line, lines[count])
-
-    if count == 4 then
-      test.done()
+    function onData(line)
+      p(line)
+      count = count + 1
+      assert(line == lines[count])
     end
+
+    function onEnd()
+      assert(count == #lines)
+    end
+  
+    le = LineEmitter:new()
+    le:on('data', onData)
+    le:on('end', expect(onEnd))
+    le:write('test1\ntest2\ntest3\ntest4\n')
+    le:write()
   end)
 
-  le:write('test1\ntest2\ntest3\ntest4\n')
-end
+  test('test_line_emitter_multiple_chunks', function(expect)
+    local count, lines, le, onData, onEnd
 
-exports['test_line_emitter_multiple_chunks'] = function(test, asserts)
-  local count = 0
-  local lines = {'test1', 'test2', 'test3', 'test4', 'test5'}
-  local le = LineEmitter:new()
+    count = 0
+    lines = {'test1', 'test2', 'test3', 'test4', 'test5'}
 
-  le:on('data', function(line)
-    count = count + 1
-    asserts.equals(line, lines[count])
-
-    if count == 5 then
-      test.done()
+    function onData(line)
+      p(line)
+      count = count + 1
+      assert(line == lines[count])
     end
+
+    function onEnd()
+      assert(count == #lines)
+    end
+  
+    le = LineEmitter:new()
+    le:on('data', onData)
+    le:on('end', expect(onEnd))
+    le:write('test1\n')
+    le:write('test2\n')
+    le:write('test3\n')
+    le:write('test4\ntest5')
+    le:write('\n')
+    le:write()
   end)
 
-  le:write('test1\n')
-  le:write('test2\n')
-  le:write('test3\n')
-  le:write('test4\ntest5')
-  le:write('\n')
-end
+  test('test_line_emitter_multiple_chunks_includeNewLine', function(expect)
+    local count, lines, le, onData, onEnd
 
-exports['test_line_emitter_multiple_chunks_includeNewLine'] = function(test, asserts)
-  local count = 0
-  local lines = {'test1\n', 'test2\n', 'test3\n', 'test4\n', 'test5\n'}
-  local le = LineEmitter:new('', {includeNewLine = true})
-
-  le:on('data', function(line)
-    count = count + 1
-    asserts.equals(line, lines[count])
-
-    if count == 5 then
-      test.done()
+    count = 0
+    lines = {'test1\n', 'test2\n', 'test3\n', 'test4\n', 'test5\n'}
+  
+    function onData(line)
+      p(line)
+      count = count + 1
+      assert(line == lines[count])
     end
+
+    function onEnd()
+      assert(count == #lines)
+    end
+  
+    le = LineEmitter:new('', {includeNewLine = true})
+    le:on('data', onData)
+    le:on('end', onEnd)
+    le:write('test1\n')
+    le:write('test2\n')
+    le:write('test3\n')
+    le:write('test4\ntest5')
+    le:write('\n')
   end)
-
-  le:write('test1\n')
-  le:write('test2\n')
-  le:write('test3\n')
-  le:write('test4\ntest5')
-  le:write('\n')
-end
-
-return exports
+end)

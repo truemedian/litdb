@@ -14,28 +14,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --]]
 
-local iStream = require('core').iStream
+local Transform = require('stream_transform').Transform
 
-local exports = {}
-
-local LineEmitter = iStream:extend()
+local LineEmitter = Transform:extend()
 
 function LineEmitter:initialize(initialBuffer, options)
-  options = options and options or {}
+  options = options or {}
+  options.objectMode = true
+  Transform.initialize(self, options)
   self._buffer = initialBuffer and initialBuffer or ''
   self._includeNewLine = options['includeNewLine']
 end
 
-function LineEmitter:write(chunk)
+function LineEmitter:_write(chunk, encoding, callback)
   local line
+
+  if not chunk then
+    return self:push()
+  end
 
   self._buffer = self._buffer .. chunk
 
   line = self:_popLine()
   while line do
-    self:emit('data', line)
+    self:push(line)
     line = self:_popLine()
   end
+
+  callback()
 end
 
 function LineEmitter:_popLine()
@@ -56,4 +62,3 @@ function LineEmitter:_popLine()
 end
 
 exports.LineEmitter = LineEmitter
-return exports
