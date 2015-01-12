@@ -1,10 +1,10 @@
-local stream = require('stream')
+local Transform = require('stream_transform').Transform
 
-local Split = stream.Transform:extend()
+local Split = Transform:extend()
 function Split:initialize(options)
   options = options or {}
 
-  stream.Transform.initialize(self, options)
+  Transform.initialize(self, options)
 
   self.buff = ''
   self.sep = options.separator or '\n'
