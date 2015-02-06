@@ -1,6 +1,6 @@
 return {
   name = "rphillips/split-stream",
-  version = "0.3.0",
+  version = "0.4.0",
   description = "a Transform stream that (re-)splits upstream string into chunks based on provided separator",
   repository = {
     url = "https://github.com/virgo-agent-toolkit/luvit-split-stream.git",

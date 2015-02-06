@@ -1,4 +1,4 @@
-local Transform = require('stream_transform').Transform
+local Transform = require('stream').Transform
 
 local Split = Transform:extend()
 function Split:initialize(options)
