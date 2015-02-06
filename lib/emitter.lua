@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --]]
 
-local Transform = require('stream_transform').Transform
+local Transform = require('stream').Transform
 
 local LineEmitter = Transform:extend()
 
