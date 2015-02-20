@@ -1,11 +1,11 @@
 return {
 	name = "rphillips/options",
-	version = "0.0.4",
+	version = "0.0.5",
 	description = "easy to use getopt library",
 	author = "pancake <pancake@nopcode.org>",
 	dependencies = { },
 	files = {
-		"*.lua",
+    "*.lua",
 		"!test*",
 	}
 }
