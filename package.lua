@@ -1,6 +1,6 @@
 return {
   name = "rphillips/nntp",
-  version = "0.0.2",
+  version = "0.0.3",
   dependencies = {
     "creationix/require@1.0.2",
     "creationix/coro-fs@1.2.3",
