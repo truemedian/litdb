@@ -1,5 +1,5 @@
 exports.name = "james2doyle/pretty-bytes"
-exports.version = "0.0.1"
+exports.version = "0.0.2"
 exports.homepage = "https://github.com/james2doyle/lit-pretty-bytes"
 -- converted from https://github.com/sindresorhus/pretty-bytes
 
@@ -16,12 +16,7 @@ function prettyBytes(num, space)
     error('Expected a number')
   end
 
-  local neg = num < 0
   local units = {'B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'}
-
-  if (neg == nil) then
-    num = -num
-  end
 
   if space == nil then
     space = ''
@@ -30,11 +25,7 @@ function prettyBytes(num, space)
   end
 
   if (num < 1) then
-    if neg ~= nil then
-      return num .. ' B'
-    else
-      return '-' .. num .. ' B'
-    end
+    return num .. ' B'
   end
 
   local exponent = math.min(math.floor(math.log(num) / math.log(1000)), #units)
@@ -42,11 +33,7 @@ function prettyBytes(num, space)
   -- add 1 to compentsate for 1 indexed arrays
   local unit = units[exponent + 1]
 
-  if neg ~= nil then
-    return num .. space .. unit
-  else
-    return '-' .. num .. space .. unit
-  end
+  return num .. space .. unit
 end
 
 return prettyBytes
