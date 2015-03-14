@@ -219,13 +219,14 @@ function Client:setMFACallback(callback)
 end
 
 function Client:auth(authUrls, username, keyOrPassword, callback)
+  local provider = 'cloudMonitoring'
   local client = KeystoneClient:new(MAAS_CLIENT_KEYSTONE_URL, { username = username, apikey = keyOrPassword })
   client:setMFACallback(self._mfaCallback)
-  client:tenantIdAndToken(function(err, obj)
+  client:tenantIdAndToken(provider, function(err, obj)
     if err then
       client = KeystoneClient:new(MAAS_CLIENT_KEYSTONE_URL, { username = username, password = keyOrPassword })
       client:setMFACallback(self._mfaCallback)
-      client:tenantIdAndToken(callback)
+      client:tenantIdAndToken(provider, callback)
       return
     end
     callback(nil, obj)
