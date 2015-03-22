@@ -93,6 +93,7 @@ function ClientBase:request(method, path, payload, expectedStatusCode, callback)
     path = fmt('%s/%s', self.host, path)
   end
 
+  local headers = misc.merge({}, self.headers)
   local options = {
     url = path,
     headers = headers,
