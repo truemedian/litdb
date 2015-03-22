@@ -124,7 +124,7 @@ function ClientBase:request(method, path, payload, expectedStatusCode, callback)
         if res.statusCode == 200 then
           self:_parseResponse(data, callback)
         elseif res.statusCode == 201 or res.statusCode == 204 then
-          callback(nil, res.headers['location'])
+          callback(nil, res.headers['x-object-id'])
         else
           data = self:_parseData(data)
           callback(errors.HttpResponseError:new(res.statusCode, method, path, data))
@@ -151,23 +151,11 @@ end
 
 function Client:_init()
   self.entities.create = function(params, callback)
-    self:request('POST', '/entities', params, 201, function(err, entityUrl)
-      if err then
-        callback(err)
-        return
-      end
-      callback(nil, string.match(entityUrl, 'entities/(.*)'))
-    end)
+    self:request('POST', '/entities', params, 201, callback)
   end
 
   self.entities.update = function(id, params, callback)
-    self:request('PUT', fmt('/entities/%s', id), params, 204, function(err, entityUrl)
-      if err then
-        callback(err)
-        return
-      end
-      callback(nil, string.match(entityUrl, 'entities/(.*)'))
-    end)
+    self:request('PUT', fmt('/entities/%s', id), params, 204, callback)
   end
 
   self.entities.list = function(callback)
@@ -175,23 +163,11 @@ function Client:_init()
   end
 
   self.checks.create = function(entity, params, callback)
-    self:request('POST', fmt('/entities/%s/checks', entity), params, 201, function(err, entityUrl)
-      if err then
-        callback(err)
-        return
-      end
-      callback(nil, string.match(entityUrl, fmt('entities/%s/checks/(.*)', entity)))
-    end)
+    self:request('POST', fmt('/entities/%s/checks', entity), params, 201, callback)
   end
 
   self.checks.update = function(entity, params, callback)
-    self:request('POST', fmt('/entities/%s/checks', entity), params, 204, function(err, entityUrl)
-      if err then
-        callback(err)
-        return
-      end
-      callback(nil, string.match(entityUrl, fmt('entities/%s/checks/(.*)', entity)))
-    end)
+    self:request('POST', fmt('/entities/%s/checks', entity), params, 204, callback)
   end
 
   self.checks.list = function(id, callback)
@@ -205,13 +181,7 @@ function Client:_init()
   self.agent_tokens.create = function(options, callback)
     local body = {}
     body['label'] = options.label
-    self:request('POST', '/agent_tokens', body, 201, function(err, tokenUrl)
-      if err then
-        callback(err)
-        return
-      end
-      callback(nil, string.match(tokenUrl, 'agent_tokens/(.*)'))
-    end)
+    self:request('POST', '/agent_tokens', body, 201, callback)
   end
 end
 

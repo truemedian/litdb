@@ -1,6 +1,6 @@
 return {
   name = "virgo-agent-toolkit/rackspace-monitoring-client",
-  version = "0.3.4",
+  version = "0.3.5",
   description = "Rackspace Monitoring Client",
   author = "Ryan Phillips <ryan.phillips@rackspace.com>",
   dependencies = {
