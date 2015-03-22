@@ -83,7 +83,7 @@ function ClientBase:request(method, path, payload, expectedStatusCode, callback)
   -- setup payload
   local extraHeaders = {}
   if payload then
-    if type(payload) == 'table' and self.headers['Content-Type'] == 'application/json' then
+    if type(payload) == 'table' then
       payload = JSON.stringify(payload)
     end
     table.insert(extraHeaders, { 'content-length', #payload })
