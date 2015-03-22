@@ -1,5 +1,5 @@
 --[[
-Copyright 2012 Rackspace
+Copyright 2015 Rackspace
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,6 +25,4 @@ function HttpResponseError:initialize(statusCode, method, path, data)
   self.data = data
 end
 
-local exports = {}
 exports.HttpResponseError = HttpResponseError
-return exports

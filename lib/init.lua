@@ -43,10 +43,9 @@ function ClientBase:initialize(host, options)
   self.tenantId = nil
   self._mfaCallback = nil
   self.options = misc.merge({}, options)
-  self.headers = {}
-  table.insert(self.headers, { 'user-agent', options.user_agent or 'agent/luvit-keystone-client' })
-  table.insert(self.headers, { 'content-type', 'application/json' })
-  table.insert(self.headers, { 'transfer-encoding', 'chunked' })
+  self.headers = {
+    { 'user-agent', options.user_agent or 'agent/luvit-keystone-client' }
+  }
 end
 
 function ClientBase:setToken(token, expiry)
@@ -81,12 +80,10 @@ end
 
 function ClientBase:request(method, path, payload, expectedStatusCode, callback)
   -- setup payload
-  local extraHeaders = {}
   if payload then
     if type(payload) == 'table' then
       payload = JSON.stringify(payload)
     end
-    table.insert(extraHeaders, { 'content-length', #payload })
   end
 
   -- setup path
@@ -96,13 +93,16 @@ function ClientBase:request(method, path, payload, expectedStatusCode, callback)
     path = fmt('%s/%s', self.host, path)
   end
 
-  local headers = misc.merge(self.headers, extraHeaders)
   local options = {
     url = path,
     headers = headers,
     method = method,
     body = payload
   }
+
+  if payload then
+    options.headers[#options.headers + 1] = { 'content-length', #payload }
+  end
 
   if process.env.HTTP_PROXY then
     options.proxy = process.env.HTTP_PROXY
