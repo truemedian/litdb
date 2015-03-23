@@ -1,6 +1,6 @@
-APP_FILES=$(shell find . -type f -name '*.lua')
+APP_FILES=$(shell find lib tests -type f -name '*.lua')
 
-all: lit
+all: lit $(APP_FILES)
 
 test: lit
 	./lit install
@@ -9,7 +9,7 @@ test: lit
 lit:
 	curl -L https://github.com/luvit/lit/raw/1.0.2/get-lit.sh | sh
 
-lint:
-	find . -name "*.lua" | xargs luacheck
+lint: $(APP_FILES)
+	find lib tests -name "*.lua" | xargs luacheck
 
 .PHONY: clean lint

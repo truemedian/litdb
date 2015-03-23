@@ -1,6 +1,8 @@
 luvit-split-stream
 ==================
 
+[![Build Status](https://travis-ci.org/virgo-agent-toolkit/luvit-split-stream.svg?branch=master)](https://travis-ci.org/virgo-agent-toolkit/luvit-split-stream)
+
 # Examples
 
 A simple example where Split takes in fragmented input data and emits chunks separated by `\n`s.

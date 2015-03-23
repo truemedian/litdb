@@ -18,7 +18,7 @@ function Split:initialize(options)
   self.mapper = options.mapper or function(data) return data end
 end
 
-function Split:_transform(data, encoding, callback)
+function Split:_transform(data, _, callback)
   if self.bufferSize and self.bufferSize < #self.buff + #data then
     self:emit('error', 'Split buffer overflow')
     self.falted = true
