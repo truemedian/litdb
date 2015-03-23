@@ -39,7 +39,7 @@ local SYSTEM_CLOCK_ID = {
   CLOCK_MONOTONIC = 1
 }
 
-function exports.get(options)
+function time(options)
 
   local timespec = ffi.new("struct timespec")
 
@@ -47,12 +47,14 @@ function exports.get(options)
 
   local time = {}
 
-  time.sec = tonumber(timespec.tv_sec)
-  time.nsec = tonumber(timespec.tv_nsec)
+  table.insert(time, tonumber(timespec.tv_sec))
+  table.insert(time, tonumber(timespec.tv_nsec))
 
-  if options.milliseconds then
-    time.msec = math.modf(tonumber(timespec.tv_nsec) / 10e5)[1]
+  if options and options.msec then
+    table.insert(time, math.modf(tonumber(timespec.tv_nsec) / 10e5)[1])
   end
 
-  return time
+  return unpack(time)
 end
+
+exports.time = time
