@@ -1,6 +1,6 @@
 return {
   name = "gsick/clocktime",
-  version = "0.0.3",
+  version = "0.0.4",
   description = "C clocktime wrapped in lua ffi and packaged for lit",
   author = "Gamaliel Sick",
   homepage = "https://github.com/gsick/lit-clocktime",

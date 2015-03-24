@@ -48,11 +48,13 @@ function time(options)
   local time = {}
 
   table.insert(time, tonumber(timespec.tv_sec))
-  table.insert(time, tonumber(timespec.tv_nsec))
 
   if options and options.msec then
-    table.insert(time, math.modf(tonumber(timespec.tv_nsec) / 10e5)[1])
+    local msec, dec = math.modf(tonumber(timespec.tv_nsec) / 10e5)
+    table.insert(time, msec)
   end
+
+  table.insert(time, tonumber(timespec.tv_nsec))
 
   return unpack(time)
 end
