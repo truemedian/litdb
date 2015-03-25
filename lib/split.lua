@@ -1,4 +1,5 @@
 local Transform = require('stream').Transform
+local timer = require('timer')
 
 local Split = Transform:extend()
 function Split:initialize(options)
@@ -24,8 +25,7 @@ function Split:_transform(data, _, callback)
     self.falted = true
   end
   if self.falted then
-    callback()
-    return
+    return timer.setImmediate(callback)
   end
   self.buff = self.buff .. data
   local p = self.buff:find(self.sep)
@@ -37,7 +37,7 @@ function Split:_transform(data, _, callback)
     self.buff = self.buff:sub(p + #self.sep, -1)
     p = self.buff:find(self.sep)
   end
-  callback()
+  timer.setImmediate(callback)
 end
 
 return Split
