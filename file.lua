@@ -16,7 +16,7 @@ limitations under the License.
 
 --]]
 exports.name = "luvit/fs"
-exports.version = "1.0.0"
+exports.version = "1.1.0"
 
 local uv = require('uv')
 local adapt = require('utils').adapt
@@ -441,9 +441,9 @@ function fs.WriteStream:open(callback)
     if callback then callback() end
   end)
 end
-function fs.WriteStream:_write(data, encoding, callback)
+function fs.WriteStream:_write(data, callback)
   if not self.fd then
-    return self:once('open', bind(self._write, self, data, encoding, callback))
+    return self:once('open', bind(self._write, self, data, callback))
   end
   fs.write(self.fd, nil, data, function(err, bytes)
     if err then
@@ -481,9 +481,9 @@ function fs.WriteStreamSync:open(callback)
   self:emit('open', self.fd)
   if callback then callback() end
 end
-function fs.WriteStreamSync:_write(data, encoding, callback)
+function fs.WriteStreamSync:_write(data, callback)
   if not self.fd then
-    return self:once('open', bind(self._write, self, data, encoding, callback))
+    return self:once('open', bind(self._write, self, data, callback))
   end
   local written, err = fs.writeSync(self.fd, -1, data)
   if err then
