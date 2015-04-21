@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/process"
-exports.version = "1.0.2"
+exports.version = "1.1.0"
 
 local env = require('env')
 local hooks = require('hooks')
@@ -103,7 +103,7 @@ function UvStreamWritable:initialize(handle)
   self.handle = handle
 end
 
-function UvStreamWritable:_write(data, encoding, callback)
+function UvStreamWritable:_write(data, callback)
   uv.write(self.handle, data, callback)
 end
 
