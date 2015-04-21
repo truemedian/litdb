@@ -7,7 +7,7 @@ test: lit
 	LUVI_APP=. LUVI_MAIN=tests/run.lua ./lit
 
 lit:
-	curl -L https://github.com/luvit/lit/raw/1.0.2/get-lit.sh | sh
+	curl -L https://github.com/luvit/lit/raw/1.1.4/get-lit.sh | sh
 
 lint: $(APP_FILES)
 	find lib tests -name "*.lua" | xargs luacheck

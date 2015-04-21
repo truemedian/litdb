@@ -1,16 +1,25 @@
 local Transform = require('stream').Transform
-local timer = require('timer')
+
+local function gsplit2(s, sep)
+  local lasti, done, g = 1, false, s:gmatch('(.-)'..sep..'()')
+  return function()
+    if done then return end
+    local v,i = g()
+    if s == '' or sep == '' then done = true return s end
+    if v == nil then done = true return -1, s:sub(lasti) end
+    lasti = i
+    return v
+  end
+end
 
 local Split = Transform:extend()
 function Split:initialize(options)
   options = options or {}
-
   Transform.initialize(self, options)
 
-  self.buff = ''
   self.sep = options.separator or '\n'
+  self.buffer = ''
   self.bufferSize = options.bufferSize
-  self.falted = false
 
   -- By default Split stream emits chunks directly. User can provide a mapper
   -- function that serves a purpose similar to a Transform stream. If the
@@ -19,25 +28,19 @@ function Split:initialize(options)
   self.mapper = options.mapper or function(data) return data end
 end
 
-function Split:_transform(data, _, callback)
-  if self.bufferSize and self.bufferSize < #self.buff + #data then
-    self:emit('error', 'Split buffer overflow')
-    self.falted = true
+function Split:_transform(data, callback)
+  if self.buffer then
+    data = self.buffer .. data
   end
-  if self.falted then
-    return timer.setImmediate(callback)
-  end
-  self.buff = self.buff .. data
-  local p = self.buff:find(self.sep)
-  while p do
-    local to_push = self.mapper(self.buff:sub(1, p - 1))
-    if to_push then
-      self:push(to_push)
+  for line, last in gsplit2(data, '[' .. self.sep .. ']') do
+    if type(line) == 'number' then
+      self.buffer = last
+    else
+      local mapped = self.mapper(line)
+      if mapped then self:push(mapped) end
     end
-    self.buff = self.buff:sub(p + #self.sep, -1)
-    p = self.buff:find(self.sep)
   end
-  timer.setImmediate(callback)
+  process.nextTick(callback)
 end
 
 return Split

@@ -1,6 +1,6 @@
 return {
   name = "virgo-agent-toolkit/split-stream",
-  version = "0.5.3",
+  version = "0.6.0",
   description = "a Transform stream that (re-)splits upstream string into chunks based on provided separator",
   contributors = {
     {
@@ -21,7 +21,7 @@ return {
   },
   licenses = {"Apache-2.0"},
   dependencies = {
-    "luvit/luvit@2.0.2"
+    "luvit/luvit@2.1.0"
   },
   files = {
     "!tests",
