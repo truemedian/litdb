@@ -1,13 +1,14 @@
 exports.name = "creationix/weblit-static"
-exports.version = "0.2.3"
+exports.version = "0.3.0"
 exports.dependencies = {
   "creationix/mime@0.1.0",
-  "creationix/coro-fs@1.2.3",
+  "creationix/hybrid-fs@0.1.0",
 }
 
 local getType = require("mime").getType
 local jsonStringify = require('json').stringify
-local makeChroot = require('coro-fs').chroot
+
+local makeChroot = require('hybrid-fs')
 
 return function (path)
 
