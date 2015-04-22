@@ -1,5 +1,5 @@
 exports.name = "creationix/ffi-loader"
-exports.version = "1.0.0"
+exports.version = "1.0.1"
 exports.url = "https://github.com/creationix/lit-ffi-loader"
 
 local pathJoin = require('luvi').path.join
@@ -30,7 +30,7 @@ return function (base, headerName)
 
   assert(entries and entries[1], "Missing shared library in : " .. dir)
 
-  local headerPath = pathJoin(base, headerName)
+  local headerPath = pathJoin(base, './' .. headerName)
   local libPath = pathJoin(dir, entries[1])
   if isBundle then
     ffi.cdef(bundle.readfile(headerPath))
