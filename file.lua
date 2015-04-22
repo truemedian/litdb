@@ -1,5 +1,5 @@
 exports.name = "creationix/ffi-loader"
-exports.version = "1.0.1"
+exports.version = "1.0.2"
 exports.url = "https://github.com/creationix/lit-ffi-loader"
 
 local pathJoin = require('luvi').path.join
@@ -33,7 +33,7 @@ return function (base, headerName)
   local headerPath = pathJoin(base, './' .. headerName)
   local libPath = pathJoin(dir, entries[1])
   if isBundle then
-    ffi.cdef(bundle.readfile(headerPath))
+    ffi.cdef((assert(bundle.readfile(headerPath))))
     return bundle.action(libPath, function (path)
       -- Load module
       return ffi.load(path)
