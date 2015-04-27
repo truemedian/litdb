@@ -1,6 +1,6 @@
 return {
   name = "squeek502/poller",
-  version = "0.2.0",
+  version = "0.2.1",
   description = "simple polling client that respects headers",
   author = {
     name="squeek"

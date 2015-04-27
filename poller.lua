@@ -103,9 +103,17 @@ function Poller:_poll()
 		["User-Agent"] = "luvit-poller",
 		["If-None-Match"] = self.etag,
 		["If-Modified-Since"] = if_modified_since,
-		["Accept"] = "*/*"
+		["Accept"] = "application/vnd.github.v3+json"
 	}
 	local request_headers = table_fallback(self.headers, default_request_headers)
+
+	-- in luvit 2.0+, headers need to be a table of tables, 
+	-- where each table is of the form { header, value }
+	local formatted_request_headers = {}
+	for key, value in pairs(request_headers) do
+		table.insert(formatted_request_headers, {key, value})
+	end
+	request_headers = formatted_request_headers
 
 	local protocol = self.parsed_url.protocol or "http"
 	local port = self.parsed_url.port or (protocol == "https" and 443 or 80)
