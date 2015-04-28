@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/net"
-exports.version = "1.1.0"
+exports.version = "1.1.1"
 
 local uv = require('uv')
 local timer = require('timer')
@@ -146,6 +146,7 @@ function Socket:keepalive(enable, delay)
 end
 
 function Socket:pause()
+  if not self._handle then return end
   uv.read_stop(self._handle)
 end
 
