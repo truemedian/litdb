@@ -16,7 +16,7 @@ limitations under the License.
 
 --]]
 exports.name = "luvit/readline"
-exports.version = "1.0.1"
+exports.version = "1.0.2"
 
 -- Heavily inspired by ljlinenoise : <http://fperrad.github.io/ljlinenoise/>
 
@@ -90,7 +90,7 @@ function Editor:insert(character)
   local position = self.position
   if #line == position - 1 then
     self.line = line .. character
-    self.position = position + 1
+    self.position = position + #character
     if self.promptLength + #self.line < self.columns then
       self.stdout:write(character)
     else
