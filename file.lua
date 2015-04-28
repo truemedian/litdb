@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/https"
-exports.version = "1.0.0"
+exports.version = "1.0.1"
 
 local fmt = require('string').format
 local tls = require('tls')
@@ -65,7 +65,7 @@ function exports.request(options, callback)
   end
   options.port = options.port or 443
   options.connect_emitter = 'secureConnection'
-  options.socket = options.socket or createConnection(options.port, options.host)
+  options.socket = options.socket or createConnection(options)
   return http.request(options, callback)
 end
 
