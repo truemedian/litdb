@@ -7,7 +7,7 @@ local os = require "os"
 
 local function secs_to_milli(secs)
 	if secs == nil then secs = 0 end
-	if type(secs) ~= number then secs = tonumber(secs) end 
+	if type(secs) ~= "number" then secs = tonumber(secs) end 
 	return secs * 1000
 end
 
