@@ -16,7 +16,7 @@ limitations under the License.
 
 --]]
 exports.name = "luvit/fs"
-exports.version = "1.1.1"
+exports.version = "1.1.2"
 
 local uv = require('uv')
 local adapt = require('utils').adapt
@@ -216,6 +216,14 @@ function fs.scandirSync(path)
     end
   end
 end
+function fs.exists(path, callback)
+  local stat,err = uv.fs_stat(path)
+  callback(err,stat~=nil)
+end
+function fs.existsSync(path)
+  local stat,err = uv.fs_stat(path)
+  return stat~=nil
+end
 function fs.stat(path, callback)
   return adapt(callback, uv.fs_stat, path)
 end
@@ -263,11 +271,44 @@ function fs.ftruncate(fd, offset, callback)
   end
   return adapt(callback, uv.fs_ftruncate, fd, offset)
 end
+function fs.truncate(fname, offset, callback)
+  local ot = type(offset)
+  if (ot == 'function' or ot == 'thread') and
+     (callback == nil) then
+    callback, offset = offset, nil
+  end
+  if offset == nil then
+    offset = 0
+  end
+  fs.open(fname,'w', function(err,fd)
+    if(err) then 
+      callback(err) 
+    else
+      local cb = function(err)
+        uv.fs_close(fd)
+        callback(err)
+      end
+      return adapt(callback, uv.fs_ftruncate, fd, offset)
+    end
+  end)
+end
 function fs.ftruncateSync(fd, offset)
   if offset == nil then
     offset = 0
   end
   return uv.fs_ftruncate(fd, offset)
+end
+function fs.truncateSync(fname, offset)
+  if offset == nil then
+    offset = 0
+  end
+  local fd, err = fs.openSync(fname, "w")
+  local ret
+  if fd then
+    ret, err = uv.fs_ftruncate(fd, offset)
+    fs.closeSync(fd)
+  end
+  return ret,err
 end
 function fs.sendfile(outFd, inFd, offset, length, callback)
   return adapt(callback, uv.fs_sendfile, outFd, inFd, offset, length)
@@ -425,7 +466,7 @@ function fs.WriteStream:initialize(path, options)
 
   if not self.fd then self:open() end
 
-  self:on('end', bind(self.close, self))
+  self:on('finish', bind(self.close, self))
 end
 function fs.WriteStream:open(callback)
   if self.fd then self:destroy() end
@@ -462,6 +503,9 @@ function fs.WriteStream:destroy()
     fs.close(self.fd)
     self.fd = nil
   end
+end
+function fs.createWriteStream(path, options)
+  return fs.WriteStream:new(path, options)
 end
 
 fs.WriteStreamSync = fs.WriteStream:extend()
@@ -576,4 +620,32 @@ function fs.ReadStream:destroy(err)
 end
 function fs.createReadStream(path, options)
   return fs.ReadStream:new(path, options)
+end
+function fs.appendFile(filename, data, callback)
+  callback = callback or function() end
+  local function write(fd, offset, buffer, callback)
+    local function onWrite(err, written)
+      if err then return fs.close(fd, function() callback(err) end) end
+      if written == #buffer then
+        fs.close(fd, callback)
+      else
+        offset = offset + written
+        buffer = buffer:sub(offset)
+        write(fd, offset, buffer, callback)
+      end
+    end
+    fs.write(fd, -1, data, onWrite)
+  end
+  fs.open(filename, "a", 438 --[[ 0666 ]], function(err, fd)
+    if err then return callback(err) end
+    write(fd, -1, data, callback)
+  end)
+end
+function fs.appendFileSync(path, data)
+  local written
+  local fd, err = fs.openSync(path, 'a')
+  if not fd then return err end
+  written, err = fs.writeSync(fd, -1, data)
+  if not written then fs.close(fd) ; return err end
+  fs.close(fd)
 end
