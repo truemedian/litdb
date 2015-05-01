@@ -9,6 +9,7 @@ GET / -> api json {
   blobs = "/blobs/{hash}"
   trees = "/trees/{hash}"
   packages = "/packages{/author}{/tag}{/version}"
+  ...
 }
 GET /blobs/$HASH -> raw data
 GET /trees/$HASH -> tree json {
@@ -44,15 +45,30 @@ GET /packages/$AUTHOR/$TAG/$VERSION -> tag json {
   }
   message = "..."
 }
+
+GET /search/$query -> list of matches
+
 ]]
 
 local pathJoin = require('luvi').path.join
 local digest = require('openssl').digest.digest
 local date = require('os').date
 local jsonStringify = require('json').stringify
+local jsonParse = require('json').parse
 local core = require('./autocore')
 local db = core.db
 local modes = require('git').modes
+
+
+local litVersion = "Lit " .. require('../package').version
+
+local function hex_to_char(x)
+  return string.char(tonumber(x, 16))
+end
+
+local function unescape(url)
+  return url:gsub("%%(%x%x)", hex_to_char)
+end
 
 return function (prefix)
 
@@ -81,9 +97,10 @@ return function (prefix)
         blobs = prefix .. "/blobs/{hash}",
         trees = prefix .. "/trees/{hash}",
         authors = prefix .. "/packages",
-        names = prefix .. "/packages{/author}",
-        versions = prefix .. "/packages{/author}{/name}",
-        package = prefix .. "/packages{/author}{/name}{/version}",
+        names = prefix .. "/packages/{author}",
+        versions = prefix .. "/packages/{author}/{name}",
+        package = prefix .. "/packages/{author}/{name}/{version}",
+        search = prefix .. "/search/{query}",
       }
     end,
     "^/packages/([^/]+)/(.+)/v([^/]+)$", function (author, name, version)
@@ -118,12 +135,63 @@ return function (prefix)
       end
       return next(authors) and authors
     end,
+    "^/search/(.*)$", function (query)
+      local matches = {}
+      for author in db.authors() do
+        if author:match(query) then
+          matches[author] = {
+            type = "author",
+            url = prefix .. "/packages/" .. author
+          }
+        end
+        for name in db.names(author) do
+          if name:match(query) then
+            local version, hash = db.match(author, name)
+            local tag = db.loadAs("tag", hash)
+            local meta = tag.message:match("%b{}")
+            if meta then
+              meta = jsonParse(meta)
+            else
+              meta = {}
+            end
+            meta.type = "package"
+            meta.url = prefix .. "/packages/" .. author .. "/" .. name .. "/v" .. version
+            meta.version = version
+            meta.tagger = tag.tagger
+            matches[author .. "/" .. name] = meta
+          end
+        end
+      end
+      return {
+        query = query,
+        matches = matches,
+      }
+    end
   }
 
   return function (req)
+
+    if req.method == "OPTIONS" then
+      -- Wide open CORS headers
+      return {
+        code = 204,
+        {"Access-Control-Allow-Origin", "*"},
+        {'Access-Control-Allow-Credentials', 'true'},
+        {'Access-Control-Allow-Methods', 'GET, OPTIONS'},
+        -- Custom headers and headers various browsers *should* be OK with but aren't
+        {'Access-Control-Allow-Headers', 'DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control'},
+        -- Tell client that this pre-flight info is valid for 20 days
+        {'Access-Control-Max-Age', 1728000},
+        {'Content-Type', 'text/plain charset=UTF-8'},
+        {'Content-Length', 0},
+      }
+    end
+
     if not (req.method == "GET" or req.method == "HEAD") then
       return nil, "Must be GET or HEAD"
     end
+
+
     local path = pathJoin(req.path)
     local headers = {}
     for i = 1, #req do
@@ -137,7 +205,13 @@ return function (prefix)
     for i = 1, #routes, 2 do
       local match = {path:match(routes[i])}
       if #match > 0 then
-        body, extra = routes[i + 1](unpack(match))
+        for j = 1, #match do
+          match[j] = unescape(match[j])
+        end
+        local success, err = pcall(function ()
+          body, extra = routes[i + 1](unpack(match))
+        end)
+        if not success then body = {"error", err} end
         break
       end
     end
@@ -148,7 +222,7 @@ return function (prefix)
     local res = {
       code = 200,
       {"Date", date("!%a, %d %b %Y %H:%M:%S GMT")},
-      {"Server", "lit"},
+      {"Server", litVersion},
     }
     if extra then
       for i = 1, #extra do
@@ -164,6 +238,11 @@ return function (prefix)
     local etag = string.format('"%s"', digest("sha1", body))
     res[#res + 1] = {"ETag", etag}
     res[#res + 1] = {"Content-Length", #body}
+
+    -- Add CORS headers
+    res[#res + 1] = {'Access-Control-Allow-Origin', '*'}
+    res[#res + 1] = {'Access-Control-Allow-Methods', 'GET, OPTIONS'}
+    res[#res + 1] = {'Access-Control-Allow-Headers', 'DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control'}
 
     if headers["if-none-match"] == etag then
       res.code = 304
