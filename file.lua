@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/http"
-exports.version = "1.1.0"
+exports.version = "1.1.1"
 
 local net = require('net')
 local url = require('url')
@@ -392,6 +392,18 @@ function ClientRequest:done(data, cb)
     self:_done(ended.data, ended.cb)
   else
     self.ended = ended
+  end
+end
+
+function ClientRequest:setTimeout(msecs, callback)
+  if self.socket then
+    self.socket:setTimeout(msecs,callback)
+  end
+end
+
+function ClientRequest:destroy()
+  if self.socket then
+    self.socket:destroy()
   end
 end
 
