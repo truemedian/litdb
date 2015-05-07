@@ -1,5 +1,6 @@
 local Transform = require('stream').Transform
 
+
 local function gsplit2(s, sep)
   local lasti, done, g = 1, false, s:gmatch('(.-)'..sep..'()')
   return function()
