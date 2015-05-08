@@ -17,7 +17,19 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/process"
-exports.version = "1.1.0"
+exports.version = "1.1.0-1"
+exports.dependencies = {
+  "luvit/hooks@1.0.0",
+  "luvit/timer@1.0.0",
+  "luvit/utils@1.0.0",
+  "luvit/core@1.0.2",
+  "luvit/stream@1.1.0",
+  "luvit/pretty-print@1.10.2",
+}
+exports.license = "Apache 2"
+exports.homepage = "https://github.com/luvit/luvit/blob/master/deps/process.lua"
+exports.description = "Node-style global process table for luvit"
+exports.tags = {"luvit", "process"}
 
 local env = require('env')
 local hooks = require('hooks')
