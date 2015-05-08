@@ -1,14 +1,17 @@
 exports.name = "creationix/weblit-static"
-exports.version = "0.3.0"
+exports.version = "0.2.4"
 exports.dependencies = {
   "creationix/mime@0.1.0",
-  "creationix/hybrid-fs@0.1.0",
+  "creationix/coro-fs@1.2.3",
 }
+exports.description = "The static middleware for Weblit serves static files from disk."
+exports.tags = {"weblit", "middleware", "static"}
+exports.license = "MIT"
+exports.author = { name = "Tim Caswell" }
 
 local getType = require("mime").getType
 local jsonStringify = require('json').stringify
-
-local makeChroot = require('hybrid-fs')
+local makeChroot = require('coro-fs').chroot
 
 return function (path)
 
