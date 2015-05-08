@@ -1,6 +1,6 @@
 return {
   name = "creationix/weblit",
-  version = "0.2.3",
+  version = "0.2.3-1",
   dependencies = {
     "creationix/weblit-app@0.2.5",
     "creationix/weblit-auto-headers@0.1.2",
@@ -17,4 +17,5 @@ return {
   tags = {"weblit", "meta"},
   license = "MIT",
   author = { name = "Tim Caswell" },
+  homepage = "https://github.com/creationix/weblit",
 }
