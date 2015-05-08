@@ -1,5 +1,5 @@
 exports.name = "creationix/weblit-app"
-exports.version = "0.2.4"
+exports.version = "0.2.5"
 exports.dependencies = {
   'creationix/coro-wrapper@1.0.0',
   'creationix/coro-tcp@1.0.5',
@@ -7,6 +7,11 @@ exports.dependencies = {
   'luvit/http-codec@1.0.0',
   'luvit/querystring@1.0.0',
 }
+exports.description = "Weblit is a webapp framework designed around routes and middleware layers."
+exports.tags = {"weblit", "router", "framework"}
+exports.license = "MIT"
+exports.author = { name = "Tim Caswell" }
+
 --[[
 Web App Framework
 
