@@ -1,12 +1,16 @@
 exports.name = "creationix/msgpack"
-exports.version = "1.0.2"
+exports.version = "1.0.2-1"
 exports.description = "A pure lua implementation of the msgpack format."
 exports.homepage = "https://github.com/creationix/msgpack-lua"
+exports.author = "Tim Caswell <tim@creationix.com>"
 exports.keywords = {"codec", "msgpack"}
 exports.license = "MIT"
 
 local floor = math.floor
 local ceil = math.ceil
+local frexp = math.frexp
+local ldexp = math.ldexp
+local huge = math.huge
 local char = string.char
 local byte = string.byte
 local sub = string.sub
@@ -18,15 +22,15 @@ local bor = bit.bor
 local concat = table.concat
 
 local function write16(num)
-  return char(rshift(num, 8))
-    .. char(band(num, 0xff))
+  return char(rshift(num, 8), band(num, 0xff))
 end
 
 local function write32(num)
-  return char(rshift(num, 24))
-    .. char(band(rshift(num, 16), 0xff))
-    .. char(band(rshift(num, 8), 0xff))
-    .. char(band(num, 0xff))
+  return char(
+    rshift(num, 24),
+    band(rshift(num, 16), 0xff),
+    band(rshift(num, 8), 0xff),
+    band(num, 0xff))
 end
 
 local function read16(data, offset)
@@ -50,7 +54,14 @@ local function encode(value)
   elseif t == "boolean" then
     return value and "\xc3" or "\xc2"
   elseif t == "number" then
-    if floor(value) == value then
+    if value == huge then
+      -- Encode as 32-bit Infinity
+      return "\xca\x7f\xf0\x00\x00"
+    elseif value == -huge then
+      -- Encode as 32-bit -Infinity
+      return "\xca\xff\xf0\x00\x00"
+    elseif floor(value) == value then
+      -- Encode as smallest integer type that fits
       if value >= 0 then
         if value < 0x80 then
           return char(value)
@@ -90,7 +101,34 @@ local function encode(value)
         end
       end
     else
-      error("TODO: floating point numbers")
+      local fraction, exponent = frexp(value)
+      if fraction ~= fraction then
+        -- Encode as 32-bit NaN
+        return "\xcb\xff\xf8\x00\x00"
+      end
+      local sign
+      if fraction < 0 then
+        sign = 0x80
+        fraction = -fraction
+      else
+        sign = 0
+      end
+      p{sign=sign==0x80,exponent=exponent,fraction=fraction}
+      -- Exponent encoding as offset binary at 1023
+      exponent = exponent + 0x3fe
+      fraction = (fraction * 2.0 - 1.0) * ldexp(0.5, 53)
+      local high = floor(fraction / 0x100000000)
+      return char(0xCB,
+        -- sign and first 7 bits of exponent
+        bor(sign, rshift(exponent, 4)),
+        -- last 4 bits of exponent and first 4 bits of exponent
+        bor(lshift(band(exponent, 0xf), 4), rshift(high, 16)),
+        band(rshift(high, 8), 0xff),
+        band(high, 0xff),
+        band(rshift(fraction, 24), 0xff),
+        band(rshift(fraction, 16), 0xff),
+        band(rshift(fraction, 8), 0xff),
+        band(fraction, 0xff))
     end
   elseif t == "string" then
     local l = #value
@@ -219,8 +257,26 @@ local function decode(data, offset)
     return readmap(read16(data, offset + 2), data, offset, offset + 3)
   elseif c == 0xdf then
     return readmap(read32(data, offset + 2) % 0x100000000, data, offset, offset + 5)
+  elseif c == 0xcb then
+    local a, b = byte(data, offset + 2, offset + 3)
+    local sign = band(a, 0x80) > 0
+    local exponent = bor(
+      lshift(band(a, 0x7f), 4),
+      rshift(band(b, 0xf0), 4)) - 0x3fe
+    local fraction =
+      bor(
+        lshift(band(b, 0xf), 16).
+        lshift(byte(data, offset + 4), 8),
+        byte(data, offset + 5),
+        byte(data, offset + 4))
+    fraction = (fraction / ldexp(0.5, 53)+ 1.0) / 2.0
+
+    p{sign=sign,exponent=exponent, fraction=fraction}
+    error("TODO: 64-bit double-precision floating point numbers")
+  elseif c == 0xca then
+    error("TODO: 32-bit single-precision floating point numbers")
   else
-    error("TODO: more types: " .. string.format("%02x", c))
+    error("TODO: more types: " .. string.format("0x%02x", c))
   end
 end
 
