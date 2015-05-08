@@ -1,12 +1,14 @@
 exports.name = "creationix/ffi-loader"
-exports.version = "1.0.2"
-exports.url = "https://github.com/creationix/lit-ffi-loader"
+exports.version = "1.0.2-1"
+exports.homepage = "https://github.com/creationix/lit-ffi-loader"
+exports.obsolete = true
+exports.description = "Deprecated helper for loading ffi modules."
+exports.license = "MIT"
 
 local pathJoin = require('luvi').path.join
 local bundle = require('luvi').bundle
 local uv = require('uv')
 local ffi = require('ffi')
-
 
 return function (base, headerName)
   local isBundle = false
