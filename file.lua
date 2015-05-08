@@ -17,7 +17,18 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/http"
-exports.version = "1.1.1"
+exports.version = "1.1.1-1"
+exports.dependencies = {
+  "luvit/net@1.1.1",
+  "luvit/url@1.0.4",
+  "luvit/http-codec@1.0.0",
+  "luvit/stream@1.1.0",
+  "luvit/utils@1.0.0",
+}
+exports.license = "Apache 2"
+exports.homepage = "https://github.com/luvit/luvit/blob/master/deps/http.lua"
+exports.description = "Node-style http client and server module for luvit"
+exports.tags = {"luvit", "http", "stream"}
 
 local net = require('net')
 local url = require('url')
