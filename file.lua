@@ -1,5 +1,9 @@
 exports.name = "creationix/weblit-etag-cache"
-exports.version = "0.1.0"
+exports.version = "0.1.1"
+exports.description = "The etag-cache middleware caches WebLit responses in ram and uses etags to support conditional requests."
+exports.tags = {"weblit", "middleware", "etag"}
+exports.license = "MIT"
+exports.author = { name = "Tim Caswell" }
 
 local function clone(headers)
   local copy = setmetatable({}, getmetatable(headers))
