@@ -1,8 +1,8 @@
 exports.name = "creationix/msgpack"
-exports.version = "1.0.2-1"
+exports.version = "1.0.3"
 exports.description = "A pure lua implementation of the msgpack format."
 exports.homepage = "https://github.com/creationix/msgpack-lua"
-exports.author = "Tim Caswell <tim@creationix.com>"
+exports.author = { name = "Tim Caswell" }
 exports.keywords = {"codec", "msgpack"}
 exports.license = "MIT"
 
