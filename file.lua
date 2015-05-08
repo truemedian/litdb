@@ -1,5 +1,5 @@
 exports.name = "creationix/weblit-websocket"
-exports.version = "0.2.3"
+exports.version = "0.2.3-1"
 exports.dependencies = {
   "creationix/websocket-codec@1.0.2"
 }
@@ -7,6 +7,7 @@ exports.description = "The websocket middleware for Weblit enables handling webs
 exports.tags = {"weblit", "middleware", "websocket"}
 exports.license = "MIT"
 exports.author = { name = "Tim Caswell" }
+exports.homepage = "https://github.com/creationix/weblit/blob/master/libs/weblit-websocket.lua"
 
 local websocketCodec = require('websocket-codec')
 
