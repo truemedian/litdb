@@ -17,9 +17,16 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/https"
-exports.version = "1.0.1"
+exports.version = "1.0.1-1"
+exports.dependencies = {
+  "luvit/tls@1.1.0",
+  "luvit/http@1.1.1",
+}
+exports.license = "Apache 2"
+exports.homepage = "https://github.com/luvit/luvit/blob/master/deps/https.lua"
+exports.description = "Node-style https client and server module for luvit"
+exports.tags = {"luvit", "https", "stream"}
 
-local fmt = require('string').format
 local tls = require('tls')
 local http = require('http')
 
@@ -61,7 +68,7 @@ end
 function exports.request(options, callback)
   options = http.parseUrl(options)
   if options.protocol and options.protocol ~= 'https' then
-    error(fmt('Protocol %s not supported', options.protocol))
+    error(string.format('Protocol %s not supported', options.protocol))
   end
   options.port = options.port or 443
   options.connect_emitter = 'secureConnection'
