@@ -1,10 +1,11 @@
 return {
   name = "creationix/termbox",
-  version = "1.0.6",
+  version = "1.1.0",
   homepage = "https://github.com/creationix/lit-termbox",
-  dependencies = {
-    "creationix/ffi-loader@1.0.0",
-  },
+  description = "FFI bindings to the termbox tty library",
+  tags = {"ffi", "tty"},
+  author = { name = "Tim Caswell" },
+  license = "MIT",
   files = {
     "*.lua",
     "*.h",
