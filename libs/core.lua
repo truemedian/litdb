@@ -255,7 +255,7 @@ return function (db, config, getKey)
           local message = string.format("%s %s ~= %s/%s",
             alias, meta.name, author, name)
           log("alias conflict (disk)", message, "failure")
-        elseif meta.version ~= version then
+        elseif meta.version:match("%d+%.%d+%.%d+") ~= version:match("%d+%.%d+%.%d+") then
           local message = string.format("%s %s ~= %s",
             alias, meta.version, version)
           log("version mismatch (disk)", message, "highlight")
@@ -405,6 +405,12 @@ return function (db, config, getKey)
 
   local function importBlob(writer, path, hash)
     local data = db.loadAs("blob", hash)
+    local base = path:match("^(.*)%.lua$")
+    if base then
+      -- TODO: add an option to disable this in case you want uncompiled lua files.
+      log("compiling", path)
+      data = string.dump(loadstring(data, "bundle:" .. path))
+    end
     writer:add(path, data, 9)
   end
 
