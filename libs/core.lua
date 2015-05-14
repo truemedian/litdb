@@ -255,7 +255,7 @@ return function (db, config, getKey)
           local message = string.format("%s %s ~= %s/%s",
             alias, meta.name, author, name)
           log("alias conflict (disk)", message, "failure")
-        elseif meta.version:match("%d+%.%d+%.%d+") ~= version:match("%d+%.%d+%.%d+") then
+        elseif version and meta.version:match("%d+%.%d+%.%d+") ~= version:match("%d+%.%d+%.%d+") then
           local message = string.format("%s %s ~= %s",
             alias, meta.version, version)
           log("version mismatch (disk)", message, "highlight")
@@ -457,8 +457,7 @@ return function (db, config, getKey)
     local fd = assert(uv.fs_open(tempFile, "w", 511)) -- 0777
 
     local binSize
-
-    if meta.luvi and (normalize(meta.luvi.version) ~= normalize(luvi.version) or meta.luvi.flavor ~= "regular") then
+    if meta.luvi and not (meta.luvi.flavor == "regular" and semver.gte(luvi.version, meta.luvi.version)) then
       local url = luviUrl(meta.luvi)
       log("downloading custom luvi", url)
       -- TODO: stream the binary and show progress
