@@ -14,8 +14,8 @@ storage.leaves(path) -> iter - Iterate over node children of path
                                (empty iter if not found)
 ]]
 
-return function (path)
-  local fs = require('coro-fs').chroot(path)
+return function (rootPath)
+  local fs = require('coro-fs').chroot(rootPath)
 
   -- Initialize the git file storage tree if it does't exist yet
   if not fs.access("HEAD") then
@@ -113,12 +113,12 @@ end
   end
 
   local function iter(path, filter)
-    local iter, err = fs.scandir(path)
-    if not iter then
+    local it, err = fs.scandir(path)
+    if not it then
       if err:match("^ENOENT:") then
         return function() end
       end
-      assert(iter, err)
+      assert(it, err)
     end
     return function ()
       while true do
