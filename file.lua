@@ -18,7 +18,7 @@ limitations under the License.
 
 if exports then
   exports.name = "luvit/require"
-  exports.version = "1.2.0"
+  exports.version = "1.2.0-1"
   exports.homepage = "https://github.com/luvit/luvit/blob/master/deps/require.lua"
   exports.description = "Luvit's custom require system with relative requires and sane search paths."
   exports.tags = {"luvit", "require"}
@@ -250,7 +250,7 @@ function Module:require(name)
     local success, value = pcall(realRequire, name)
     if success then return value end
     if not success then
-      error("No such module '" .. name .. "' in '" .. self.path .. "'")
+      error("No such module '" .. name .. "' in '" .. self.path .. "'\r\n" ..  value)
     end
   end
 
