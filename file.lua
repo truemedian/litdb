@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/process"
-exports.version = "1.1.0-2"
+exports.version = "1.1.0-3"
 exports.dependencies = {
   "luvit/hooks@1.0.0",
   "luvit/timer@1.0.0",
@@ -85,13 +85,17 @@ end
 local signalWraps = {}
 
 local function on(self, _type, listener)
-  if not signalWraps[_type] then
-    local signal = uv.new_signal()
-    signalWraps[_type] = signal
-    uv.unref(signal)
-    uv.signal_start(signal, _type, function() self:emit(_type) end)
+  if _type == "error" then
+    Emitter.on(self, "error", listener)
+  else
+    if not signalWraps[_type] then
+      local signal = uv.new_signal()
+      signalWraps[_type] = signal
+      uv.unref(signal)
+      uv.signal_start(signal, _type, function() self:emit(_type) end)
+    end
+    Emitter.on(self, _type, listener)
   end
-  Emitter.on(self, _type, listener)
 end
 
 local function removeListener(self, _type, listener)
