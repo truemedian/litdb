@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/net"
-exports.version = "1.1.1-1"
+exports.version = "1.1.1-2"
 exports.dependencies = {
   "luvit/timer@1.0.0",
   "luvit/utils@1.0.0",
@@ -127,7 +127,7 @@ function Socket:_read(n)
     end
   end
 
-  if self.connecting then
+  if self._connecting then
     self:once('connect', utils.bind(self._read, self, n))
   elseif not self._reading then
     self._reading = true
@@ -156,8 +156,15 @@ function Socket:keepalive(enable, delay)
 end
 
 function Socket:pause()
+  Duplex.pause(self)
   if not self._handle then return end
+  self._reading = false
   uv.read_stop(self._handle)
+end
+
+function Socket:resume()
+  Duplex.resume(self)
+  self:_read(0)
 end
 
 function Socket:connect(...)
