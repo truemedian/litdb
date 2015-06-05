@@ -1,9 +1,9 @@
 exports.name = "creationix/weblit-app"
-exports.version = "0.2.6"
+exports.version = "0.2.6-1"
 exports.dependencies = {
   'creationix/coro-wrapper@1.0.0',
   'creationix/coro-tcp@1.0.5',
-  'creationix/coro-tls@1.1.3',
+  'creationix/coro-tls@1.2.0',
   'luvit/http-codec@1.0.0',
   'luvit/querystring@1.0.0',
 }
@@ -21,8 +21,11 @@ local httpCodec = require('http-codec')
 local tlsWrap = require('coro-tls').wrap
 local parseQuery = require('querystring').parse
 
--- Ignore SIGPIPE
-require('uv').new_signal():start("sigpipe")
+-- Ignore SIGPIPE if it exists on platform
+local uv = require('uv')
+if uv.constants.SIGPIPE then
+  uv.new_signal():start("sigpipe")
+end
 
 local server = {}
 local handlers = {}
