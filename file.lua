@@ -1,5 +1,5 @@
 exports.name = "creationix/semver"
-exports.version = "1.0.3"
+exports.version = "1.0.4"
 exports.homepage = "https://github.com/luvit/lit/blob/master/deps/prompt.lua"
 exports.description = "Parser, comparer and matcher for semantic versions strings."
 exports.tags = {"semver"}
@@ -34,7 +34,7 @@ function normalize(version)
 end
 exports.normalize = normalize
 
--- Return true is first is greater than ot equal to the second
+-- Return true is first is greater than or equal to the second
 -- nil counts as lowest value in this case
 function exports.gte(first, second)
   if not second or first == second then return true end
