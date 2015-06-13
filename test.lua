@@ -1,22 +1,29 @@
+local fs = require('fs')
+local https = require('https')
 local http = require('http')
-
-local options = {
-  host = '127.0.0.1',        -- proxy ip
-  port = '80',                 -- proxy port
-  path = 'www.google.com:80',  -- what to proxy to
-  method = 'CONNECT',
-  headers = {
-    {'host', 'proxy'}          -- proxy vhost on host
-  }
+ 
+local opts = {
+  host = 'agent-endpoint-dfw.monitoring.api.rackspacecloud.com',
+  path = '/upgrades/test/rackspace-monitoring-agent-x64.msi',
+  rejectUnauthorized = false
 }
 
-local proxy = http.request(options)
-proxy:on('connect', function(response, socket, headers)
-  http.get({host='www.google.com', socket=socket, connect_emitter='alreadyConnected'}, function(response)
-    response:on('data', function(chunk)
-      p('http data', chunk)
-    end)
+--local opts = {
+--  host = 'gensho.acc.umu.se',
+--  path = '/mirror/ubuntu-releases/14.04.2/ubuntu-14.04.2-server-amd64.iso'
+--}
+
+-- local opts = {
+--   host = 'gensho.acc.umu.se',
+--   path = '/mirror/ubuntu-releases/14.04.2/ubuntu-14.04.2-server-amd64.iso',
+--    rejectUnauthorized = false
+-- }
+ 
+local req = https.request(opts, function(res)
+  local stream = fs.createWriteStream('out.msi')
+  stream:on('end', function()
+    p(res.headers['content-length'])
   end)
-  socket:emit('alreadyConnected', socket)
+  res:pipe(stream)
 end)
-proxy:done()
+req:done()
