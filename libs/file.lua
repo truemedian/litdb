@@ -54,6 +54,8 @@ function _FileLogger:initialize(options)
     self.dateformat = options.dateformat
   end
 
+  self.parent_level = options.parent_level
+
   if type(options.path) ~= "string" then
     error("path: " .. Print.dump(options.path) .. " is not a string")
   end
@@ -79,17 +81,21 @@ function _FileLogger:initialize(options)
   self.sync = options.sync or false
 end
 
-function _FileLogger:log(parent_level, level, s, ...)
+function _FileLogger:log(level, s, ...)
 
-  local final_level = self.level or parent_level
+  local final_level = self.level or self.parent_level
 
   if level.value <= final_level.value then
-    if sync then
+    if self.sync then
       FS.writeSync(self.fd, 0, Utils.finalString(self.dateformat, level, s, ...) .. "\n")
     else
       FS.write(self.fd, 0, Utils.finalString(self.dateformat, level, s, ...) .. "\n", _noop)
     end
   end
+end
+
+function _FileLogger:setParentLevel(level)
+  self.parent_level = level
 end
 
 function _FileLogger:close()

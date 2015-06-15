@@ -34,7 +34,7 @@ function _Configuration:initialize(options)
   if options and Fs.accessSync(options.path) then
     self.path = options.path
   else
-    error('no configuration file found')
+    error("no configuration file found")
   end
 
 end

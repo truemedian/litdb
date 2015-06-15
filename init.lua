@@ -62,6 +62,8 @@ function _Logger:initialize(options)
       options.dateformat = self.dateformat
     end
 
+    options.parent_level = self.level
+
     if options.type == "file" then
       logger = FileLogger:new(options)
     elseif options.type == "console" then
@@ -85,14 +87,23 @@ function _Logger:getName()
 end
 
 function _Logger:setLevel(level)
+  local done = false
   if type(level) == "string" and Levels[String.lower(level)] ~= nil then
     self.level = Levels[String.lower(level)]
+    done = true
   else
     for k,v in pairs(Levels) do
       if level == Levels[k] then
         self.level = level
+        done = true
         break
       end
+    end
+  end
+
+  if done then
+    for key, logger in pairs(self.loggers) do
+      logger:setParentLevel(self.level)
     end
   end
 end
@@ -106,8 +117,8 @@ function _Logger:log(level, s, ...)
     return
   end
 
-  for key, value in pairs(self.loggers) do
-    value:log(self.level, level, s, ...)
+  for key, logger in pairs(self.loggers) do
+    logger:log(level, s, ...)
   end
 end
 
@@ -118,8 +129,8 @@ for key,value in pairs(Levels) do
 end
 
 function _Logger:close()
-  for i, value in ipairs(self.loggers) do
-    value:close()
+  for i, logger in ipairs(self.loggers) do
+    logger:close()
   end
 end
 

@@ -30,6 +30,15 @@ local Print  = require("pretty-print")
 local Levels = require("./utils").Levels
 local Utils  = require("./utils")
 
+-- Uggly mapping
+local colors = {
+  [Levels["error"].value] = "err",
+  [Levels["warn"].value] = "number",
+  [Levels["info"].value] = "string",
+  [Levels["debug"].value] = "",
+  [Levels["trace"].value] = "nil"
+}
+
 local _ConsoleLogger = Object:extend()
 
 function _ConsoleLogger:initialize(options)
@@ -46,13 +55,14 @@ function _ConsoleLogger:initialize(options)
     self.dateformat = options.dateformat
   end
 
-  self.color = options.color or false
+  self.parent_level = options.parent_level
 
+  self.color = options.color or false
 end
 
-function _ConsoleLogger:log(parent_level, level, s, ...)
+function _ConsoleLogger:log(level, s, ...)
 
-  local final_level = self.level or parent_level
+  local final_level = self.level or self.parent_level
 
   if level.value > final_level.value then
     return
@@ -60,24 +70,16 @@ function _ConsoleLogger:log(parent_level, level, s, ...)
 
   local final_string = Utils.finalString(self.dateformat, level, s, ...)
   if self.color then
-    if level.value == Levels["error"].value then
-      print(Print.colorize("red", final_string))
-    elseif level.value == Levels["warn"].value then
-      print(Print.colorize("yellow", final_string))
-    elseif level.value == Levels["info"].value then
-      print(final_string)
-    elseif level.value == Levels["debug"].value then
-      print(Print.colorize("green", final_string))
-    elseif level.value == Levels["trace"].value then
-      print(Print.colorize("cyan", final_string))
-    end
+    print(Print.colorize(colors[level.value], final_string))
   else
     print(final_string)
   end
 end
 
-function _ConsoleLogger:close()
-
+function _ConsoleLogger:setParentLevel(level)
+  self.parent_level = level
 end
+
+function _ConsoleLogger:close() end
 
 return _ConsoleLogger
