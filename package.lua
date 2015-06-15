@@ -1,10 +1,23 @@
 return {
   name = "gsick/clocktime",
-  version = "0.0.4",
-  description = "C clocktime wrapped in lua ffi and packaged for lit",
-  author = "Gamaliel Sick",
+  version = "0.0.5",
+  description = "Easily get milliseconds or nanoseconds of time",
+  tags = {
+    "clock",
+    "time",
+    "millisecond",
+    "nanosecond",
+    "ms",
+    "ns"
+  },
+  author = {
+    name = "Gamaliel Sick"
+  },
   homepage = "https://github.com/gsick/lit-clocktime",
+  dependencies = {},
   files = {
-    "*.lua"
+    "*.lua",
+    "!tests",
+    "!examples"
   }
 }
