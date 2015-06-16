@@ -1,6 +1,6 @@
 
 exports.name = "creationix/coro-tcp"
-exports.version = "1.0.5-2"
+exports.version = "1.0.6"
 exports.dependencies = {
   "creationix/coro-channel@1.1.0"
 }
@@ -40,7 +40,7 @@ end
 function exports.createServer(addr, port, onConnect)
   local server = uv.new_tcp()
   assert(server:bind(addr, port))
-  server:listen(256, function (err)
+  assert(server:listen(256, function (err)
     assert(not err, err)
     local socket = uv.new_tcp()
     server:accept(socket)
@@ -56,5 +56,5 @@ function exports.createServer(addr, port, onConnect)
         socket:close()
       end
     end)()
-  end)
+  end))
 end
