@@ -29,10 +29,10 @@ local Print  = require("pretty-print")
 
 local Configuration = require("./libs/configuration")
 local Levels        = require("./libs/utils").Levels
-local ConsoleLogger = require("./libs/console")
-local FileLogger    = require("./libs/file")
-local RedisLogger   = require("./libs/redis")
-local SyslogLogger  = require("./libs/syslog")
+local ConsoleLogger = require("./libs/consolelogger")
+local FileLogger    = require("./libs/filelogger")
+local RedisLogger   = require("./libs/redislogger")
+local SyslogLogger  = require("./libs/sysloglogger")
 
 local _Logger = Object:extend()
 
@@ -69,7 +69,6 @@ function _Logger:initialize(options)
     elseif options.type == "console" then
       logger = ConsoleLogger:new(options)
     elseif options.type == "redis" then
-      local RedisLogger = require("./redis")
       logger = RedisLogger:new(options)
     elseif options.type == "syslog" then
       logger = SyslogLogger:new(options)

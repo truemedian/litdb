@@ -1,10 +1,10 @@
 return {
   name = "gsick/logger",
-  version = "0.0.4",
+  version = "0.1.0",
   description = "Logger for Luvit",
   tags = {
     "logger", "log", "logging",
-    "file"
+    "file", "redis", "syslog"
   },
   author = {
     name = "Gamaliel Sick"
@@ -12,6 +12,7 @@ return {
   homepage = "https://github.com/gsick/lit-logger",
   dependencies = {
     "gsick/clocktime@1.0.0",
+    "gsick/redis@0.0.1"
   },
   files = {
     "*.lua",
