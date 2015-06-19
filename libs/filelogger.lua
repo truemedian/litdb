@@ -81,15 +81,15 @@ function _FileLogger:initialize(options)
   self.sync = options.sync or false
 end
 
-function _FileLogger:log(level, s, ...)
+function _FileLogger:log(n, level, s, ...)
 
   local final_level = self.level or self.parent_level
 
   if level.value <= final_level.value then
     if self.sync then
-      FS.writeSync(self.fd, 0, Utils.finalString(self.dateformat, level, s, ...) .. "\n")
+      FS.writeSync(self.fd, 0, Utils.finalString(n + 1, self.dateformat, level, s, ...) .. "\n")
     else
-      FS.write(self.fd, 0, Utils.finalString(self.dateformat, level, s, ...) .. "\n", _noop)
+      FS.write(self.fd, 0, Utils.finalString(n + 1, self.dateformat, level, s, ...) .. "\n", _noop)
     end
   end
 end

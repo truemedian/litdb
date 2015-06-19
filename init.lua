@@ -117,13 +117,23 @@ function _Logger:log(level, s, ...)
   end
 
   for key, logger in pairs(self.loggers) do
-    logger:log(level, s, ...)
+    logger:log(1, level, s, ...)
+  end
+end
+
+function _Logger:logn(n, level, s, ...)
+  if type(level) ~= "table" or type(s) ~= "string" then
+    return
+  end
+
+  for key, logger in pairs(self.loggers) do
+    logger:log(n + 1, level, s, ...)
   end
 end
 
 for key,value in pairs(Levels) do
   _Logger[key] = function(self, ...)
-    self:log(Levels[key], ...)
+    self:logn(1, Levels[key], ...)
   end
 end
 

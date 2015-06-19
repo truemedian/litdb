@@ -55,12 +55,13 @@ function _ConsoleLogger:initialize(options)
     self.dateformat = options.dateformat
   end
 
+  self.func_info = options.func_info
   self.parent_level = options.parent_level
 
   self.color = options.color or false
 end
 
-function _ConsoleLogger:log(level, s, ...)
+function _ConsoleLogger:log(n, level, s, ...)
 
   local final_level = self.level or self.parent_level
 
@@ -68,7 +69,10 @@ function _ConsoleLogger:log(level, s, ...)
     return
   end
 
-  local final_string = Utils.finalString(self.dateformat, level, s, ...)
+  local final_string = self.func_info
+    and Utils.finalStringWithFuncInfo(n + 1, self.dateformat, level, s, ...)
+    or Utils.finalString(n + 1, self.dateformat, level, s, ...)
+
   if self.color then
     print(Print.colorize(colors[level.value], final_string))
   else

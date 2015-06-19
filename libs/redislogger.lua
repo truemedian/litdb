@@ -84,7 +84,7 @@ function _RedisLogger:initialize(options)
   self.client = Redis:new(self.uds or self.host, self.port, self.reconnect)
 end
 
-function _RedisLogger:log(level, s, ...)
+function _RedisLogger:log(n, level, s, ...)
 
   local final_level = self.level or self.parent_level
 

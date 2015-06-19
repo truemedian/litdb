@@ -66,7 +66,7 @@ function _SyslogLogger:initialize(options)
   end)
 end
 
-function _SyslogLogger:log(parent_level, level, s, ...)
+function _SyslogLogger:log(n, parent_level, level, s, ...)
 
   local final_level = self.level or self.parent_level
 

@@ -26,6 +26,11 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local OS = require("os")
 local Clock = require("clocktime")
 local String = require("string")
+local Path   = require("path")
+
+function __FILE__(n) return debug.getinfo(n + 2, 'S').source end
+function __LINE__(n) return debug.getinfo(n + 2, 'l').currentline end
+function __FUNC_NAME__(n) return debug.getinfo(n + 2, 'n').name end
 
 local _Utils = {}
 
@@ -48,22 +53,50 @@ function _Utils.formatDate(dateformat)
 end
 
 function _Utils.formatLevel(level)
-  return "[" .. String.format("%-5s", level.name) .. "]"
+  local str = {}
+  table.insert(str, "[")
+  table.insert(str, String.format("%-5s", level.name))
+  table.insert(str, "]")
+  return table.concat(str, "")
+end
+
+function _Utils.formatFuncName(n)
+  local func_name = {}
+  table.insert(func_name, "[")
+  table.insert(func_name, Path.basename(__FILE__(n + 1)))
+  table.insert(func_name, "::")
+  table.insert(func_name, __FUNC_NAME__(n + 1))
+  table.insert(func_name, ":")
+  table.insert(func_name, __LINE__(n + 1))
+  table.insert(func_name, "]")
+  return table.concat(func_name, "")
 end
 
 function _Utils.finalStringWithoutDate(level, s, ...)
-
-  return _Utils.formatLevel(level)
-        .. " "
-        .. String.format(s, ...)
+  local str = {}
+  table.insert(str, _Utils.formatLevel(level))
+  table.insert(str, " ")
+  table.insert(str, String.format(s, ...))
+  return table.concat(str, "")
 end
 
-function _Utils.finalString(dateformat, level, s, ...)
+function _Utils.finalString(n, dateformat, level, s, ...)
+  local str = {}
+  table.insert(str, _Utils.formatDate(dateformat))
+  table.insert(str, _Utils.formatLevel(level))
+  table.insert(str, " ")
+  table.insert(str, String.format(s, ...))
+  return table.concat(str, "")
+end
 
-  return _Utils.formatDate(dateformat)
-        .. _Utils.formatLevel(level)
-        .. " "
-        .. String.format(s, ...)
+function _Utils.finalStringWithFuncInfo(n, dateformat, level, s, ...)
+  local str = {}
+  table.insert(str, _Utils.formatDate(dateformat))
+  table.insert(str, _Utils.formatLevel(level))
+  table.insert(str, _Utils.formatFuncName(n + 1))
+  table.insert(str, " ")
+  table.insert(str, String.format(s, ...))
+  return table.concat(str, "")
 end
 
 return _Utils
