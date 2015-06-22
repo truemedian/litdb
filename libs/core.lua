@@ -27,16 +27,17 @@ core.add(path) -> author, name, version, hash - Import a package complete with s
 ]]
 
 local uv = require('uv')
+local pathJoin = require('luvi').path.join
 local jsonStringify = require('json').stringify
-local log = require('./log')
-local githubQuery = require('./github-request')
-local pkg = require('./pkg')
+local log = require('log').log
+local githubQuery = require('github-request')
+local pkg = require('pkg')
 local sshRsa = require('ssh-rsa')
 local git = require('git')
 local encoders = git.encoders
 local semver = require('semver')
 local miniz = require('miniz')
-local vfs = require('./vfs')
+local vfs = require('vfs')
 local fs = require('coro-fs')
 local http = require('coro-http')
 local exec = require('exec')
@@ -50,6 +51,11 @@ local queryFs = require('pkg').query
 local installDeps = require('install-deps').toDb
 local installDepsFs = require('install-deps').toFs
 local exportZip = require('export-zip')
+
+local quotepattern = '(['..("%^$().[]*+-?"):gsub("(.)", "%%%1")..'])'
+local function escape(str)
+    return str:gsub(quotepattern, "%%%1")
+end
 
 local function run(...)
   local stdout, stderr, code, signal = exec(...)
@@ -112,7 +118,7 @@ local function makeCore(config)
 
   local db = makeDb(config.database)
   if config.upstream then
-    db = require('./rdb')(db, config.upstream)
+    db = require('rdb')(db, config.upstream, config.timeout)
   end
   local core = {
     config = config,
@@ -354,8 +360,16 @@ local function makeCore(config)
     -- Use vfs so that source can be a zip file or a folder.
     zfs, source = vfs(source)
     local meta = queryFs(zfs, source)
-    target = target or defaultTarget(meta)
-    local kind, hash = assert(import(core.db, zfs, source, {"-" .. target}, true))
+    target = pathJoin(uv.cwd(), target or defaultTarget(meta))
+
+    -- Determine if target is inside the source we're reading fom
+    local rules
+    local inside = target:match("^" .. escape(source) .. "[/\\](.*)$")
+    if inside then
+      -- If it is, add an ignore rule for it.
+      rules = { "-" .. inside }
+    end
+    local kind, hash = assert(import(core.db, zfs, source, rules, true))
     assert(kind == "tree", "Only tree packages are supported for now")
     local deps = getInstalled(zfs, source)
     calculateDeps(core.db, deps, meta.dependencies)
