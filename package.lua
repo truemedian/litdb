@@ -1,6 +1,6 @@
 return {
   name = "gsick/logger",
-  version = "0.1.1",
+  version = "0.1.2",
   description = "Logger for Luvit",
   tags = {
     "logger", "log", "logging",

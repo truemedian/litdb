@@ -26,28 +26,27 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 local Json   = require("json")
 local Fs     = require("fs")
 local Object = require("core").Object
+local String = require("string")
 
 local _Configuration = Object:extend()
 
 function _Configuration:initialize(options)
+  if not options then error("no options specified") end
 
-  if options and Fs.accessSync(options.path) then
-    self.path = options.path
+  local path = options.path
+
+  if Fs.accessSync(path) then
+    self.path = path
   else
-    error("no configuration file found")
+    error(String.format("no configuration file found %q", path))
   end
-
 end
 
 function _Configuration:read()
-
-  if not self.path then
-    return nil
-  end
+  if not self.path then return nil end
 
   local content = Fs.readFileSync(self.path)
   local json = Json.parse(content)
-
   return json
 end
 

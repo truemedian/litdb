@@ -54,6 +54,7 @@ function _FileLogger:initialize(options)
     self.dateformat = options.dateformat
   end
 
+  self.func_info = options.func_info
   self.parent_level = options.parent_level
 
   if type(options.path) ~= "string" then
