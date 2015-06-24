@@ -1,5 +1,5 @@
 exports.name = "creationix/coro-http"
-exports.version = "1.1.0-1"
+exports.version = "1.1.1"
 exports.dependencies = {
   "creationix/coro-net@1.1.1",
   "creationix/coro-tls@1.2.0",
@@ -66,7 +66,7 @@ local function getConnection(host, port, tls)
     if connection.host == host and connection.port == port and connection.tls == tls then
       table.remove(connections, i)
       -- Make sure the connection is still alive before reusing it.
-      if not connection.socket:is_closing() and connection.socket:is_active() then
+      if not connection.socket:is_closing() then
         return connection
       end
     end
@@ -119,7 +119,7 @@ function exports.request(method, url, headers, body)
   end
 
   if type(body) == "string" then
-    if not (contentLength and chunked) then
+    if not chunked and not contentLength then
       req[#req + 1] = {"Content-Length", #body}
     end
   end
@@ -142,7 +142,7 @@ function exports.request(method, url, headers, body)
   end
 
   -- Follow redirects
-  if method == "GET" and res.code == 302 then
+  if method == "GET" and (res.code == 302 or res.code == 307) then
     for i = 1, #res do
       local key, location = unpack(res[i])
       if key:lower() == "location" then
