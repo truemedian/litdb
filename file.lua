@@ -1,5 +1,5 @@
 exports.name = "creationix/coro-http"
-exports.version = "1.2.0"
+exports.version = "1.2.1"
 exports.dependencies = {
   "creationix/coro-net@1.1.1",
   "creationix/coro-tls@1.2.0",
@@ -151,16 +151,16 @@ function exports.request(method, url, headers, body)
   if req.method == "HEAD" then
     connection.reset()
   else
-    local continue = false
-    for item in read do
+    while true do
+      local item = read()
+      if not item then
+        res.keepAlive = false
+        break
+      end
       if #item == 0 then
-        continue = true
         break
       end
       body[#body + 1] = item
-    end
-    if not continue then
-      res.keepAlive = false
     end
   end
 
