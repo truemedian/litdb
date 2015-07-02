@@ -1,5 +1,5 @@
 exports.name = "creationix/coro-tls"
-exports.version = "1.2.0"
+exports.version = "1.2.1"
 exports.homepage = "https://github.com/luvit/lit/blob/master/deps/coro-tls.lua"
 exports.description = "A coro-stream wrapper implementing tls sessions."
 exports.tags = {"coro", "tls", "ssl"}
@@ -82,7 +82,16 @@ exports.wrap = function (read, write, options)
   local function shutdown()
     if done then return end
     done = true
-    ssl:shutdown()
+    while true do
+      if ssl:shutdown() then break end
+      flush()
+      local chunk = read()
+      if chunk then
+        bin:write(chunk)
+      else
+        break
+      end
+    end
     flush()
     write()
   end
