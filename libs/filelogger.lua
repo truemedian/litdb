@@ -87,10 +87,14 @@ function _FileLogger:log(n, level, s, ...)
   local final_level = self.level or self.parent_level
 
   if level.value <= final_level.value then
+    local final_string = self.func_info
+      and Utils.finalStringWithFuncInfo(n + 1, self.dateformat, level, s, ...)
+      or Utils.finalString(n + 1, self.dateformat, level, s, ...)
+
     if self.sync then
-      FS.writeSync(self.fd, 0, Utils.finalString(n + 1, self.dateformat, level, s, ...) .. "\n")
+      FS.writeSync(self.fd, 0, final_string .. "\n")
     else
-      FS.write(self.fd, 0, Utils.finalString(n + 1, self.dateformat, level, s, ...) .. "\n", _noop)
+      FS.write(self.fd, 0, final_string .. "\n", _noop)
     end
   end
 end

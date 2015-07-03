@@ -35,7 +35,7 @@ function _Configuration:initialize(options)
 
   local path = options.path
 
-  if Fs.accessSync(path) then
+  if path and Fs.accessSync(path) then
     self.path = path
   else
     error(String.format("no configuration file found %q", path))
