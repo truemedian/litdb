@@ -77,8 +77,9 @@ function _Utils.finalStringWithoutDate(level, s, ...)
   table.insert(str, _Utils.formatLevel(level))
   table.insert(str, " ")
   local text = s
-  if arg and arg.n > 0 then
-    text = String.format(s, unpack(arg))
+  local arg = ...
+  if arg and #arg > 0 then
+    text = String.format(s, ...)
   end
   table.insert(str, text)
   return table.concat(str, "")
@@ -90,8 +91,9 @@ function _Utils.finalString(n, dateformat, level, s, ...)
   table.insert(str, _Utils.formatLevel(level))
   table.insert(str, " ")
   local text = s
-  if arg and arg.n > 0 then
-    text = String.format(s, unpack(arg))
+  local arg = ...
+  if arg and #arg > 0 then
+    text = String.format(s, ...)
   end
   table.insert(str, text)
   return table.concat(str, "")
@@ -104,8 +106,9 @@ function _Utils.finalStringWithFuncInfo(n, dateformat, level, s, ...)
   table.insert(str, _Utils.formatFuncName(n + 1))
   table.insert(str, " ")
   local text = s
-  if arg and arg.n > 0 then
-    text = String.format(s, unpack(arg))
+  local arg = ...
+  if arg and #arg > 0 then
+    text = String.format(s, ...)
   end
   table.insert(str, text)
   return table.concat(str, "")
