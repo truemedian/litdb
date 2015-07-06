@@ -17,10 +17,10 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/childprocess"
-exports.version = "1.0.4-2"
+exports.version = "1.0.5"
 exports.dependencies = {
-  "luvit/core@1.0.2",
-  "luvit/net@1.1.1",
+  "luvit/core@1.0.4",
+  "luvit/net@1.1.2",
   "luvit/timer@1.0.0",
 }
 exports.license = "Apache 2"
@@ -126,6 +126,8 @@ local function spawn(command, args, options)
     args = args,
     env = envPairs,
     detached = options.detached,
+    uid = options.uid,
+    gid = options.gid
   }, onExit)
 
   em = Process:new(stdin, stdout, stderr)
