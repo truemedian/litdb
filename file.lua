@@ -23,7 +23,7 @@ module.
 local core = exports
 
 exports.name = "luvit/core"
-exports.version = "1.0.3-1"
+exports.version = "1.0.4"
 exports.license = "Apache 2"
 exports.homepage = "https://github.com/luvit/luvit/blob/master/deps/core.lua"
 exports.description = "Core object model for luvit using simple prototypes and inheritance."
@@ -214,7 +214,13 @@ function Emitter:listenerCount(name)
   if not handlers_for_type then
     return 0
   else
-    return #handlers_for_type
+    local count = 0
+    for i = 1, #handlers_for_type do
+      if handlers_for_type[i] then
+        count = count + 1
+      end
+    end
+    return count
   end
 end
 
@@ -231,7 +237,8 @@ function Emitter:emit(name, ...)
     return
   end
   for i = 1, #handlers_for_type do
-    handlers_for_type[i](...)
+    local handler = handlers_for_type[i]
+    if handler then handler(...) end
   end
   for i = #handlers_for_type, 1, -1 do
     if not handlers_for_type[i] then
@@ -249,7 +256,7 @@ function Emitter:removeListener(name, callback)
   if not handlers_for_type then return end
   for i = #handlers_for_type, 1, -1 do
     if handlers_for_type[i] == callback or callback == nil then
-      handlers_for_type[i] = nil
+      handlers_for_type[i] = false
     end
   end
 end
@@ -262,7 +269,7 @@ function Emitter:removeAllListeners(name)
   local handlers_for_type = rawget(handlers, name)
   if handlers_for_type then
     for i = #handlers_for_type, 1, -1 do
-        handlers_for_type[i] = nil
+        handlers_for_type[i] = false
     end
   else
     rawset(self, "handlers", {})
@@ -332,5 +339,3 @@ function Error:initialize(message)
 end
 
 --------------------------------------------------------------------------------
-
-
