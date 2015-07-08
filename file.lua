@@ -20,7 +20,7 @@ limitations under the License.
 -- https://github.com/openresty/lua-resty-dns/blob/master/lib/resty/dns/resolver.lua
 
 exports.name = "luvit/dns"
-exports.version = "1.0.0-5"
+exports.version = "1.0.0-6"
 exports.dependencies = {
   "luvit/dgram@1.1.0",
   "luvit/fs@1.2.0",
@@ -739,10 +739,8 @@ exports.loadResolver = function(options)
     file = '/etc/resolv.conf'
   }
 
-  local err, data = pcall(fs.readFileSync, options.file)
-  if err == false then
-    return
-  end
+  local data, err = fs.readFileSync(options.file)
+  if err then return end
 
   local posa = 1
 
