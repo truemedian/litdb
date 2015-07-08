@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/utils"
-exports.version = "1.0.0-3"
+exports.version = "1.0.0-4"
 exports.dependencies = {
   "luvit/pretty-print@1.0.3",
 }
@@ -25,6 +25,8 @@ exports.license = "Apache 2"
 exports.homepage = "https://github.com/luvit/luvit/blob/master/deps/utils.lua"
 exports.description = "Wrapper around pretty-print with extra tools for luvit"
 exports.tags = {"luvit", "bind", "adapter"}
+
+local Error = require('core').Error
 
 local pp = require('pretty-print')
 for name, value in pairs(pp) do
@@ -83,7 +85,7 @@ local function adapt(c, fn, ...)
         assert(coroutine.resume(c, ...))
       end
     else
-      err, data = e, {...}
+      err, data = e and Error:new(e), {...}
       c = nil
     end
   end
