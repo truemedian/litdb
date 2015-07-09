@@ -17,11 +17,11 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/net"
-exports.version = "1.1.2-1"
+exports.version = "1.2.0"
 exports.dependencies = {
   "luvit/timer@1.0.0",
   "luvit/utils@1.0.0",
-  "luvit/core@1.0.4",
+  "luvit/core@1.0.5",
   "luvit/stream@1.1.0",
 }
 exports.license = "Apache 2"
@@ -100,9 +100,7 @@ end
 
 function Socket:_write(data, callback)
   if not self._handle then return end
-  timer.active(self)
   uv.write(self._handle, data, function(err)
-    timer.active(self)
     if err then
       self:destroy(err)
       return callback(err)
@@ -113,7 +111,6 @@ end
 
 function Socket:_read(n)
   local onRead
-  timer.active(self)
 
   function onRead(err, data)
     timer.active(self)
