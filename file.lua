@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/repl"
-exports.version = "1.0.1-1"
+exports.version = "1.1.0"
 exports.dependencies = {
   "luvit/utils@1.0.0",
   "luvit/readline@1.1.0",
@@ -37,11 +37,15 @@ setmetatable(exports, {
   __call = function (_, stdin, stdout, greeting)
 
   local req, mod = require('require')(pathJoin(uv.cwd(), "repl"))
+  local oldGlobal = _G
   local global = setmetatable({
     require = req,
     module = mod,
   }, {
-    __index = _G
+    __index = function (_, key)
+      if key == "thread" then return coroutine.running() end
+      return oldGlobal[key]
+    end
   })
   global._G = global
 
@@ -64,8 +68,8 @@ setmetatable(exports, {
   local buffer = ''
 
   local function evaluateLine(line)
-    if line == "<3\n" or line == "♥\n" then
-      print("I " .. c("Bred") .. "♥" .. c() .. " you too!")
+    if line == "<3" or line == "♥" then
+      print("I " .. c("err") .. "♥" .. c() .. " you too!")
       return '>'
     end
     local chunk  = buffer .. line
@@ -161,13 +165,15 @@ setmetatable(exports, {
 
     local function onLine(err, line)
       assert(not err, err)
-      if line then
-        prompt = evaluateLine(line)
-        editor:readLine(prompt, onLine)
-        -- TODO: break out of >> with control+C
-      elseif onSaveHistoryLines then
-        onSaveHistoryLines(history:dump())
-      end
+      coroutine.wrap(function ()
+        if line then
+          prompt = evaluateLine(line)
+          editor:readLine(prompt, onLine)
+          -- TODO: break out of >> with control+C
+        elseif onSaveHistoryLines then
+          onSaveHistoryLines(history:dump())
+        end
+      end)()
     end
 
     editor:readLine(prompt, onLine)
