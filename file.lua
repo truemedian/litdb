@@ -1,5 +1,5 @@
 exports.name = "creationix/websocket-codec"
-exports.version = "1.0.6"
+exports.version = "1.0.7"
 exports.homepage = "https://github.com/luvit/lit/blob/master/deps/websocket-codec.lua"
 exports.description = "A codec implementing websocket framing and helpers for handshakeing"
 exports.tags = {"http", "websocket", "codec"}
@@ -158,8 +158,8 @@ function exports.handshake(options, request)
     path = path,
     {"Connection", "Upgrade"},
     {"Upgrade", "websocket"},
-    {"Sec-Websocket-Version", "13"},
-    {"Sec-Websocket-Key", key},
+    {"Sec-WebSocket-Version", "13"},
+    {"Sec-WebSocket-Key", key},
   }
   for i = 1, #options do
     req[#req + 1] = options[i]
@@ -168,7 +168,7 @@ function exports.handshake(options, request)
     req[#req + 1] = {"Host", host}
   end
   if protocol then
-    req[#req + 1] = {"Sec-Websocket-Protocol", protocol}
+    req[#req + 1] = {"Sec-WebSocket-Protocol", protocol}
   end
   local res = request(req)
   if not res then
@@ -199,7 +199,7 @@ end
 
 function exports.handleHandshake(head, protocol)
 
-  -- Websocket connections must be GET requests
+  -- WebSocket connections must be GET requests
   if not head.method == "GET" then return end
 
   -- Parse the headers for quick reading
@@ -210,7 +210,9 @@ function exports.handleHandshake(head, protocol)
   end
 
   -- Must have 'Upgrade: websocket' and 'Connection: Upgrade' headers
-  if not headers.connection or lower(headers.connection) ~= "upgrade" then return end
+  if not (headers.connection and headers.upgrade and
+          headers.connection:lower():find("upgrade", 1, true) and
+          headers.upgrade:lower():find("websocket", 1, true)) then return end
 
   -- Make sure it's a new client speaking v13 of the protocol
   if tonumber(headers["sec-websocket-version"]) < 13 then
