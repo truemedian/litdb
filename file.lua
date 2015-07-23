@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/childprocess"
-exports.version = "1.0.6-1"
+exports.version = "1.0.7-1"
 exports.dependencies = {
   "luvit/core@1.0.5",
   "luvit/net@1.2.0",
@@ -67,16 +67,14 @@ function Process:destroy(err)
 end
 
 function Process:_cleanup(err)
-  if self.stdout then
-    if err then
+  timer.setImmediate(function()
+    if self.stdout then
+      self.stdout:_end(err) -- flush
       self.stdout:destroy(err)
-    else
-      self.stdout:once('end', function() self.stdout:destroy(err) end)
-      self.stdout:resume()
     end
-  end
-  if self.stderr then self.stderr:destroy(err) end
-  if self.stdin then self.stdin:destroy(err) end
+    if self.stderr then self.stderr:destroy(err) end
+    if self.stdin then self.stdin:destroy(err) end
+  end)
 end
 
 local function spawn(command, args, options)
