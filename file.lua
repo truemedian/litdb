@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/querystring"
-exports.version = "1.0.0-1"
+exports.version = "1.0.1"
 exports.license = "Apache 2"
 exports.homepage = "https://github.com/luvit/luvit/blob/master/deps/querystring.lua"
 exports.description = "Node-style query-string codec for luvit"
@@ -62,11 +62,18 @@ function exports.parse(str, sep, eq)
     else
       local key, value = match(pair, '([^' .. eq .. ']*)' .. eq .. '(.*)')
       if key then
-        vars[exports.urldecode(key)] = exports.urldecode(value)
+        key = exports.urldecode(key)
+        value = exports.urldecode(value)
+        local type = type(vars[key])
+        if type=='nil' then
+          vars[key] = value
+        elseif type=='table' then
+          table.insert(vars[key], value)
+        else
+          vars[key] = {vars[key],value}
+        end
       end
     end
   end
   return vars
 end
-
-
