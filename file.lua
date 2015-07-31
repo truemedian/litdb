@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/http"
-exports.version = "1.2.0"
+exports.version = "1.2.1"
 exports.dependencies = {
   "luvit/net@1.2.0",
   "luvit/url@1.0.4",
@@ -364,17 +364,17 @@ function ClientRequest:initialize(options, callback)
     self[#self + 1] = headers[i]
     local key, value = unpack(headers[i])
     local klower = key:lower()
-    host_found = klower == 'host' and value
-    connection_found = klower == 'connection' and value
-    user_agent = klower == 'user-agent' and value
+    if klower == 'host' then host_found = value end
+    if klower == 'connection' then connection_found = value end
+    if klower == 'user-agent' then user_agent = value end
   end
 
   if not user_agent then
     user_agent = self.getDefaultUserAgent()
-  end
 
-  if user_agent ~= '' then
-    table.insert(self, 1, { 'User-Agent', user_agent })
+    if user_agent ~= '' then
+      table.insert(self, 1, { 'User-Agent', user_agent })
+    end
   end
 
   if not host_found and options.host then
