@@ -1,6 +1,6 @@
 return {
 	name = "squeek502/oauth",
-	version = "0.2.1",
+	version = "0.2.2",
 	description = "OAuth wrapper for Luvit",
 	keywords = {"oauth", "oauth2"},
 	homepage = "https://github.com/squeek502/luvit-oauth",
