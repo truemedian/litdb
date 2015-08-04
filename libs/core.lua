@@ -142,6 +142,13 @@ local function makeCore(config)
       end
       error("Tag already exists, but there are local changes.\nBump " .. fullTag .. " and try again.")
     end
+    if meta.dependencies and kind == "tree" then
+      local deps = {}
+      calculateDeps(core.db, deps, meta.dependencies)
+      meta.snapshot = installDeps(core.db, hash, deps, false)
+      log("snapshot hash", meta.snapshot)
+    end
+
     local encoded = encoders.tag({
       object = hash,
       type = kind,
@@ -395,7 +402,7 @@ local function makeCore(config)
     local inside = target:match("^" .. escape(source) .. "[/\\](.*)$")
     if inside then
       -- If it is, add an ignore rule for it.
-      rules = { "!" .. inside }
+      rules = { "!" .. inside, ignore = true }
     end
     local kind, hash = assert(import(core.db, zfs, source, rules, true))
     assert(kind == "tree", "Only tree packages are supported for now")
@@ -453,6 +460,12 @@ local function makeCore(config)
     end
 
     target = target or defaultTarget(meta)
+
+    -- Use snapshot if there is one
+    if meta.snapshot then
+      return makeZip(meta.snapshot, target)
+    end
+
     local deps = {}
     calculateDeps(core.db, deps, meta.dependencies)
     local tagObj = db.loadAs("tag", hash)

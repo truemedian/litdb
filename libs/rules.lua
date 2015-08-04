@@ -20,6 +20,7 @@ local ffi = require('ffi')
 local log = require('log').log
 local pathJoin = require('luvi').path.join
 local modes = require('git').modes
+local colorize = require('pretty-print').colorize
 
 local quotepattern = '['..("%^$().[]*+-?"):gsub("(.)", "%%%1")..']'
 
@@ -55,8 +56,22 @@ function exports.compileFilter(path, rules, nativeOnly)
     }
   end
 
+  local default = not rules[1].allowed
+  if not rules.ignore then
+    local action, first
+    if default then
+      action = colorize("string", "includes")
+      first = colorize("thread", "negative")
+    else
+      action = colorize("thread", "excludes")
+      first = colorize("string", "positive")
+    end
+    log("compiling filter", string.format("%s %s by default (first rule is %s)",
+      pathJoin(path, "**"), action, first))
+  end
+
   return {
-    default = not rules[1].allowed,
+    default = default,
     prefix = "^" .. pathJoin(path:gsub(quotepattern, "%%%1"), '(.*)'),
     match = function (path)
       local allowed
@@ -75,16 +90,16 @@ local compileFilter = exports.compileFilter
 function exports.isAllowed(path, entry, filters)
 
   -- Ignore all hidden files and folders always.
-  local allow, subPath, default
+  local allow, matchesFilter, default, relativePath
   default = true
   for i = 1, #filters do
     local filter = filters[i]
-    local newPath = path:match(filter.prefix)
-    if newPath then
+    relativePath = path:match(filter.prefix)
+    if relativePath then
       default = filter.default
-      local newAllow = filter.match(newPath)
+      local newAllow = filter.match(relativePath)
       if newAllow ~= nil then
-        subPath = newPath
+        matchesFilter = true
         allow = newAllow
       end
     end
@@ -103,15 +118,15 @@ function exports.isAllowed(path, entry, filters)
     end
   end
 
-  if subPath then
+  if relativePath then
     if allow and not isTree then
-      log("including", subPath)
-    elseif not allow then
-      log("skipping", subPath)
+      log("including", relativePath)
+    elseif not allow and matchesFilter then
+      log("skipping", relativePath)
     end
   end
 
-  return allow, default, subPath
+  return allow, default, matchesFilter and relativePath
 end
 local isAllowed = exports.isAllowed
 
