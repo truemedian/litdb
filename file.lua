@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/net"
-exports.version = "1.2.0"
+exports.version = "1.2.1"
 exports.dependencies = {
   "luvit/timer@1.0.0",
   "luvit/utils@1.0.0",
@@ -231,7 +231,10 @@ function Socket:destroy(exception, callback)
   if uv.is_closing(self._handle) then
     timer.setImmediate(callback)
   else
-    uv.close(self._handle, callback)
+    uv.close(self._handle, function()
+      self:emit('close')
+      callback()
+    end)
   end
 
   if exception then
