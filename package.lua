@@ -6,22 +6,24 @@
 -- @doc
 --
 -- @end
--- Created :   15 May 2015 by Daniel Barney <daniel@pagodabox.com>
+-- Created :	 15 May 2015 by Daniel Barney <daniel@pagodabox.com>
 ----------------------------------------------------------------------
 return
-  {name = "pagodabox/lmmdb"
-  ,version = "0.1.0"
-  ,author =
-    {name = "Daniel Barney"
-    ,email = "daniel@pagodabox.com"}
-  ,tags = {"db","key","value","kv","key/value","store","lmmdb",
-    "extention"}
-  ,license = "MIT"
-  ,homepage =
-    "https://github.com/pagodabox/tag/blob/master/deps/lmmdb"
-  ,description = "A simple wrapper around lmmdb"
-  ,files =
-    {"**.lua"
-    ,"**.so"
-    ,"!examples"
-    ,"!tests"}}
+	{name = "pagodabox/lmmdb"
+	,version = "0.1.1"
+	,author =
+		{name = "Daniel Barney"
+		,email = "daniel@pagodabox.com"}
+	,tags = {"db","key","value","kv","key/value","store","lmmdb",
+		"extention"}
+	,license = "MIT"
+	,homepage =
+		"https://github.com/pagodabox/tag/blob/master/deps/lmmdb"
+	,description = "A simple wrapper around lmmdb"
+	,deps = 
+		{"pagodabox/ffi-cache@0.1.0"}
+	,files =
+		{"**.lua"
+		,"**.so"
+		,"!examples"
+		,"!test"}}
