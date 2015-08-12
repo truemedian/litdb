@@ -20,7 +20,7 @@ limitations under the License.
 -- https://github.com/openresty/lua-resty-dns/blob/master/lib/resty/dns/resolver.lua
 
 exports.name = "luvit/dns"
-exports.version = "1.0.0-9"
+exports.version = "1.0.0-10"
 exports.dependencies = {
   "luvit/dgram@1.1.0",
   "luvit/fs@1.2.2",
@@ -564,7 +564,7 @@ local function _query(servers, name, dnsclass, qtype, callback)
   get_server_iter = function()
     local i = 1
     return function()
-      i = ((i + 1) % #servers) + 1
+      i = (i % #servers) + 1
       return servers[i]
     end
   end
@@ -669,8 +669,8 @@ local function _query(servers, name, dnsclass, qtype, callback)
       end
     end
 
-    sock:recvStart()
     sock:send(table.concat(req), srv.port, srv.host)
+    sock:recvStart()
     sock:setTimeout(TIMEOUT, onTimeout)
     sock:on('message', onMessage)
     sock:on('error', onError)
