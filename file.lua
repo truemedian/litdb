@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/http"
-exports.version = "1.2.1"
+exports.version = "1.2.2"
 exports.dependencies = {
   "luvit/net@1.2.0",
   "luvit/url@1.0.4",
@@ -207,6 +207,10 @@ function ServerResponse:write(chunk, callback)
   end
   self:flushHeaders()
   return self.socket:write(self.encode(chunk), callback)
+end
+
+function ServerResponse:_end()
+  self:finish()
 end
 
 function ServerResponse:finish(chunk)
