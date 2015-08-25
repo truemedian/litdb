@@ -142,7 +142,9 @@ return function (db, prefix)
       hash = db.read(author, name, version)
     end
     if not hash then
-      error("No such version " .. author .. "/" .. name .. "@" .. version)
+      local message = "No such version " .. author .. "/" .. name
+      if version then message = message .. "@" .. version end
+      return nil, message
     end
     local cached = metaCache[hash]
     if cached then return cached end
@@ -216,7 +218,7 @@ return function (db, prefix)
       }
     end,
     "^/packages/([^/]+)/(.+)/v([^/]+)$", function (author, name, version)
-      local meta = loadMeta(author, name, version)
+      local meta = assert(loadMeta(author, name, version))
       meta.score = nil
       return meta
     end,
@@ -304,7 +306,7 @@ return function (db, prefix)
             local meta
             if not skip then
               meta = loadMeta(author, name)
-              if meta.obsolete then
+              if not meta or meta.obsolete then
                 skip = true
               end
             end
