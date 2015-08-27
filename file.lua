@@ -1,5 +1,5 @@
 exports.name = "creationix/coro-tls"
-exports.version = "1.2.1"
+exports.version = "1.3.0"
 exports.homepage = "https://github.com/luvit/lit/blob/master/deps/coro-tls.lua"
 exports.description = "A coro-stream wrapper implementing tls sessions."
 exports.tags = {"coro", "tls", "ssl"}
@@ -11,6 +11,9 @@ local bit = require('bit')
 
 local DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-SHA256:AES128-GCM-SHA256:' .. -- TLS 1.2
                         'RC4:HIGH:!MD5:!aNULL:!EDH'                     -- TLS 1.0
+
+-- Load CA_STORE from luvit's libs
+local DEFAULT_CA_STORE = require('tls').DEFAULT_CA_STORE
 
 -- Given a read/write pair, return a new read/write pair for plaintext
 exports.wrap = function (read, write, options)
@@ -48,6 +51,9 @@ exports.wrap = function (read, write, options)
       assert(store:add(ca[i]))
     end
     ctx:cert_store(store)
+  elseif DEFAULT_CA_STORE then
+    p("DEFAULT CA STORE", DEFAULT_CA_STORE)
+    ctx:cert_store(DEFAULT_CA_STORE)
   else
     ctx:verify_mode({"none"})
   end
@@ -114,6 +120,6 @@ exports.wrap = function (read, write, options)
     flush()
   end
 
-  return plainRead, plainWrite
+  return plainRead, plainWrite, ssl
 
 end
