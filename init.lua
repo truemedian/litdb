@@ -5,7 +5,7 @@ local random = require('math').random
 
 -- http://arstechnica.com/information-technology/2014/03/diceware-passwords-now-need-six-random-words-to-thwart-hackers/
 local DEFAULT_NUMWORDS = 6
-local WORDLIST_SIZE = 7776 -- 6^5
+-- local WORDLIST_SIZE = 7776 -- 6^5
 
 function dicewords(numwords, spacer, table)
 	if numwords == nil then
