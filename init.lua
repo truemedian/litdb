@@ -1,6 +1,10 @@
 exports.name = "james2doyle/string-trim"
-exports.version = "0.0.1"
+exports.version = "0.0.2"
 exports.homepage = "https://github.com/james2doyle/lit-string-trim"
+exports.description = "Trim strings of whitespace"
+exports.tags = { "trim", "string" }
+exports.license = "MIT"
+exports.author = { name = "James Doyle", email = "james2doyle@gmail.com" }
 -- plucked from https://github.com/luvit/luvit/wiki/Snippets
 
 local gsub = require('string').gsub
