@@ -1,0 +1,12 @@
+require('tap')(function(test)
+  local readdirRecursive = require('../lib/luvit-read-directory-recursive').readdirRecursive
+  test('Test if we can recursively read directories', function(expect)
+    readdirRecursive('./testDir', function(err, files)
+      local cb = expect(function()
+        assert(err == nil, 'Error should be nil')
+        assert(#files == 2, 'There should be two test files')
+      end)
+      cb()
+    end)
+  end)
+end)
