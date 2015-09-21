@@ -25,51 +25,26 @@ return function (fs)
 
   -- Perform an atomic write (with temp file and rename) for mutable data
   function storage.write(path, data)
-    local fd, success, err
+    -- Ensure the parent directory exists first.
+    assert(fs.mkdirp(dirname(path)))
+    -- Write the data out to a temporary file.
     local tempPath = path .. "~"
-    local tried = false
-    while true do
-      -- Try to open the file in write mode.
-      fd, err = fs.open(tempPath, "w")
-      if fd then break end
-      if not tried and err:match("^ENOENT:") then
-        -- If it doesn't exist, try to make the parent directory.
-        assert(fs.mkdirp(dirname(path)))
-        tried = true
-      else
-        assert(nil, err)
-      end
+    do
+      local fd, success, err
+      fd = assert(fs.open(tempPath, "w", 384))
+      success, err = fs.write(fd, data)
+      fs.close(fd)
+      assert(success, err)
     end
-    success, err = fs.write(fd, data)
-    if success then
-      success, err = fs.fchmod(fd, 384)
-    end
-    fs.close(fd)
-    if success then
-      success, err = fs.rename(tempPath, path)
-    end
-    assert(success, err)
+    -- Rename the temp file on top of the old file for atomic commit.
+    assert(fs.rename(tempPath, path))
   end
 
   -- Write immutable data with an exclusive open.
   function storage.put(path, data)
     local fd, success, err
-    local tried = false
-    while true do
-      -- Try to open the file in exclusive write mode.
-      fd, err = fs.open(path, "wx")
-      if fd then break end
-      if err:match("^EEXIST:") then
-        -- If it already exists, do nothing, it's immutable.
-        return
-      elseif not tried and err:match("^ENOENT:") then
-        -- If it doesn't exist, try to make the parent directory.
-        assert(fs.mkdirp(dirname(path)))
-        tried = true
-      else
-        assert(nil, err)
-      end
-    end
+    assert(fs.mkdirp(dirname(path)))
+    fd = assert(fs.open(path, "wx"))
     success, err = fs.write(fd, data)
     if success then
       success, err = fs.fchmod(fd, 256)
