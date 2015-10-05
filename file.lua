@@ -1,11 +1,11 @@
 exports.name = "creationix/weblit-app"
-exports.version = "0.2.6-1"
+exports.version = "0.3.0"
 exports.dependencies = {
   'creationix/coro-wrapper@1.0.0',
-  'creationix/coro-tcp@1.0.5',
-  'creationix/coro-tls@1.2.0',
+  'creationix/coro-net@1.1.1',
+  'creationix/coro-tls@1.3.1',
   'luvit/http-codec@1.0.0',
-  'luvit/querystring@1.0.0',
+  'luvit/querystring@1.0.2',
 }
 exports.description = "Weblit is a webapp framework designed around routes and middleware layers."
 exports.tags = {"weblit", "router", "framework"}
@@ -14,7 +14,7 @@ exports.author = { name = "Tim Caswell" }
 exports.homepage = "https://github.com/creationix/weblit/blob/master/libs/weblit-app.lua"
 
 
-local createServer = require('coro-tcp').createServer
+local createServer = require('coro-net').createServer
 local wrapper = require('coro-wrapper')
 local readWrap, writeWrap = wrapper.reader, wrapper.writer
 local httpCodec = require('http-codec')
@@ -44,23 +44,29 @@ local headerMeta = {
     end
   end,
   __newindex = function (list, name, value)
+    -- non-string keys go through as-is.
     if type(name) ~= "string" then
       return rawset(list, name, value)
     end
+    -- First remove any existing pairs with matching key
     local lowerName = name:lower()
-    for i = 1, #list do
-      local key = list[i][1]
-      if key:lower() == lowerName then
-        if value == nil then
-          table.remove(list, i)
-        else
-          list[i] = {name, tostring(value)}
-        end
-        return
+    for i = #list, 1, -1 do
+      if list[i][1]:lower() == lowerName then
+        table.remove(list, i)
       end
     end
+    -- If value is nil, we're done
     if value == nil then return end
-    rawset(list, #list + 1, {name, tostring(value)})
+    -- Otherwise, set the key(s)
+    if (type(value) == "table") then
+      -- We accept a table of strings
+      for i = 1, #value do
+        rawset(list, #list + 1, {name, tostring(value[i])})
+      end
+    else
+      -- Or a single value interperted as string
+      rawset(list, #list + 1, {name, tostring(value)})
+    end
   end,
 }
 
@@ -167,7 +173,7 @@ function server.start()
   end
   for i = 1, #bindings do
     local options = bindings[i]
-    createServer(options.host, options.port, function (rawRead, rawWrite, socket)
+    createServer(options, function (rawRead, rawWrite, socket)
       local tls = options.tls
       if tls then
         rawRead, rawWrite = tlsWrap(rawRead, rawWrite, {
