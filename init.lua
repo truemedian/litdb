@@ -41,7 +41,8 @@ exports.new = function(func)
 		client.listener = {}
 		client.ip = client.socket:address().ip
 		client.uid = md5.hex(client.ip .. tostring(os.time()) .. tostring(math.random()))
-		client.socket.client = client
+		sock.client = client
+		sock.uid = client.uid
 
 		client.send = function(self, key, data)
 			local _data = base64.encodeTable({packet = key, data = data})
@@ -63,6 +64,7 @@ exports.new = function(func)
 		t:call("connect", client)
 	end)
 	:on("disconnect", function(sock)
+		sock.client = t.clients[sock.uid]
 		sock.client:call("disconnect")
 		t:call("disconnect", sock.client)
 		t.clients[sock.client.uid] = nil
@@ -70,8 +72,9 @@ exports.new = function(func)
 		sock.client = nil
 	end)
 	:on("timeout", function(sock)
-		sock.client:call("disconnect")
-		t:call("disconnect", sock.client)
+		sock.client = t.clients[sock.uid]
+		sock.client:call("timeout")
+		t:call("timeout", sock.client)
 		t.clients[sock.client.uid] = nil
 		sock.client.socket = nil
 		sock.client = nil

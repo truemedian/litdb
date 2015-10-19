@@ -1,6 +1,6 @@
 return {
   name = "b42nk/luvsocks",
-  version = "0.0.1",
+  version = "0.0.2",
   files = {
     "*.lua",
     "libs/*.lua"
