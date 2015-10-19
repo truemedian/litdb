@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/repl"
-exports.version = "1.3.0"
+exports.version = "1.3.1"
 exports.dependencies = {
   "luvit/utils@1.0.0",
   "luvit/readline@1.1.1",
@@ -37,7 +37,7 @@ local _builtinLibs = { 'buffer', 'childprocess', 'codec', 'core',
   'dgram', 'dns', 'fs', 'helpful', 'hooks', 'http-codec', 'http',
   'https', 'json', 'los', 'net', 'pretty-print', 'process',
   'querystring', 'readline', 'timer', 'url', 'utils',
-  'stream', 'tls'
+  'stream', 'tls', 'path'
 }
 
 setmetatable(exports, {
