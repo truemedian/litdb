@@ -7,6 +7,11 @@ Mooncake is a web framework powered by [luvit](https://luvit.io/). inspired by [
 
 ## Install
 
+Install with [lit](https://luvit.io/lit.html)
+```bash
+lit install cyrilis/mooncake
+```
+or with npm
 ```bash
 npm install mooncake
 ```
@@ -52,6 +57,7 @@ server:start(8080)
   ```lua
   server:use(function(req, res,next)
       res:locals({first = true})
+      next()
   end)
   ```
 
@@ -128,7 +134,7 @@ server:route({
 })
 ```
 
-You can use `server:match()` if your use cunstom method: 
+You can use `server:match()` if your use custom method:
 
 ```lua
 server:match("delete", "/posts/:id", function(req, res)
@@ -260,7 +266,7 @@ end)
 - ####res:redirect(url, code)
   Redirect to the given url with optional status code defaulting to 302 “Found”.
   
-  - `url`: string, url for redirct, **required**, eg: "/404"
+  - `url`: string, url for redirect, **required**, eg: "/404"
   - `code`: number, status code, eg: 200
   
   eg:
