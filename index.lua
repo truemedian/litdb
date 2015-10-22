@@ -104,10 +104,10 @@ function MoonCake:genRoute ()
         end
         if method ~= "get" then
             local body = ""
-            local file = ""
+            local fileData = ""
             req:on("data", function(chunk)
                 if string.find(req.headers['content-type'], "multipart/form-data", 1, true) then
-                    file = file..chunk
+                    fileData = fileData..chunk
                 else
                     body = body..chunk
                 end
@@ -115,10 +115,33 @@ function MoonCake:genRoute ()
             req:on("end", function()
 
                 if string.find(req.headers['content-type'], "multipart/form-data", 1, true) then
-                    req.files = req.files or {}
-                    local tempname = os.tmpname()
-                    fs.writeFileSync(tempname, file)
-                    req.files[tempname] = { path = tempname }
+                    local boundary = string.match(fileData, "^([^\r?\n?]+)\n?\r?")
+                    local fileArray = helpers.split2(fileData,boundary)
+                    table.remove(fileArray)
+                    table.remove(fileArray, 1)
+                    req.files = {}
+                    req.body = {}
+                    for _, fileString in pairs(fileArray) do
+                        local header, headers = string.match(fileString, "^\r?\n(.-\r?\n\r?\n)"), {}
+                        local content = ""
+                        string.gsub(fileString, "^\r?\n(.-\r?\n\r?\n)(.*)", function(_,b)
+                            if b:sub(#b-1):find("\r?\n") then
+                                local _, n = b:sub(#b-1):find("\r?\n")
+                                content = b:sub(0,#b-n)
+                            end
+                        end)
+                        string.gsub(header, '%s?([^%:?%=?]+)%:?%s?%=?%"?([^%"?%;?%c?]+)%"?%;?%c?', function(k,v)
+                            headers[k] = v
+                        end)
+                        if headers["filename"] then
+                            local tempname = os.tmpname()
+                            fs.writeFileSync(tempname, content)
+                            req.files[headers["name"]] = {path = tempname, name = headers["filename"], ["Content-Type"] = headers["Content-Type"] }
+                        else
+                            req.body[headers["name"]] = content
+                        end
+                    end
+--                    req.files[tempname] = { path = tempname }
                 else
                     local bodyObj = querystring.parse(body)
                     req.body = bodyObj or {}
@@ -195,13 +218,19 @@ function MoonCake:static (fileDir, options)
     options = options or {}
     options.root = options.root or "/"
     print("Serving Directory:" .. fileDir)
+    local headers = {}
     local maxAge = options.maxAge or 15552000 -- half a year
+    headers["Cache-Control"] = "public, max-age=" .. tostring(maxAge)
     local routePath = path.join(options.root, ":file")
     local notFoundFunc = self.notFoundFunc
     return self:get(routePath, function(req, res)
         local trimdPath = req.params.file:match("([^?]*)(?*)(.*)")
         local filePath = path.resolve(fileDir, trimdPath)
-        res:sendFile(filePath)
+        if fs.existsSync(filePath) then
+            res:sendFile(filePath, headers)
+        else
+            notFoundFunc(req, res)
+        end
     end)
 end
 
