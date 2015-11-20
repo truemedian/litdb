@@ -3,7 +3,7 @@
 -- MIT License
 
 exports.name = 'bjornbytes/rx-lua'
-exports.version = '0.0.2'
+exports.version = '0.0.1'
 exports.description = 'Reactive Extensions for Lua'
 exports.license = 'MIT'
 exports.author = { url = 'https://github.com/bjornbytes' }
