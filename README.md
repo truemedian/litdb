@@ -46,7 +46,7 @@ server:start(8080)
   - or create a https server:
   ```lua
   Mooncake = require("mooncake")
-  local server = Mooncake({
+  local server = Mooncake:new({
         isHttps = true
         keyPath = "/path/to/key"
   })
@@ -63,8 +63,7 @@ server:start(8080)
   end)
   ```
 
-- ####server:static()
-  **`server:static(fileDir, options)`**
+- ####server:static(fileDir, options)
   - fileDir: string, directory path, **required**, eg: "public/files"
   - options: 
       - root: string, mount path, eg: `"/static"`
