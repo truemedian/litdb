@@ -180,9 +180,11 @@ function Request:done(callback)
             chunk  = chunk or ""
             data = data .. chunk
             local bodyObj
-            local contentType = helper.split(res.headers["Content-Type"], ";")[1]
+            local contentType = split(res.headers["Content-Type"], ";")[1]
             if contentType == BaseTypes['json'] then
                 bodyObj = JSON.parse(data)
+            elseif contentType == BaseTypes['form'] then
+                bodyObj = qs.parse(data)
             end
             res.body = bodyObj
             res.text = data
