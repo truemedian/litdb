@@ -1,8 +1,8 @@
 return {
   name = "luvit/luvit",
-  version = "2.7.0",
+  version = "2.7.1",
   luvi = {
-    version = "2.4.0",
+    version = "2.5.0",
     flavor = "regular",
   },
   license = "Apache 2",
@@ -36,7 +36,7 @@ return {
     "luvit/los@1.0.0",
     "luvit/net@1.2.1",
     "luvit/path@1.0.0",
-    "luvit/pretty-print@1.0.3",
+    "luvit/pretty-print@1.0.7",
     "luvit/process@1.1.1",
     "luvit/querystring@1.0.1",
     "luvit/readline@1.1.2",
@@ -45,7 +45,7 @@ return {
     "luvit/stream@1.1.0",
     "luvit/thread@0.1.2",
     "luvit/timer@1.0.0",
-    "luvit/tls@1.3.1",
+    "luvit/tls@1.3.3",
     "luvit/utils@1.0.0",
     "luvit/url@1.0.4",
   },
