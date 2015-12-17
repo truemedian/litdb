@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 
 exports.name = "luvit/repl"
-exports.version = "1.3.1"
+exports.version = "1.3.2"
 exports.dependencies = {
   "luvit/utils@1.0.0",
   "luvit/readline@1.1.1",
@@ -35,7 +35,7 @@ local History = require('readline').History
 
 local _builtinLibs = { 'buffer', 'childprocess', 'codec', 'core',
   'dgram', 'dns', 'fs', 'helpful', 'hooks', 'http-codec', 'http',
-  'https', 'json', 'los', 'net', 'pretty-print', 'process',
+  'https', 'json', 'los', 'net', 'pretty-print',
   'querystring', 'readline', 'timer', 'url', 'utils',
   'stream', 'tls', 'path'
 }
@@ -54,7 +54,6 @@ setmetatable(exports, {
       return oldGlobal[key]
     end
   })
-  global._G = global
 
   if greeting then stdout:write(greeting .. '\n') end
 
