@@ -215,7 +215,6 @@ function IRC:_setupconnection()
 			self:_disconnected("Could not resolve address for "..tostring(self.server), err, false)
 			return
 		end
-		local resolvedip = addresses[1].address
 		if self.options.ssl then
 			local options = {host=resolvedip, port=self.options.port}
 			self.sock = tls.connect (options, function()
