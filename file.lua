@@ -1,15 +1,16 @@
-exports.name = 'kaustavha/luvit-table'
-exports.version = '1.0.0'
-exports.license = 'MIT'
-exports.homepage = "https://github.com/kaustavha/luvit-table"
-exports.description = "Extends luas normal table with a few useful functions"
-exports.tags = {"luvit", "table"}
-exports.dependencies = { 
+--[[lit-meta
+name = 'kaustavha/luvit-table'
+version = '2.0.0'
+license = 'MIT'
+homepage = "https://github.com/kaustavha/luvit-table"
+description = "Extends luas normal table with a few useful functions"
+tags = {"luvit", "table"}
+dependencies = { 
   "luvit/luvit@2",
   "luvit/tap"
 }
-exports.author = { name = 'Kaustav Haldar'}
-
+author = { name = 'Kaustav Haldar'}
+]]
 local table = require('table')
 exports.table = table
 
