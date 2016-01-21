@@ -1,16 +1,17 @@
-exports.name = 'kaustavha/luvit-run'
-exports.version = '1.0.0'
-exports.license = 'MIT'
-exports.homepage = "https://github.com/kaustavha/luvit-run"
-exports.description = "Convenient utils for running shell commands, via lightweight streams or as a callback buffer"
-exports.tags = {"luvit", "childprocess", "run" }
-exports.dependencies = { 
+--[[lit-meta
+name = 'kaustavha/luvit-run'
+version = '2.0.0'
+license = 'MIT'
+homepage = "https://github.com/kaustavha/luvit-run"
+description = "Convenient utils for running shell commands, via lightweight streams or as a callback buffer"
+tags = {"luvit", "childprocess", "run" }
+dependencies = { 
   "luvit/luvit@2", 
   "virgo-agent-toolkit/line-emitter",
   "luvit/tap"
 }
-exports.author = { name = 'Kaustav Haldar'}
-
+author = { name = 'Kaustav Haldar'}
+]]
 -- Internals --
 local LineEmitter = require('line-emitter').LineEmitter
 local Transform = require('stream').Transform
