@@ -1,16 +1,17 @@
-exports.name = 'kaustavha/luvit-read'
-exports.version = '1.0.0'
-exports.license = 'MIT'
-exports.homepage = "https://github.com/kaustavha/luvit-read"
-exports.description = "Convenient utils for reading files, via lightweight streams or as a callback buffer"
-exports.tags = {"luvit", "fs", "read" }
-exports.dependencies = { 
+--[[lit-meta
+name = 'kaustavha/luvit-read'
+version = '2.0.0'
+license = 'MIT'
+homepage = "https://github.com/kaustavha/luvit-read"
+description = "Convenient utils for reading files, via lightweight streams or as a callback buffer"
+tags = {"luvit", "fs", "read" }
+dependencies = { 
   "luvit/luvit@2", 
-  "virgo-agent-toolkit/luvit-line-emitter",
+  "virgo-agent-toolkit/line-emitter",
   "luvit/tap"
 }
-exports.author = { name = 'Kaustav Haldar'}
-
+author = { name = 'Kaustav Haldar'}
+]]
 local Transform = require('stream').Transform
 local fs = require('fs')
 local LineEmitter = require('line-emitter').LineEmitter
