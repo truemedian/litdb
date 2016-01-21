@@ -20,7 +20,7 @@ limitations under the License.
 -- https://github.com/openresty/lua-resty-dns/blob/master/lib/resty/dns/resolver.lua
 
 exports.name = "luvit/dns"
-exports.version = "1.0.1"
+exports.version = "1.0.2"
 exports.dependencies = {
   "luvit/dgram@1.1.0",
   "luvit/fs@1.2.2",
@@ -755,7 +755,7 @@ exports.loadResolver = function(options)
 
   local function parse(line)
     if not (line:match('^#') or line:match('^;'))  then
-      local ip = line:match('^nameserver%s([a-fA-F0-9:\\.]+)')
+      local ip = line:match('^nameserver%s+([a-fA-F0-9:\\.]+)')
       if ip then
         local server = {}
         server.host = ip
