@@ -1,16 +1,21 @@
-exports.name = 'kaustavha/luvit-dead-beef-rand'
-exports.version = "1.0.1"
-exports.license = "Apache 2"
-exports.homepage = "https://github.com/kaustavha/luvit-dead-beef-rand/blob/master/deadBeefRand.lua"
-exports.description = "PRNG based on deadbeef"
-exports.tags = {"luvit", "random", "deadbeef"}
-
+--[[lit-meta
+name = 'kaustavha/luvit-dead-beef-rand'
+version = '2.0.0'
+license = 'MIT'
+homepage = "https://github.com/kaustavha/luvit-dead-beef-rand"
+description = "Deadbeef random based PRNG"
+tags = {"luvit", "crypto" }
+dependencies = { 
+  "luvit/luvit@2"
+}
+author = { name = 'Kaustav Haldar'}
+]]
 local bit = require('bit')
 local xor = bit.bxor
 local lshift = bit.lshift
 local rshift = bit.rshift
 
-exports.rand = function(seed)
+return function(seed)
   assert(seed, 'Need a seed')
   local beef = 0xdeadbeef
   seed = xor(lshift(seed, 7), (rshift(seed, 25) + beef))
