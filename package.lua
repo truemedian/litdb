@@ -1,10 +1,10 @@
 return {
     name = "bakpakin/moonmint",
-    version = "0.0.1",
+    version = "0.0.1-2",
     description = "Web Framework for lit.",
     tags = { "lua", "lit", "luvit", "moonmint", "router", "server", "framework"},
     license = "MIT",
-    author = { name = "bakpakin", email = "calsrose@gmail.com" },
+    author = { name = "Calvin Rose", email = "calsrose@gmail.com" },
     homepage = "https://github.com/bakpakin/moonmint",
     dependencies = {
         "bakpakin/moonmint-server@0.0.1",
@@ -14,6 +14,6 @@ return {
     },
     files = {
         "package.lua",
-        "moonmint.lua"
+        "init.lua"
     }
 }
