@@ -1,6 +1,6 @@
 --[[lit-meta
 name = "bakpakin/moonmint-static"
-version = "0.0.1-6"
+version = "0.0.1-7"
 dependencies = {
     "creationix/mime@0.1.2",
     "creationix/hybrid-fs@0.1.1",
@@ -37,9 +37,9 @@ local Static_mt = {
 function Static:doRoute(req, res)
 
     if req.method ~= "GET" then return end
-    local path = match(req.path, "^[^?#]*")
-    if byte(path) == 47 then
-        path = path:sub(2)
+    local path = match(req.path, "/?([^%?%#]*)")
+    if not path or #path == 0 then
+        path = "./"
     end
 
     local fs = self.fs
