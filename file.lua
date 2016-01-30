@@ -1,25 +1,30 @@
 --[[lit-meta
 name = 'kaustavha/luvit-read'
-version = '2.0.0'
+version = '2.1.0'
 license = 'MIT'
 homepage = "https://github.com/kaustavha/luvit-read"
 description = "Convenient utils for reading files, via lightweight streams or as a callback buffer"
 tags = {"luvit", "fs", "read" }
-dependencies = { 
-  "luvit/luvit@2", 
-  "virgo-agent-toolkit/line-emitter",
+dependencies = {
+  "luvit/luvit@2",
   "luvit/tap"
 }
 author = { name = 'Kaustav Haldar'}
 ]]
 local Transform = require('stream').Transform
 local fs = require('fs')
-local LineEmitter = require('line-emitter').LineEmitter
-
 -- Internal --
 local Reader = Transform:extend()
 function Reader:initialize()
   Transform.initialize(self, {objectMode = true})
+end
+
+local LineEmitter = Transform:extend()
+function LineEmitter:_transform(chunk, cb)
+  for line in chunk:gmatch('[^\r\n]+') do 
+    self:push(line) 
+  end
+  cb()
 end
 
 local function _read(filePath, Stream)
