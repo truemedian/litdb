@@ -1,16 +1,16 @@
 --[[lit-meta
 name = "creationix/postgres-codec"
-version = "0.1.0"
+version = "0.1.0-1"
 dependencies = {
   "creationix/coro-wrapper@2.0.0",
 }
 homepage = "https://github.com/virgo-agent-toolkit/super-agent/blob/master/libs/postgres-codec.lua"
 description = "A pure lua implementation of the postgresql wire protocol.."
-tags = {"coro", "postgres", "codec"}
+tags = {"coro", "psql", "postgres", "codec", "db", "database"}
 license = "MIT"
-authors = {
-  { name = "Tim Caswell" },
-  { name = "Adam Martinek" },
+contributors = {
+  "Tim Caswell",
+  "Adam Martinek",
 }
 ]]
 
