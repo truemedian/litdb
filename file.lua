@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/schema"
-  version = "0.1.0"
+  version = "0.2.0"
   homepage = "https://github.com/virgo-agent-toolkit/super-agent/blob/master/libs/schema"
   description = "A runtime type-checking system to validate API functions."
   tags = {"schema", "type", "api"}
@@ -16,11 +16,27 @@ local function capitalize(name)
   return (name:gsub("^%l", string.upper))
 end
 
+
+local function guessType(value)
+  local isRecord = true
+  local isTuple = true
+  local i = 1
+  for k in pairs(value) do
+    if k ~= i then
+      isTuple = false
+    end
+    if type(k) ~= "string" then
+      isRecord = false
+    end
+    i = i + 1
+  end
+  return isRecord, isTuple
+end
 --------------------------------------
 
 local Any = setmetatable({}, {
-  __tostring = function (_)
-    return "Any"
+  __tostring = function (self)
+    return self.alias or "Any"
   end,
   __call = function (_, name, value)
     if value == nil then
@@ -31,8 +47,8 @@ local Any = setmetatable({}, {
 })
 
 local Truthy = setmetatable({}, {
-  __tostring = function (_)
-    return "Truthy"
+  __tostring = function (self)
+    return self.alias or "Truthy"
   end,
   __call = function (_, name, value)
     if not value then
@@ -44,8 +60,8 @@ local Truthy = setmetatable({}, {
 
 -- Ensure a value is an integer
 local Int = setmetatable({}, {
-  __tostring = function (_)
-    return "Int"
+  __tostring = function (self)
+    return self.alias or "Int"
   end,
   __call = function (_, name, value)
     local t = type(value)
@@ -60,8 +76,8 @@ local Int = setmetatable({}, {
 })
 
 local Number = setmetatable({}, {
-  __tostring = function(_)
-    return "Number"
+  __tostring = function(self)
+    return self.alias or "Number"
   end,
   __call = function (_, name, value)
     local t = type(value)
@@ -73,8 +89,8 @@ local Number = setmetatable({}, {
 })
 
 local String = setmetatable({}, {
-  __tostring = function(_)
-    return "String"
+  __tostring = function(self)
+    return self.alias or "String"
   end,
   __call = function (_, name, value)
     local t = type(value)
@@ -86,8 +102,8 @@ local String = setmetatable({}, {
 })
 
 local Bool = setmetatable({}, {
-  __tostring = function(_)
-    return "Bool"
+  __tostring = function(self)
+    return self.alias or "Bool"
   end,
   __call = function (_, name, value)
     local t = type(value)
@@ -99,8 +115,8 @@ local Bool = setmetatable({}, {
 })
 
 local Function = setmetatable({}, {
-  __tostring = function(_)
-    return "Function"
+  __tostring = function(self)
+    return self.alias or "Function"
   end,
   __call = function (_, name, value)
     local t = type(value)
@@ -113,6 +129,7 @@ local Function = setmetatable({}, {
 
 local recordMeta = {
   __tostring = function (self)
+    if self.alias then return self.alias end
     local parts = {}
     local i = 1
     for k, v in pairs(self.struct) do
@@ -142,6 +159,7 @@ end
 
 local tupleMeta = {
   __tostring = function (self)
+    if self.alias then return self.alias end
     local parts = {}
     for i = 1, #self.list do
       parts[i] = tostring(self.list[i])
@@ -179,17 +197,7 @@ local function checkType(value)
   if getmetatable(value) then
     return value
   elseif type(value) == "table" then
-    local i = 1
-    local isRecord = true
-    local isTuple = true
-    for k in pairs(value) do
-      if k ~= i then
-        isTuple = false
-      elseif type(k) ~= "string" then
-        isRecord = false
-      end
-      i = i + 1
-    end
+    local isRecord, isTuple = guessType(value)
     if isRecord then
       return Record(value)
     elseif isTuple then
@@ -201,7 +209,7 @@ end
 
 local arrayMeta = {
   __tostring = function (self)
-    return "Array<" .. tostring(self.subType) .. ">"
+    return self.alias or "Array<" .. tostring(self.subType) .. ">"
   end,
   __call = function (self, name, value)
     local t = type(value)
@@ -231,12 +239,22 @@ local Type = setmetatable({}, {
     return "Type"
   end,
   __call = function (_, name, value)
+    -- Ensure it's a table
     local t = type(value)
-    local meta = getmetatable(value)
-    if t ~= "table" or not (meta.__tostring and meta.__call) then
+    if t ~= "table" then
       return name, "Type", capitalize(t)
     end
-    return name, "Type"
+    -- Check for pre-compiled types
+    local meta = getmetatable(value)
+    if meta and meta.__tostring and meta.__call then
+      return name, "Type"
+    end
+    -- Check for record or tuple shaped tables
+    local isRecord, isTuple = guessType(value)
+    if isRecord or isTuple then
+      return name, "Type"
+    end
+    return name, "Type", capitalize(t)
   end
 })
 
@@ -307,6 +325,17 @@ addSchema = assert(addSchema("addSchema",
   Function,
   addSchema))
 
+local function makeAlias(name, typ)
+  typ = checkType(typ)
+  local copy = {}
+  for k, v in pairs(typ) do
+    copy[k] = v
+  end
+  setmetatable(copy, getmetatable(typ))
+  copy.alias = name
+  return copy
+end
+
 return {
   Any = Any,
   Truthy = Truthy,
@@ -321,4 +350,5 @@ return {
   Type = Type,
   checkType = checkType,
   addSchema = addSchema,
+  makeAlias = makeAlias,
 }
