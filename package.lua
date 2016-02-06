@@ -1,6 +1,6 @@
 return {
   name = "james2doyle/rndm",
-  version = "0.0.1",
+  version = "0.0.2",
   description = "random string generator",
   tags = { "rndm", "random", "string", "generator" },
   license = "MIT",

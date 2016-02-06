@@ -38,10 +38,13 @@ local function base10 ( len )
   return create(base10string)(len)
 end
 
-exports.base62 = base62
-exports.base36 = base36
-exports.base10 = base10
-
-exports.create = function( chars, len )
+local function ecreate ( chars, len )
   return create(chars)(len)
 end
+
+return {
+  create = ecreate,
+  base62 = base62,
+  base36 = base36,
+  base10 = base10
+}
