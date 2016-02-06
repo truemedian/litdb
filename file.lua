@@ -1,10 +1,11 @@
-exports.name = "creationix/msgpack"
-exports.version = "1.0.3"
-exports.description = "A pure lua implementation of the msgpack format."
-exports.homepage = "https://github.com/creationix/msgpack-lua"
-exports.author = { name = "Tim Caswell" }
-exports.keywords = {"codec", "msgpack"}
-exports.license = "MIT"
+--[[lit-meta
+  name = "creationix/msgpack"
+  version = "2.0.0"
+  description = "A pure lua implementation of the msgpack format."
+  homepage = "https://github.com/creationix/msgpack-lua"
+  keywords = {"codec", "msgpack"}
+  license = "MIT"
+]]
 
 local floor = math.floor
 local ceil = math.ceil
@@ -55,11 +56,11 @@ local function encode(value)
     return value and "\xc3" or "\xc2"
   elseif t == "number" then
     if value == huge then
-      -- Encode as 32-bit Infinity
-      return "\xca\x7f\xf0\x00\x00"
+      -- Encode as Infinity
+      return "\xCB\x7F\xF0\x00\x00\x00\x00\x00\x00"
     elseif value == -huge then
-      -- Encode as 32-bit -Infinity
-      return "\xca\xff\xf0\x00\x00"
+      -- Encode as -Infinity
+      return "\xCB\xFF\xF0\x00\x00\x00\x00\x00\x00"
     elseif floor(value) == value then
       -- Encode as smallest integer type that fits
       if value >= 0 then
@@ -101,34 +102,27 @@ local function encode(value)
         end
       end
     else
-      local fraction, exponent = frexp(value)
-      if fraction ~= fraction then
-        -- Encode as 32-bit NaN
-        return "\xcb\xff\xf8\x00\x00"
+      local mantissa, exponent = frexp(value)
+      if mantissa ~= mantissa then
+        -- Encode as NaN
+        return "\xCB\xFF\xF8\x00\x00\x00\x00\x00\x00"
       end
-      local sign
-      if fraction < 0 then
+      local sign = 0
+      if mantissa < 0 then
         sign = 0x80
-        fraction = -fraction
-      else
-        sign = 0
+        mantissa = -mantissa
       end
-      p{sign=sign==0x80,exponent=exponent,fraction=fraction}
-      -- Exponent encoding as offset binary at 1023
-      exponent = exponent + 0x3fe
-      fraction = (fraction * 2.0 - 1.0) * ldexp(0.5, 53)
-      local high = floor(fraction / 0x100000000)
+      exponent = exponent + 0x3FE
+      mantissa = (mantissa * 2.0 - 1.0) * ldexp(0.5, 53)
       return char(0xCB,
-        -- sign and first 7 bits of exponent
-        bor(sign, rshift(exponent, 4)),
-        -- last 4 bits of exponent and first 4 bits of exponent
-        bor(lshift(band(exponent, 0xf), 4), rshift(high, 16)),
-        band(rshift(high, 8), 0xff),
-        band(high, 0xff),
-        band(rshift(fraction, 24), 0xff),
-        band(rshift(fraction, 16), 0xff),
-        band(rshift(fraction, 8), 0xff),
-        band(fraction, 0xff))
+        sign + floor(exponent / 0x10),
+        (exponent % 0x10) * 0x10 + floor(mantissa / 0x1000000000000),
+        floor(mantissa / 0x10000000000) % 0x100,
+        floor(mantissa / 0x100000000) % 0x100,
+        floor(mantissa / 0x1000000) % 0x100,
+        floor(mantissa / 0x10000) % 0x100,
+        floor(mantissa / 0x100) % 0x100,
+        mantissa % 0x100)
     end
   elseif t == "string" then
     local l = #value
@@ -193,7 +187,6 @@ local function encode(value)
     error("Unknown type: " .. t)
   end
 end
-exports.encode = encode
 
 local readmap, readarray
 
@@ -257,32 +250,11 @@ local function decode(data, offset)
     return readmap(read16(data, offset + 2), data, offset, offset + 3)
   elseif c == 0xdf then
     return readmap(read32(data, offset + 2) % 0x100000000, data, offset, offset + 5)
-  elseif c == 0xcb then
-    local a, b = byte(data, offset + 2, offset + 3)
-    local sign = band(a, 0x80) > 0
-    local exponent = bor(
-      lshift(band(a, 0x7f), 4),
-      rshift(band(b, 0xf0), 4)) - 0x3fe
-    local fraction =
-      bor(
-        lshift(band(b, 0xf), 16).
-        lshift(byte(data, offset + 4), 8),
-        byte(data, offset + 5),
-        byte(data, offset + 4))
-    fraction = (fraction / ldexp(0.5, 53)+ 1.0) / 2.0
-
-    p{sign=sign,exponent=exponent, fraction=fraction}
-    error("TODO: 64-bit double-precision floating point numbers")
-  elseif c == 0xca then
-    error("TODO: 32-bit single-precision floating point numbers")
   else
-    error("TODO: more types: " .. string.format("0x%02x", c))
+    error("TODO: more types: " .. string.format("%02x", c))
   end
 end
 
-exports.decode = function (data, offset)
-  return decode(data, offset or 0)
-end
 
 function readarray(count, data, offset, start)
   local items = {}
@@ -305,3 +277,10 @@ function readmap(count, data, offset, start)
   end
   return map, start - offset
 end
+
+return {
+  encode = encode,
+  decode = function (data, offset)
+    return decode(data, offset or 0)
+  end
+}
