@@ -1,5 +1,5 @@
 -- conversion of https://github.com/sindresorhus/text-extensions
-exports.list = {
+return {
     "applescript",
     "asp",
     "aspx",
@@ -9,15 +9,21 @@ exports.list = {
     "bbcolors",
     "bowerrc",
     "c",
+    "cc",
+    "cfc",
     "cfg",
+    "cfm",
+    "cmd",
     "cnf",
     "coffee",
     "conf",
+    "cpp",
     "cson",
     "css",
     "csslintrc",
     "csv",
     "curlrc",
+    "cxx",
     "diff",
     "eco",
     "editorconfig",
@@ -38,6 +44,7 @@ exports.list = {
     "haml",
     "hbs",
     "hgignore",
+    "hpp",
     "htaccess",
     "htm",
     "html",
@@ -67,6 +74,7 @@ exports.list = {
     "mkd",
     "mkdn",
     "mkdown",
+    "nfo",
     "npmrc",
     "npmignore",
     "nvmrc",
@@ -91,6 +99,7 @@ exports.list = {
     "scala",
     "scss",
     "seestyle",
+    "sls",
     "sss",
     "sh",
     "strings",
@@ -129,5 +138,3 @@ exports.list = {
     "zsh",
     "zshrc"
 }
-
-return exports

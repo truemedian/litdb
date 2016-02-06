@@ -1,6 +1,6 @@
 return {
   name = "james2doyle/text-extensions",
-  version = "0.0.3",
+  version = "0.0.4",
   homepage = "https://github.com/james2doyle/lit-text-extensions",
   description = "Get a list of valid text file extensions",
   tags = {
