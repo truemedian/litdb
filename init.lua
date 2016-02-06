@@ -1,8 +1,6 @@
 -- converted from https://github.com/joaquimserafim/base64-url
 local Buffer = require('buffer').Buffer
 
-local base64 = {}
-
 local function unescape (str)
   local len = 4 - #str % 4
   local newstr = {}
@@ -31,7 +29,9 @@ local function decode (str)
   return Buffer:new(unescape(str)):toString()
 end
 
-exports.unescape = unescape
-exports.escape = escape
-exports.encode = encode
-exports.decode = decode
+return {
+  unescape = unescape,
+  escape = escape,
+  encode = encode,
+  decode = decode
+}
