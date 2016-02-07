@@ -1,6 +1,6 @@
 return {
   name = "james2doyle/ms",
-  version = "0.0.1",
+  version = "0.0.2",
   description = "Tiny ms conversion utility.",
   tags = { "ms", "human", "convert", "time" },
   license = "MIT",

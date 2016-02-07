@@ -40,7 +40,7 @@ local function parse(str)
   if stype:match('[years]*[year]*[yrs]*[yr]*[y]*') then
     return n * y
   end
-  if stype:match('[days]*[dayr]*[d]*') then
+  if stype:match('[days]*[day]*[d]*') then
     return n * d
   end
   if stype:match('[hours]*[hour]*[hrs]*[hr]*[h]*') then
