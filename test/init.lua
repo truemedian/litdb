@@ -6,6 +6,7 @@ server:use(function(req, res, next)
 end)
 
 server:match("get", "/", function(req, res)
+  p(req.cookie)
   res:render("./views/index.html", {
     title= "Hello world from MoonCake!",
     message = "You are welcome!",
@@ -22,6 +23,17 @@ server:route({
   }
 })
 
+server:get("/setCookie", function(req, res)
+  res:setCookie("WTF", "Test", {
+    path = "/",
+    httpOnly = true
+  }):send("Set Cookie Test.")
+end)
+
+server:get("/removeCookie", function(req, res)
+  res:removeCookie("WTF"):send("RemoveCookie")
+end)
+
 server:all("/hello", function(q, s)
   s:send("HELLO!")
 end)
@@ -36,7 +48,7 @@ end)
 
 server:post("/posts/new", function(q,s)
   if q.body.title and q.body.content then
-    print("new post")
+    p("new post")
     -- Save to DB:
     -- DB.save("post", {title = q.body.title, content = q.body.content})
     s:redirect("/posts")
@@ -44,7 +56,8 @@ server:post("/posts/new", function(q,s)
 end)
 
 server:post("/", function(req, res)
-  res:send("wht")
+  p(req.files)
+  res:json(req.files)
 end)
 
 server:static("./libs/", {

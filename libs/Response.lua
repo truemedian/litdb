@@ -5,11 +5,11 @@ local path = require("path")
 local env = require("env")
 local fs = require("fs")
 local JSON = require("json")
-
+local Cookie = require("./cookie")
 local mime = require('./mime')
 local helpers = require('./helpers')
 
-extend = function(obj, with_obj)
+local extend = function(obj, with_obj)
   for k, v in pairs(with_obj) do
     obj[k] = v
   end
@@ -53,6 +53,27 @@ function ServerResponse:send (data, code, header)
   collectgarbage()
 end
 
+function ServerResponse:setCookie(name, value, options)
+  options = options or {}
+  if type(options.httpOnly) == "nil" then
+    options.httpOnly = true
+  end
+  local cookieStr = Cookie:serialize (name, value, options)
+  self:setHeader("Set-Cookie", cookieStr)
+  return self
+end
+
+function ServerResponse:deleteCookie(name)
+  local options = {
+    expires = 0,
+    path = "/"
+  }
+  self:setCookie(name, "" , options)
+  return self
+end
+
+ServerResponse.removeCookie = ServerResponse.deleteCookie
+
 function ServerResponse:render(tpl, data)
   local callerSource = debug.getinfo(2).source
   local filePath = path.resolve(path.dirname(callerSource), tpl)
@@ -69,8 +90,13 @@ function ServerResponse:render(tpl, data)
     ServerResponse.flashData[sid] = nil
   end
   local renderData = extend(extend(localData, data or {}), flashData)
-  tpl = template.render(filePath, renderData, key)
-  self:send(tpl)
+  local status, result = pcall(function() return template.render(filePath, renderData, key) end)
+  if status then
+    self:send(result)
+  else
+    p("[Error Rendering HTML] ",result)
+    self:fail("Internal Error")
+  end
 end
 
 function ServerResponse:status (statusCode)
