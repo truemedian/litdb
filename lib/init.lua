@@ -112,12 +112,14 @@ function ClientBase:request(method, path, payload, expectedStatusCode, callback)
   end
 
   request(options, function(err, res)
-    local data = ''
+    if err then return callback(err) end
+    local data = {}
     res:on('data', function(chunk)
-      data = data .. chunk
+      data[#data + 1] = chunk
     end)
     res:on('end', function()
       self._lastRes = res
+      data = table.concat(data)
       if res.statusCode ~= expectedStatusCode then
         callback(errors.HttpResponseError:new(res.statusCode, method, path, data))
       else
