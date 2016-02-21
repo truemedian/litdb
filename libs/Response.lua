@@ -1,6 +1,7 @@
 local ServerResponse = require("http").ServerResponse
 ServerResponse.flashData = {}
 local template = require("./resty-template")
+local etlua = require("./etlua")
 local path = require("path")
 local env = require("env")
 local fs = require("fs")
@@ -77,6 +78,8 @@ ServerResponse.removeCookie = ServerResponse.deleteCookie
 function ServerResponse:render(tpl, data)
   local callerSource = debug.getinfo(2).source
   local filePath = path.resolve(path.dirname(callerSource), tpl)
+  local viewEngine = env.get("viewEngine")
+  local renderer =  viewEngine == "etlua" and etlua or template
   local key = "no-cache"
   if env.get("PROD") == "TRUE" then
     key = nil
@@ -90,12 +93,46 @@ function ServerResponse:render(tpl, data)
     ServerResponse.flashData[sid] = nil
   end
   local renderData = extend(extend(localData, data or {}), flashData)
-  local status, result = pcall(function() return template.render(filePath, renderData, key) end)
-  if status then
-    self:send(result)
+  if viewEngine == "etlua" or path.extname(filePath) == ".elua" then
+    local templateString = fs.readFileSync(filePath)
+    local include = function(fpath, data)
+      local fpath = path.resolve(filePath, fpath)
+      local tplString = fs.readFileSync(fpath)
+      if not tplString then
+        p("[Error]: File " .. fpath .. " Not Found.")
+        return ""
+      end
+      local renderData = extend(extend(localData or {}, {currentPath = fpath, include = include }),data or {})
+      local tplResult, err = etlua.render(tplString, renderData)
+      if tplResult then
+        return tplResult
+      else
+        p("[Error Rendering HTML] ", err)
+        return "<h1>Internal Error</h1> <p style='color: red'>Error while render template :(</p>"
+      end
+    end
+    renderData = extend(localData, {
+      currentPath = filePath,
+      include = include
+    })
+    if not templateString then
+      templateString = tpl
+    end
+    local result, error = etlua.render(templateString, renderData)
+    if not result then
+      p("[Error Rendering HTML] ", error)
+      self:fail("Internal Error")
+    else
+      self:send(result)
+    end
   else
-    p("[Error Rendering HTML] ",result)
-    self:fail("Internal Error")
+    local status, result = pcall(function() return template.render(filePath, renderData, key) end)
+    if status then
+      self:send(result)
+    else
+      p("[Error Rendering HTML] ",result)
+      self:fail("Internal Error")
+    end
   end
 end
 

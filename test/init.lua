@@ -1,13 +1,22 @@
 local MoonCake = require("../")
 local server = MoonCake:new()
+local env = require("env")
 
 server:use(function(req, res, next)
     next()
 end)
 
 server:match("get", "/", function(req, res)
-  p(req.cookie)
   res:render("./views/index.html", {
+    title= "Hello world from MoonCake!",
+    message = "You are welcome!",
+    names = {"Tom", "Jerry", "Wof"},
+    jquery  = '<script src="js/jquery.min.js"></script>'
+  })
+end)
+
+server:get("/etlua", function(req, res)
+  res:render("./views/index.elua", {
     title= "Hello world from MoonCake!",
     message = "You are welcome!",
     names = {"Tom", "Jerry", "Wof"},
