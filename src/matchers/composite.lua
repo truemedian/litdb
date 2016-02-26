@@ -1,5 +1,5 @@
-local assert = require('luassert.assert')
-local match = require ('luassert.match')
+local assert = require('../assert')
+local match = require ('../match')
 local s = require('say')
 
 local function none(state, arguments, level)

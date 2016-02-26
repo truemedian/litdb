@@ -6,9 +6,9 @@
 -- 3) level The level of the error position relative to the called function
 -- returns; boolean; whether assertion passed
 
-local assert = require('luassert.assert')
-local astate = require ('luassert.state')
-local util = require ('luassert.util')
+local assert = require('./assert')
+local astate = require ('./state')
+local util = require ('./util')
 local s = require('say')
 
 local function format(val)

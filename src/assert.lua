@@ -1,11 +1,11 @@
 local s = require 'say'
-local astate = require 'luassert.state'
-local util = require 'luassert.util'
-local unpack = require 'luassert.compatibility'.unpack
+local astate = require './state'
+local util = require './util'
+local unpack = require './compatibility'.unpack
 local obj   -- the returned module table
 
 -- list of namespaces
-local namespace = require 'luassert.namespaces'
+local namespace = require './namespaces'
 
 local function geterror(assertion_message, failure_message, args)
   if util.hastostring(failure_message) then

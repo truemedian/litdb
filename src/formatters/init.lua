@@ -1,5 +1,5 @@
 -- module will not return anything, only register formatters with the main assert engine
-local assert = require('luassert.assert')
+local assert = require('../assert')
 local ok, term = pcall(require, 'term')
 
 local colors = setmetatable({

@@ -249,7 +249,7 @@ end
 -- @param tokens list of tokens to search for keys
 -- @return table, list of keys that were extracted
 function util.extract_keys(nspace, tokens)
-  local namespace = require 'luassert.namespaces'
+  local namespace = require './namespaces'
 
   -- find valid keys by coalescing tokens as needed, starting from the end
   local keys = {}

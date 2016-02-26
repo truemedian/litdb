@@ -1,5 +1,5 @@
 -- module will not return anything, only register assertions/modifiers with the main assert engine
-local assert = require('luassert.assert')
+local assert = require('./assert')
 
 local function is(state)
   return state

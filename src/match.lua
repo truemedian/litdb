@@ -1,5 +1,5 @@
-local namespace = require 'luassert.namespaces'
-local util = require 'luassert.util'
+local namespace = require './namespaces'
+local util = require './util'
 
 local matcher_mt = {
   __call = function(self, value)
