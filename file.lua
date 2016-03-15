@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/websocket-client"
-  version = "3.0.0"
+  version = "3.0.1"
   description = "A coroutine based client for Websockets"
   tags = {"coro", "websocket"}
   license = "MIT"
@@ -18,7 +18,8 @@ local websocketCodec = require('websocket-codec')
 local httpCodec = require('http-codec')
 
 return function (url, subprotocol, options)
-  local headers = options.headers
+  options = options or {}
+  local headers = options.headers or {}
 
   local protocol, host, port, path = string.match(url, "^(wss?)://([^:/]+):?(%d*)(/?[^#]*)")
   local tls = options.tls
