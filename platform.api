@@ -1,0 +1,158 @@
+echo (data: Emitter(Any)) -> (data: Emitter(Any))
+
+scandir (
+  path: String
+  entry: Emitter(
+    name: String
+    type: String
+  )
+) -> (exists: Boolean)
+
+readstream (
+  path: String
+  data: Emitter(Buffer)
+) -> (exists: Boolean)
+
+readfile (path: String) -> (data: Optional(String))
+
+readbinary (path: String) -> (data: Optional(Buffer))
+
+readlink (path: String) -> (target: Optional(String))
+
+writestream (path: String) -> (data: Emitter(Optional(Buffer)))
+
+writefile (
+  path: String
+  data: Buffer
+) -> (created: Boolean)
+
+symlink (
+  path: String
+  target: String
+) -> ()
+
+mkdir (
+  path: String
+  recursive: Boolean
+) -> (created: Boolean)
+
+unlink (path: String) -> (existed: Boolean)
+
+rmdir (path: String) -> (existed: Boolean)
+
+rm (
+  path: String
+  recursive: Boolean
+) -> (existed: Boolean)
+
+lstat (path: String) -> (
+  mtime: Number
+  atime: Number
+  size: Integer
+  type: String
+  mode: Integer
+  uid: Integer
+  gid: Integer
+)
+
+chmod (
+  path: String
+  mode: Integer
+) -> ()
+
+chown (
+  path: String
+  uid: Integer
+  gid: Integer
+) -> ()
+
+utime (
+  path: String
+  atime: Number
+  mtime: Number
+) -> ()
+
+rename (
+  path: String
+  newPath: String
+) -> ()
+
+realpath (path: String) -> (fullPath: String)
+
+diskusage (
+  path: String
+  depth: Integer
+  onEntry: Emitter(
+    path: String
+    size: Integer
+  )
+  onError: Emitter(
+    path: String
+    error: String
+  )
+) -> (
+  exists: Bool
+)
+
+user (uid: Integer) -> (username: Optional(String))
+
+group (gid: Integer) -> (groupname: Optional(String))
+
+uid (username: String) -> (uid: Optional(Integer))
+
+gid(groupname: String) -> (gid: Optional(Integer))
+
+type SpawnOptions = {
+  args: Optional(Array(String))
+  env: Optional(Array(String))
+  cwd: Optional(String)
+  uid: Optional(Integer)
+  gid: Optional(Integer)
+  user: Optional(String)
+  group: Optional(String)
+}
+
+type WinSize = (
+  cols: Integer
+  rows: Integer
+)
+
+pty (
+  shell: String
+  size: Winsize
+  options: SpawnOptions
+  data: Emitter(data: Optional(Buffer)),
+  error: Emitter(err: String),
+  exit: Emitter(
+    code: Integer
+    signal: Integer
+  )
+) -> (
+  data: Emitter(chunk: Optional(Buffer))
+  kill: Emitter(signal: Integer)
+  resize: Emitter(WinSize)
+)
+
+getenv(name: String) -> (value: Optional(String))
+
+getos() -> (os: String)
+
+getarch() -> (arch: String)
+
+getuser() -> (username: Optional(String))
+
+homedir() -> (home: String)
+
+getpid() -> (pid: Integer)
+
+getuid() -> (uid: Integer)
+
+getgid() -> (gid: Integer)
+
+freemem() -> (freeMemory: Integer)
+
+totalmem() -> (totalMemory: Integer)
+
+getrss() -> (rss: Integer)
+
+uptime() -> (uptime: Integer)
