@@ -69,6 +69,7 @@ GET /packages/$AUTHOR/$TAG/latest.zip -> zip bundle of the most recent version
 
 GET /search/$query -> list of matches
 
+GET /metrics -> json of currently exposed metrics
 ]]
 
 local pathJoin = require('luvi').path.join
@@ -81,6 +82,9 @@ local exportZip = require('export-zip')
 local calculateDeps = require('calculate-deps')
 local queryDb = require('pkg').queryDb
 local installDeps = require('install-deps').toDb
+local ffi = require('ffi')
+local fs = require('coro-fs')
+local metrics = require('metrics')
 
 local litVersion = "Lit " .. require('../package').version
 
@@ -130,6 +134,61 @@ end
 
 local metaCache = {}
 
+-- Define the required metrics that must exist for collectMetrics() to work.
+metrics.define("lua.mem.used")
+metrics.define("lua.fds.used")
+
+-- Define other metrics here.
+metrics.define("lit.url._slash") -- just /
+mettab = {"blobs", "trees", "packages.zip", "packages", "search"}
+for i = 1, #mettab do
+  metrics.define("lit.url."..mettab[i])
+end
+
+metrics.define("lit.totals.url")
+
+-- Collect statistics about this server's running instance.
+-- Return these metrics in a table.  The intended consumer of this
+-- information should render it in JSON format for transmission to
+-- a time-series database and/or visualization tools.
+local function collectStats()
+  -- Strategy: we always calculate memory consumption and FD resource
+  -- consumption synchronously with this function.  However, other
+  -- parts of the system may update and maintain their own metrics
+  -- asynchronously.  If they exist at all, we just return them as-is.
+
+  local memoryUsed = 1024 * collectgarbage("count")
+
+  local function countFDs(path)
+    local entries = 0
+
+    -- You might think this leaks a filehandle, but it actually doesn't.
+    -- You can confirm this yourself by hitting /metrics several times in a row,
+    -- and observing that lua.fds.total does not increase with each GET request.
+
+    local iter = fs.scandir(path)
+    for entry in iter do
+      entries = entries + 1
+    end
+    return entries
+  end
+
+  local howToDetermineFDs = {
+    Linux = function() return countFDs("/proc/self/fd") end,
+    OSX = function() return countFDs("/dev/fd") end,
+    Other = function() return -1 end
+  }
+
+  local os = ffi.os
+  if howToDetermineFDs[os] == nil then
+    os = "Other"
+  end
+
+  metrics.set("lua.mem.used", memoryUsed)
+  metrics.set("lua.fds.used", howToDetermineFDs[os]())
+  return metrics.all()
+end
+
 return function (db, prefix)
 
   local function makeUrl(kind, hash, filename)
@@ -168,7 +227,10 @@ return function (db, prefix)
   end
 
   local routes = {
+    "^/metrics$", collectStats,
     "^/blobs/([0-9a-f]+)/(.*)", function (hash, path)
+      metrics.increment("lit.url.blobs")
+      metrics.increment("lit.totals.url")
       local body = db.loadAs("blob", hash)
       local filename = path:match("[^/]+$")
       return body, {
@@ -176,6 +238,8 @@ return function (db, prefix)
       }
     end,
     "^/trees/([0-9a-f]+)/(.*)", function (hash, filename)
+      metrics.increment("lit.url.trees")
+      metrics.increment("lit.totals.url")
       local tree = db.loadAs("tree", hash)
       for i = 1, #tree do
         local entry = tree[i]
@@ -184,6 +248,8 @@ return function (db, prefix)
       return tree
     end,
     "^/$", function ()
+      metrics.increment("lit.url._slash")
+      metrics.increment("lit.totals.url")
       return  {
         blobs = prefix .. "/blobs/{hash}",
         trees = prefix .. "/trees/{hash}",
@@ -192,9 +258,12 @@ return function (db, prefix)
         versions = prefix .. "/packages/{author}/{name}",
         package = prefix .. "/packages/{author}/{name}/{version}",
         search = prefix .. "/search/{query}",
+        metrics = prefix .. "/metrics",
       }
     end,
     "^/packages/([^/]+)/(.+)/([^/]+)%.zip$", function (author, name, version)
+      metrics.increment("lit.url.packages.zip")
+      metrics.increment("lit.totals.url")
       if version == "latest" then
         version = (db.offlineMatch or db.match)(author, name)
       elseif version:sub(1,1) == "v" then
@@ -224,6 +293,8 @@ return function (db, prefix)
       }
     end,
     "^/packages/([^/]+)/(.+)/([^/]+)$", function (author, name, version)
+      metrics.increment("lit.url.packages")
+      metrics.increment("lit.totals.url")
       if version == "latest" then
         version = nil
       elseif version:sub(1,1) == "v" then
@@ -234,6 +305,8 @@ return function (db, prefix)
       return meta
     end,
     "^/packages/([^/]+)/(.+)$", function (author, name)
+      metrics.increment("lit.url.packages")
+      metrics.increment("lit.totals.url")
       local versions = {}
       for version in db.versions(author, name) do
         versions[version] = prefix .. "/packages/" .. author .. "/" .. name .. "/v" .. version
@@ -241,6 +314,8 @@ return function (db, prefix)
       return next(versions) and versions
     end,
     "^/packages/([^/]+)$", function (author)
+      metrics.increment("lit.url.packages")
+      metrics.increment("lit.totals.url")
       local names = {}
       for name in db.names(author) do
         names[name] = prefix .. "/packages/" .. author .. "/" .. name
@@ -248,6 +323,8 @@ return function (db, prefix)
       return next(names) and names
     end,
     "^/packages$", function ()
+      metrics.increment("lit.url.packages")
+      metrics.increment("lit.totals.url")
       local authors = {}
       for author in db.authors() do
         authors[author] =  prefix .. "/packages/" .. author
@@ -255,6 +332,8 @@ return function (db, prefix)
       return next(authors) and authors
     end,
     "^/search/(.*)$", function (raw)
+      metrics.increment("lit.url.search")
+      metrics.increment("lit.totals.url")
       local query = { raw = raw }
       local keys = {"author", "tag", "name", "depends"}
       for i = 1, #keys do
