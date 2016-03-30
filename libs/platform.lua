@@ -1,6 +1,6 @@
 local uv = require('uv')
 local ffi = require('ffi')
-local p = require('pretty-print').prettyPrints
+
 
 local pack = table.pack
 
@@ -78,14 +78,18 @@ end
 
 -- readfile (path: String) -> (data: Optional(Buffer))
 function platform.readfile(path)
-  local i = 0
-  local chunks = {}
-  local exists = platform.readstream(path, function (chunk)
-    i = i + 1
-    chunks[i] = chunk
-  end)
-  if not exists then return nil end
-  return table.concat(chunks)
+  local err, fd, stat, data
+  err, fd = async(uv.fs_open, path, "r", 438)
+  if not fd then
+    if not err or err:match("^ENOENT:") then return false end
+    error(err)
+  end
+  err, stat = async(uv.fs_fstat, fd)
+  if stat then
+    err, data = async(uv.fs_read, fd, stat.size, 0)
+  end
+  uv.fs_close(fd)
+  return (assert(data, err))
 end
 
 -- readbinary (path: String) -> (data: Optional(Buffer))
@@ -509,7 +513,7 @@ if ffi.os == "OSX" or ffi.os == "Linux" then
     local write, kill, resize
 
     -- Spawn the child process that inherits the slave fd as it's stdio.
-    local child = assert(uv.spawn(shell, {
+    local child = uv.spawn(shell, {
       stdio = {slave, slave, slave},
       env = options.env,
       args = options.args,
@@ -524,9 +528,9 @@ if ffi.os == "OSX" or ffi.os == "Linux" then
       coroutine.wrap(function ()
         return onExit(unpack(args))
       end)()
-    end))
+    end)
 
-    local pipe = assert(uv.new_pipe(false))
+    local pipe = uv.new_pipe(false)
     pipe:open(master)
     pipe:read_start(function (err, data)
       coroutine.wrap(function ()
@@ -569,6 +573,19 @@ if ffi.os == "OSX" or ffi.os == "Linux" then
   end
 end
 
+ffi.cdef[[
+  int gethostname(char *name, size_t len);
+]]
+-- hostname() -> (host: Optional(String))
+local lib = ffi.os == 'Windows' and ffi.load('ws2_32') or ffi.C
+function platform.hostname()
+  local buf = ffi.new("char[256]")
+  if lib.gethostname(buf, 255) == 0 then
+    return ffi.string(buf)
+  end
+  return nil
+end
+
 -- getenv(name: String) -> (value: Optional(String))
 function platform.getenv(name)
   return os.getenv(name)
@@ -584,40 +601,158 @@ function platform.getarch()
   return ffi.arch
 end
 
-
-if ffi.os ~= "Windows" then
-
-  -- getuser() -> (username: Optional(String))
-  function platform.getuser()
-    return platform.user(assert(uv.getuid()))
-  end
-
-end
-
 -- homedir() -> (home: String)
 platform.homedir = uv.os_homedir
 
--- getpid() -> (pid: Integer)
-platform.getpid = uv.getpid
-
--- getuid() -> (uid: Integer)
 platform.getuid = uv.getuid
 
--- getgid() -> (gid: Integer)
 platform.getgid = uv.getgid
 
--- uptime() -> (uptime: Integer)
+platform.getpid = uv.getpid
+
+if ffi.os == 'Windows' then
+  ffi.cdef[[
+    bool GetUserNameA(
+      char*  lpBuffer,
+      size_t* lpnSize
+    );
+  ]]
+
+  function platform.getusername()
+    local buf = ffi.new('char[256]')
+    local size = ffi.new('size_t[1]', 255)
+    local l = ffi.load('Advapi32.dll')
+    if l.GetUserNameA(buf, size) ~= 0 then
+      return ffi.string(buf, size[0] - 1)
+    end
+    return nil
+  end
+else
+  function platform.getusername()
+    return platform.user(platform.getuid())
+  end
+end
+
 platform.uptime = uv.uptime
 
-platform.loadavg = uv.loadavg
+function platform.loadavg()
+  return {uv.loadavg()}
+end
 
--- freemem() -> (freeMemory: Integer)
 platform.freemem = uv.get_free_memory
 
--- totalmem() -> (totalMemory: Integer)
 platform.totalmem = uv.get_total_memory
 
--- getrss() -> (rss: Integer)
 platform.getrss = uv.resident_set_memory
+
+platform.cpuinfo = uv.cpu_info
+
+function platform.iaddr()
+  local value = uv.interface_addresses()
+  local returnValue = {}
+  local i = 1
+  -- flattening the table
+  for interfaceName, interface in pairs(value) do
+    for j=1, #interface do
+      interface[j]["iname"]=interfaceName
+      returnValue[i] = interface[j]
+      i = i + 1
+    end
+  end
+
+  return returnValue
+end
+
+local function readOnly(tab)
+  return setmetatable({}, {
+    __index = tab,
+    __newindex = function ()
+      error("ReadOnly")
+    end
+  })
+end
+platform.next = next
+platform.pairs = pairs
+platform.pcall = pcall
+platform.select = select
+platform.tonumber = tonumber
+platform.tostring = tostring
+platform.type = type
+platform.unpack = unpack
+platform.xpcall = xpcall
+platform.coroutine = readOnly(coroutine)
+platform.string = readOnly{
+  byte = string.byte,
+  char = string.char,
+  find = string.find,
+  format = string.format,
+  gmatch = string.gmatch,
+  gsub = string.gsub,
+  len = string.len,
+  lower = string.lower,
+  match = string.match,
+  rep = string.rep,
+  reverse = string.reverse,
+  sub = string.sub,
+  upper = string.upper,
+}
+platform.table = readOnly{
+  insert = table.insert,
+  maxn = table.maxn,
+  remove = table.remove,
+  sort = table.sort,
+  pack = table.pack,
+  unpack = table.unpack,
+}
+platform.math = readOnly{
+  abs = math.abs,
+  acos = math.acos,
+  asin = math.asin,
+  atan = math.atan,
+  atan2 = math.atan2,
+  ceil = math.ceil,
+  cos = math.cos,
+  cosh = math.cosh,
+  deg = math.deg,
+  exp = math.exp,
+  floor = math.floor,
+  fmod = math.fmod,
+  frexp = math.frexp,
+  huge = math.huge,
+  ldexp = math.ldexp,
+  log = math.log,
+  log10 = math.log10,
+  max = math.max,
+  min = math.min,
+  modf = math.modf,
+  pi = math.pi,
+  pow = math.pow,
+  rad = math.rad,
+  random = math.random,
+  sin = math.sin,
+  sinh = math.sinh,
+  sqrt = math.sqrt,
+  tan = math.tan,
+  tanh = math.tanh,
+}
+platform.os = readOnly{
+  clock = os.clock,
+  difftime = os.difftime,
+  time = os.time,
+}
+local env = readOnly(platform)
+
+platform.script = function (code)
+  local fn, err = loadstring(code)
+  if not fn then
+    error("ESYNTAXERROR: " .. err)
+  end
+  setfenv(fn, env)
+  local result = {pcall(fn)}
+  if not result[1] then
+    error("EEXCEPTION: " .. result[2])
+  end
+  return unpack(result, 2)
+end
 
 return platform

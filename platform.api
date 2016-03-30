@@ -133,13 +133,13 @@ pty (
   resize: Emitter(WinSize)
 )
 
+hostname() -> (host: Optional(String))
+
 getenv(name: String) -> (value: Optional(String))
 
 getos() -> (os: String)
 
 getarch() -> (arch: String)
-
-getuser() -> (username: Optional(String))
 
 homedir() -> (home: String)
 
@@ -149,6 +149,8 @@ getuid() -> (uid: Integer)
 
 getgid() -> (gid: Integer)
 
+getusername() -> (username: String)
+
 freemem() -> (freeMemory: Integer)
 
 totalmem() -> (totalMemory: Integer)
@@ -156,3 +158,28 @@ totalmem() -> (totalMemory: Integer)
 getrss() -> (rss: Integer)
 
 uptime() -> (uptime: Integer)
+
+cpuinfo() -> (info: {
+  times: {
+    irq: Integer
+    user: Integer
+    idle: Integer
+    sys: Integer
+    nice: Integer
+  },
+  model: String,
+  speed: Integer
+})
+
+iaddr() -> (interfaces: {
+  netmask: String,
+  ip: String,
+  mac: String,
+  internal: Bool,
+  family: String,
+  iname: String}
+)
+
+loadavg() -> (avg: (Number, Number, Number))
+
+script(code: String) -> (result: Any)
