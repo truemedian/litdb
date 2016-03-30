@@ -1,6 +1,6 @@
 return {
 	name = 'SinisterRectus/Luvit-Discord',
-	version = '0.0.6',
+	version = '0.0.7',
 	homepage = 'https://github.com/SinisterRectus/Luvit-Discord',
 	dependencies = {
 		'creationix/coro-http@2.1.1',
@@ -10,4 +10,5 @@ return {
 	tags = {'discord'},
 	license = 'MIT',
 	author = 'Sinister Rectus',
+	files = {'*'}
 }
