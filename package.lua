@@ -1,6 +1,6 @@
 return {
 	name = 'SinisterRectus/discord',
-	version = '0.0.1',
+	version = '0.0.2',
 	homepage = 'https://github.com/SinisterRectus/Luvit-Discord',
 	dependencies = {
 		'creationix/coro-http@2.1.1',

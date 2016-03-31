@@ -1,13 +1,10 @@
 local los = require('los')
 local core = require('core')
-local timer = require('timer')
 
 local utils = require('./utils')
+local events = require('./events')
 local endpoints = require('./endpoints')
 
-local User = require('./classes/user')
-local Server = require('./classes/server')
-local Friend = require('./classes/friend')
 local Websocket = require('./classes/websocket')
 
 local request = utils.request
@@ -16,10 +13,6 @@ local camelify = utils.camelify
 local Client = core.Emitter:extend()
 
 function Client:initialize(email, password)
-
-	self.user = nil
-	self.servers = {}
-	self.friends = {}
 
 	self.headers = {
 		['Content-Type'] = 'application/json',
@@ -84,54 +77,11 @@ function Client:websocketConnect()
 	coroutine.wrap(function()
 		while true do
 			local payload = self.ws:receive()
-			assert(payload and payload.op == 0)
-			self:websocketEvent(payload)
+			local event = camelify(payload.t)
+			local data = camelify(payload.d)
+			events[event](self, data)
 		end
 	end)()
-
-end
-
-function Client:websocketEvent(payload)
-
-	local event = camelify(payload.t)
-	local data = camelify(payload.d)
-	
-	if event == 'ready' then
-		
-		self.user = User:new(data.user) -- table -> object
-		self.sessionId = data.sessionId -- string
-		self.heartbeatInterval = data.heartbeatInterval -- number
-		
-		for _, serverData in ipairs(data.guilds) do
-			local server = Server:new(serverData)
-			self.servers[server.id] = server
-		end
-		
-		for _, friendData in ipairs(data.relationships) do
-			local friend = Friend:new(friendData)
-			self.friends[friend.id] = friend
-		end
-		
-		for _, friendData in ipairs(data.presences) do
-			local friend = self.friends[friendData.user.id]
-			friend:update(friendData)
-		end
-		
-		-- self.readState = data.readState -- table, status in each channel
-		-- self.privateChannels = data.privateChannels -- table, direct messages
-		-- self.userGuildSettings = data.userGuildSettings -- table, settings per server
-		-- self.userSettings = data.userSettings -- table, personal user settings
-
-		coroutine.wrap(function()
-			while true do
-				timer.sleep(self.heartbeatInterval)
-				self.ws:send({op = 1, d = os.time()})
-			end
-		end)()
-	
-	end
-	
-	self:emit(camelify(event))
 
 end
 
@@ -174,21 +124,14 @@ function Client:getServers() -- self.servers
 	return request('GET', {endpoints.me, 'guilds'}, self.headers)
 end
 
-function Client:getServerById(id) -- self.servers[id]
-	local servers = self:getServers()
-	for _, v in ipairs(servers) do
-		if v.id == id then
-			return v
-		end
-	end
-	return nil
+function Client:getServerById(id)
+	return self.servers[id]
 end
 
 function Client:getServerByName(name)
-	local servers = self:getServers()
-	for _, v in ipairs(servers) do
-		if v.name == name then
-			return v
+	for _, server in pairs(self.servers) do
+		if server.name == name then
+			return server
 		end
 	end
 	return nil
@@ -230,25 +173,24 @@ end
 
 -- Roles --
 
-function Client:getRoles(server) -- self.servers[server.id].roles
+function Client:getRoles(server) -- server.roles
 	return request('GET', {endpoints.servers, server.id, 'roles'}, self.headers)
 end
 
-function Client:getRoleByName(server, name)
-	local roles = self:getRoles(server)
-	for _, v in ipairs(roles) do
-		if v.name == name then
-			return v
-		end
+function Client:getRoleById(id)
+	for _, server in pairs(self.servers) do
+		local role = server.roles[id]
+		if role then return role end
 	end
 	return nil
 end
 
-function Client:getRoleById(server, id) -- self.servers[server.id].roles[id]
-	local roles = self:getRoles(server)
-	for _, v in ipairs(roles) do
-		if v.id == id then
-			return v
+function Client:getRoleByName(name)
+	for _, server in pairs(self.servers) do
+		for _, role in pairs(server.roles) do
+			if role.name == name then
+				return role
+			end
 		end
 	end
 	return nil
@@ -262,35 +204,13 @@ function Client:updateRole(server, role, data) -- split into set methods
 	return request('PATCH', {endpoints.servers, server.id, 'roles', role.id}, self.headers, data)
 end
 
-function Client:moveRoleUp(server, role)
-	assert(role.name ~= '@everyone', 'Cannot move role @everyone')
-	local roles = self:getRoles(server)
-	table.sort(roles, function(a, b) return a.position > b.position end)
-	for i, v in ipairs(roles) do
-		if v.id == role.id then
-			if i > 1 then
-				roles[i].position = v.position + 1
-				roles[i - 1].position = v.position - 1
-			end
-			break
-		end
-	end
+function Client:moveRoleUp(role)
+	-- need to re-write
 	return request('PATCH', {endpoints.servers, server.id, 'roles'}, self.headers, roles)
 end
 
-function Client:moveRoleDown(server, role)
-	assert(role.name ~= '@everyone', 'Cannot move role @everyone')
-	local roles = self:getRoles(server)
-	table.sort(roles, function(a, b) return a.position > b.position end)
-	for i, v in ipairs(roles) do
-		if v.id == role.id then
-			if i < #roles - 1 then
-				roles[i].position = v.position - 1
-				roles[i + 1].position = v.position + 1
-			end
-			break
-		end
-	end
+function Client:moveRoleDown(role)
+	-- need to re-write
 	return request('PATCH', {endpoints.servers, server.id, 'roles'}, self.headers, roles)
 end
 
@@ -306,35 +226,35 @@ function Client:createVoiceChannel(server, name)
 	return request('POST', {endpoints.servers, server.id, 'channels'}, self.headers, body)
 end
 
-function Client:getChannels(server) -- self.servers[server.id].channels
+function Client:getChannels(server) -- server.channels
 	return request('GET', {endpoints.servers, server.id, 'channels'}, self.headers)
 end
 
-function Client:getChannelById(server, id) -- self.servers[server.id].channels[id] or self.channels[id]; server object necessary?
-	local channels = self:getChannels(server)
-	for _, v in ipairs(channels) do
-		if v.id == id then
-			return v
+function Client:getChannelById(id)
+	for _, server in pairs(self.servers) do
+		local channel = server.channels[id]
+		if channel then return channel end
+	end
+	return nil
+end
+
+function Client:getTextChannelByName(name) -- add option server arg
+	for _, server in pairs(self.servers) do
+		for _, channel in pairs(server.channels) do
+			if channel.type == 'text' and channel.name == name then
+				return channel
+			end
 		end
 	end
 	return nil
 end
 
-function Client:getTextChannelByName(server, name) -- server object not necessary if cache is used and if multiple names are avoided
-	local channels = self:getChannels(server)
-	for _, v in ipairs(channels) do
-		if v.type == 'text' and v.name == name then
-			return v
-		end
-	end
-	return nil
-end
-
-function Client:getVoiceChannelByName(server, name)
-	local channels = self:getChannels(server)
-	for _, v in ipairs(channels) do
-		if v.type == 'voice' and v.name == name then
-			return v
+function Client:getVoiceChannelByName(name) -- add optional server arg
+	for _, server in pairs(self.servers) do
+		for _, channel in pairs(server.channels) do
+			if channel.type == 'voice' and channel.name == name then
+				return channel
+			end
 		end
 	end
 	return nil
@@ -365,7 +285,7 @@ end
 
 -- Messages --
 
-function Client:getMessages(channel) -- self.channels
+function Client:getMessages(channel) -- channel.messages
 	return request('GET', {endpoints.channels, channel.id, 'messages'}, self.headers)
 end
 

@@ -14,6 +14,8 @@ function Channel:initialize(data, server)
 	self.position = data.position -- number
 	self.lastMessageId = data.lastMessageId -- string
 	self.permissionOverwrites = data.permissionOverwrites -- table (need to objectify)
+	
+	self.messages = {}
 
 end
 

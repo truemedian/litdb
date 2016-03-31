@@ -20,25 +20,22 @@ local function request(method, url, headers, body)
 
 	local res, data = http.request(method, url, headers, body)
 	assert(res.code > 199 and res.code < 300, res.reason)
-	return json.decode(data)
+	local obj, retPos = json.decode(data)
+	return obj
 
 end
 
 local function camelify(obj)
 
 	if type(obj) == 'string' then
-
-		local str, count = obj:lower():gsub('_.', string.upper):gsub('_', '')
+		local str, count = obj:lower():gsub('_%l', string.upper):gsub('_', '')
 		return str
-
 	elseif type(obj) == 'table' then
-	
 		local tbl = {}
 		for k, v in pairs(obj) do
-			tbl[camelify(k)] = camelify(v)
+			tbl[camelify(k)] = type(v) == 'table' and camelify(v) or v
 		end
 		return tbl
-
 	end
 
 	return obj

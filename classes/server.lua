@@ -9,6 +9,8 @@ local Server = core.Object:extend()
 
 function Server:initialize(data, client)
 
+	self.client = client -- parent object
+
 	self.id = data.id -- string
 	self.name = data.name -- string
 	self.icon = data.icon -- string
@@ -27,7 +29,7 @@ function Server:initialize(data, client)
 	self.roles = {}
 	self.members = {}
 	self.channels = {}
-	self.voiceStates = {} -- might store these on Member object
+	self.voiceStates = {}
 	
 	for _, roleData in ipairs(data.roles) do
 		local role = Role:new(roleData, self)
@@ -51,7 +53,7 @@ function Server:initialize(data, client)
 	
 	for _, voiceData in ipairs(data.voiceStates) do
 		local voiceState = VoiceState:new(voiceData, self)
-		self.voiceStates[voiceState.userId] = voiceState
+		self.voiceStates[voiceState.sessionId] = voiceState
 	end
 
 end

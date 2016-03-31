@@ -17,4 +17,14 @@ function VoiceState:initialize(data, server)
 
 end
 
+function VoiceState:update(data)
+
+	self.mute = data.mute
+	self.deaf = data.deaf
+	self.selfDeaf = data.selfDeaf
+	self.selfMute = data.selfMute
+	self.suppress = data.suppress
+
+end
+
 return VoiceState
