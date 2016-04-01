@@ -38,7 +38,7 @@ function MDB.error(err, ret)
 	return false, ffi.string(res)
 end
 
-local Env = 
+local Env =
 	{MDB_FIXEDMAP		= 0x01
 	,MDB_NOSUBDIR		= 0x4000
 	,MDB_NOSYNC			= 0x10000
@@ -86,7 +86,7 @@ typedef int MDB_cursor_op;
 typedef int( 	MDB_cmp_func )(const MDB_val *a, const MDB_val *b);
 ]]
 
-local EnvFunctions = 
+local EnvFunctions =
 [[int mdb_env_create (MDB_env *env);
 int mdb_env_open (MDB_env env, const char *path, unsigned int flags,
 	mdb_mode_t mode);
@@ -110,7 +110,7 @@ int mdb_txn_begin (MDB_env env, MDB_txn *parent, unsigned int flags,
 int mdb_reader_check (MDB_env env, int *dead);]]
 
 
-local TxnFunctions = 
+local TxnFunctions =
 [[MDB_env* mdb_txn_env (MDB_txn txn);
 int mdb_txn_commit (MDB_txn txn);
 void mdb_txn_abort (MDB_txn txn);
@@ -127,7 +127,7 @@ int mdb_del (MDB_txn txn, MDB_dbi dbi, MDB_val *key, MDB_val *data);
 int mdb_cursor_open (MDB_txn txn, MDB_dbi dbi, MDB_cursor *cursor);
 int mdb_cursor_renew (MDB_txn txn, MDB_cursor cursor);]]
 
-local CursorFunctions = 
+local CursorFunctions =
 [[void mdb_cursor_close (MDB_cursor cursor);
 MDB_txn* mdb_cursor_txn (MDB_cursor cursor);
 MDB_dbi mdb_cursor_dbi (MDB_cursor cursor);
@@ -136,7 +136,7 @@ int mdb_cursor_put (MDB_cursor cursor, MDB_val *key, MDB_val *data,
 int mdb_cursor_del (MDB_cursor cursor, unsigned int flags);
 int mdb_cursor_count (MDB_cursor cursor, size_t *countp);]]
 
-local odd_functions = 
+local odd_functions =
 [[int mdb_cursor_get (MDB_cursor cursor, MDB_val *key, MDB_val *data,
 	MDB_cursor_op op);
 int mdb_get (MDB_txn txn, MDB_dbi dbi, MDB_val *key, MDB_val *data);
@@ -145,7 +145,7 @@ int mdb_dbi_open (MDB_txn txn, const char *name, unsigned int flags,
 	MDB_dbi *dbi);
 int mdb_set_dupsort (MDB_txn txn, MDB_dbi dbi, MDB_cmp_func *cmp);]]
 
-local unimplemented = 
+local unimplemented =
 [[int mdb_set_compare (MDB_txn txn, MDB_dbi dbi, MDB_cmp_func *cmp);
 int mdb_set_relfunc (MDB_txn txn, MDB_dbi dbi, MDB_rel_func *rel);
 int mdb_reader_list (MDB_env env, MDB_msg_func *func, void *ctx);
@@ -276,7 +276,7 @@ function Env.txn_begin(env, parent, flags)
 	return MDB.error(err, txn[0])
 end
 
-local Txn = 
+local Txn =
 	{MDB_RDONLY			 = 0x20000
 	,MDB_NOOVERWRITE = 0x10
 	,MDB_NODUPDATA	 = 0x20
@@ -311,7 +311,7 @@ end
 local mdb_put = lmdb.mdb_put
 function Txn.put(txn, dbi, key, data, flags)
 	if not flags then flags = 0 end
-	local reserve = bit.band(flags,Txn.MDB_RESERVE) > 0 
+	local reserve = bit.band(flags,Txn.MDB_RESERVE) > 0
 	local index = build_MDB_val(key)
 	local value
 	if reserve then
@@ -352,7 +352,7 @@ function Txn.del(txn, dbi, key, data)
 	return MDB.error(err)
 end
 
-local DB = 
+local DB =
 	{MDB_REVERSEKEY = 0x02
 	,MDB_DUPSORT =		0x04
 	,MDB_INTEGERKEY = 0x08
@@ -394,7 +394,7 @@ function DB.drop(txn, dbi, del)
 	return MDB.error(err)
 end
 
-local Cursor = 
+local Cursor =
 	{MDB_FIRST					= 0
 	,MDB_FIRST_DUP			= 1
 	,MDB_GET_BOTH				= 2
@@ -477,7 +477,7 @@ function build_MDB_val(elem)
 		value[0].mv_size = ffi.sizeof(elem)
 	elseif t == "number" then
 		value[0].mv_data = ffi.cast(cache.typeof["void*"], cache.typeof["long long[1]"](elem))
-		value[0].mv_size = cache.sizeof("long long")
+		value[0].mv_size = cache.sizeof["long long"]
 	elseif t == 'table' then
 		value[0].mv_data = ffi.cast(cache.typeof["void*"], elem[1])
 		value[0].mv_size = elem[2]

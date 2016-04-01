@@ -10,7 +10,7 @@
 ----------------------------------------------------------------------
 return
 	{name = "pagodabox/lmmdb"
-	,version = "0.1.1"
+	,version = "0.1.2"
 	,author =
 		{name = "Daniel Barney"
 		,email = "daniel@pagodabox.com"}
@@ -20,7 +20,7 @@ return
 	,homepage =
 		"https://github.com/pagodabox/tag/blob/master/deps/lmmdb"
 	,description = "A simple wrapper around lmmdb"
-	,deps = 
+	,deps =
 		{"pagodabox/ffi-cache@0.1.0"}
 	,files =
 		{"**.lua"
