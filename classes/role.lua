@@ -1,6 +1,4 @@
-local core = require('core')
-
-local Role = core.Object:extend()
+local Role = require('core').Object:extend()
 
 function Role:initialize(data, server)
 

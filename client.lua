@@ -14,6 +14,11 @@ local Client = core.Emitter:extend()
 
 function Client:initialize(email, password)
 
+	self.users = {}
+	self.friends = {}
+	self.servers = {}
+	self.privateChannels = {}
+
 	self.headers = {
 		['Content-Type'] = 'application/json',
 		['User-Agent'] = 'Luvit Discord API'
@@ -37,10 +42,6 @@ function Client:login(email, password)
 	self.token = token
 end
 
-function Client:getUser() -- self.user
-	return request('GET', {endpoints.me}, self.headers)
-end
-
 function Client:logout()
 	local body = {token = self.token}
 	return request('POST', {endpoints.logout}, self.headers, body)
@@ -56,7 +57,7 @@ function Client:websocketConnect()
 
 	local gateway = self:getGateway()
 	self.ws = Websocket:new(gateway)
-	
+
 	self.ws:send({
 		op = 2,
 		d = {
@@ -80,6 +81,7 @@ function Client:websocketConnect()
 			local event = camelify(payload.t)
 			local data = camelify(payload.d)
 			events[event](self, data)
+			-- p(event)
 		end
 	end)()
 
@@ -87,41 +89,28 @@ end
 
 -- Invites --
 
-function Client:getInvite(code)
-	return request('POST', {endpoints.invite, code}, self.headers, {})
-end
+-- function Client:getInvite(code)
+	-- return request('POST', {endpoints.invite, code}, self.headers, {})
+-- end
 
-function Client:acceptInvite(invite)
-	local body = {validate = invite.code}
-	return request('POST', {endpoints.channels, invite.channel.id, 'invites'}, self.headers, body)
-end
+-- function Client:acceptInvite(invite) -- Invite:accept()
+	-- local body = {validate = invite.code}
+	-- return request('POST', {endpoints.channels, invite.channel.id, 'invites'}, self.headers, body)
+-- end
 
-function Client:acceptInviteByCode(code)
-	local invite = self:getInvite(code)
-	return self:acceptInvite(invite)
-end
+-- function Client:deleteInvite(invite) -- Invite:delete()
+	-- return request('DELETE', {endpoints.invite, invite.code}, self.headers)
+-- end
 
-function Client:deleteInvite(invite)
-	return request('DELETE', {endpoints.invite, invite.code}, self.headers)
-end
-
-function Client:getServerInvites(server)
-	return request('GET', {endpoints.servers, server.id, 'invites'}, self.headers)
-end
-
-function Client:getChannelInvites(channel)
-	return request('GET', {endpoints.channels, channel.id, 'invites'}, self.headers)
-end
+-- function Client:getChannelInvites(channel) -- Channel:getInvites()
+	-- return request('GET', {endpoints.channels, channel.id, 'invites'}, self.headers)
+-- end
 
 -- Servers --
 
 function Client:createServer(name, regionId)
 	local body = {name = name, region = regionId}
-	return request('POST', {endpoints.servers}, self.headers, body)
-end
-
-function Client:getServers() -- self.servers
-	return request('GET', {endpoints.me, 'guilds'}, self.headers)
+	request('POST', {endpoints.servers}, self.headers, body)
 end
 
 function Client:getServerById(id)
@@ -137,47 +126,28 @@ function Client:getServerByName(name)
 	return nil
 end
 
-function Client:setServerName(server, name)
-	local body = {name = name}
-	return request('PATCH', {endpoints.servers, server.id}, self.headers, body)
+function Client:getRegions()
+	return request('GET', {endpoints.voice, 'regions'}, self.headers)
 end
 
-function Client:setServerRegion(server, regionId)
-	local body = {name = server.name, region = regionId}
-	return request('PATCH', {endpoints.servers, server.id}, self.headers, body)
+-- Users --
+
+function Client:getUserById(id)
+	return self.users[id]
 end
 
-function Client:leaveServer(server)
-	return request('DELETE', {endpoints.me, 'guilds', server.id}, self.headers)
-end
-
-function Client:deleteServer(server)
-	return request('DELETE', {endpoints.servers, server.id}, self.headers)
-end
-
-function Client:getBans(server)
-	return request('GET', {endpoints.servers, server.id, 'bans'}, self.headers)
-end
-
-function Client:addBan(server, user) -- banUser?
-	return request('PUT', {endpoints.servers, server.id, 'bans', user.id}, self.headers, {})
-end
-
-function Client:removeBan(server, user) -- unbanUser?
-	return request('DELETE', {endpoints.servers, server.id, 'bans', user.id}, self.headers)
-end
-
-function Client:kickUser(server, user)
-	return request('DELETE', {endpoints.servers, server.id, 'members', user.id}, self.headers)
+function Client:getUserByName(name)
+	for _, user in pairs(self.users) do
+		if user.username == name then
+			return user
+		end
+	end
+	return nil
 end
 
 -- Roles --
 
-function Client:getRoles(server) -- server.roles
-	return request('GET', {endpoints.servers, server.id, 'roles'}, self.headers)
-end
-
-function Client:getRoleById(id)
+function Client:getRoleById(id) -- Server:getRoleById(id)
 	for _, server in pairs(self.servers) do
 		local role = server.roles[id]
 		if role then return role end
@@ -185,7 +155,7 @@ function Client:getRoleById(id)
 	return nil
 end
 
-function Client:getRoleByName(name)
+function Client:getRoleByName(name) -- Server:getRoleByName(name)
 	for _, server in pairs(self.servers) do
 		for _, role in pairs(server.roles) do
 			if role.name == name then
@@ -196,41 +166,11 @@ function Client:getRoleByName(name)
 	return nil
 end
 
-function Client:createRole(server, data)
-	return request('POST', {endpoints.servers, server.id, 'roles'}, self.headers, data)
-end
-
-function Client:updateRole(server, role, data) -- split into set methods
-	return request('PATCH', {endpoints.servers, server.id, 'roles', role.id}, self.headers, data)
-end
-
-function Client:moveRoleUp(role)
-	-- need to re-write
-	return request('PATCH', {endpoints.servers, server.id, 'roles'}, self.headers, roles)
-end
-
-function Client:moveRoleDown(role)
-	-- need to re-write
-	return request('PATCH', {endpoints.servers, server.id, 'roles'}, self.headers, roles)
-end
-
 -- Channels --
 
-function Client:createTextChannel(server, name)
-	local body = {name = name, type = 'text'}
-	return request('POST', {endpoints.servers, server.id, 'channels'}, self.headers, body)
-end
-
-function Client:createVoiceChannel(server, name)
-	local body = {name = name, type = 'voice'}
-	return request('POST', {endpoints.servers, server.id, 'channels'}, self.headers, body)
-end
-
-function Client:getChannels(server) -- server.channels
-	return request('GET', {endpoints.servers, server.id, 'channels'}, self.headers)
-end
-
-function Client:getChannelById(id)
+function Client:getChannelById(id) -- Server:getChannelById(id)
+	local privateChannel = self.privateChannels[id]
+	if privateChannel then return privateChannel end
 	for _, server in pairs(self.servers) do
 		local channel = server.channels[id]
 		if channel then return channel end
@@ -238,7 +178,18 @@ function Client:getChannelById(id)
 	return nil
 end
 
-function Client:getTextChannelByName(name) -- add option server arg
+function Client:getChannelByName(name) -- Server:getChannelByName(name)
+	for _, server in pairs(self.servers) do
+		for _, channel in pairs(server.channels) do
+			if channel.name == name then
+				return channel
+			end
+		end
+	end
+	return nil
+end
+
+function Client:getTextChannelByName(name) -- Server:getTextChannelByName(name)
 	for _, server in pairs(self.servers) do
 		for _, channel in pairs(server.channels) do
 			if channel.type == 'text' and channel.name == name then
@@ -249,7 +200,7 @@ function Client:getTextChannelByName(name) -- add option server arg
 	return nil
 end
 
-function Client:getVoiceChannelByName(name) -- add optional server arg
+function Client:getVoiceChannelByName(name) -- Server:getVoiceChannelByName(name)
 	for _, server in pairs(self.servers) do
 		for _, channel in pairs(server.channels) do
 			if channel.type == 'voice' and channel.name == name then
@@ -260,62 +211,25 @@ function Client:getVoiceChannelByName(name) -- add optional server arg
 	return nil
 end
 
-function Client:setChannelName(channel, name)
-	local body = {name = name, position = channel.position, topic = channel.topic}
-	return request('PATCH', {endpoints.channels, channel.id}, self.headers, body)
-end
-
-function Client:setChannelTopic(channel, topic)
-	local body = {name = channel.name, position = channel.position, topic = topic}
-	return request('PATCH', {endpoints.channels, channel.id}, self.headers, body)
-end
-
-function Client:setChannelPosition(channel, position) -- move channel up/down?
-	local body = {name = channel.name, position = position, topic = topic}
-	return request('PATCH', {endpoints.channels, channel.id}, self.headers, body)
-end
-
-function Client:deleteChannel(channel)
-	return request('DELETE', {endpoints.channels, channel.id}, self.headers)
-end
-
-function Client:broadcastTyping(channel)
-	return request('POST', {endpoints.channels, channel.id, 'typing'}, self.headers, {})
+function Client:getPrivateChannelByName(name)
+	for _, privateChannel in pairs(self.privateChannels) do
+		if privateChannel.recipient.username == name then
+			return privateChannel
+		end
+	end
+	return nil
 end
 
 -- Messages --
 
-function Client:getMessages(channel) -- channel.messages
-	return request('GET', {endpoints.channels, channel.id, 'messages'}, self.headers)
-end
-
-function Client:sendMessage(channel, content)
-	local body = {content = content}
-	return request('POST', {endpoints.channels, channel.id, 'messages'}, self.headers, body)
-end
-
-function Client:setMessage(message, content)
-	local body = {content = content}
-	return request('PATCH', {endpoints.channels, message.channel_id, 'messages', message.id}, self.headers, body)
-end
-
-function Client:deleteMessage(message)
-	return request('DELETE', {endpoints.channels, message.channel_id, 'messages', message.id}, self.headers)
-end
-
-function Client:acknowledgeMessage(message)
-	return request('POST', {endpoints.channels, message.channel_id, 'messages', message.id, 'ack'}, self.headers, {})
-end
-
--- Voice --
-
-function Client:getServerRegions()
-	return request('GET', {endpoints.voice, 'regions'}, self.headers)
-end
-
-function Client:moveVoiceUser(user, channel)
-	local body = {channel_id = channel.id}
-	return request('PATCH', {endpoints.servers, channel.guild_id, 'members', user.id}, self.headers, body)
+function Client:getMessageById(id) -- Server:getMessageById(id), Channel:getMessageById(id)
+	for _, server in pairs(self.servers) do
+		for _, channel in pairs(server.channels) do
+			local message = channel.messages[id]
+			if message then return message end
+		end
+	end
+	return nil
 end
 
 return Client

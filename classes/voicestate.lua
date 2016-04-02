@@ -1,6 +1,4 @@
-local core = require('core')
-
-local VoiceState = core.Object:extend()
+local VoiceState = require('core').Object:extend()
 
 function VoiceState:initialize(data, server)
 

@@ -1,12 +1,11 @@
-local core = require('core')
 local json = require('json')
-local ws = require('coro-websocket')
+local websocket = require('coro-websocket')
 
-local Websocket = core.Object:extend()
+local Websocket = require('core').Object:extend()
 
 function Websocket:initialize(gateway)
-	local options = ws.parseUrl(gateway)
-	self.res, self.read, self.write = ws.connect(options)
+	local options = websocket.parseUrl(gateway)
+	self.res, self.read, self.write = websocket.connect(options)
 end
 
 function Websocket:send(payload)

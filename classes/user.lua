@@ -1,16 +1,49 @@
-local core = require('core')
+local endpoints = require('../endpoints')
+local request = require('../utils').request
 
-local User = core.Object:extend()
+local User = require('core').Object:extend()
 
-function User:initialize(data)
+function User:initialize(data, parent)
 
-	self.id = data.id -- string
-	self.email = data.email -- string, only for auth'd account
-	self.avatar = data.avatar -- string
-	self.verified = data.verified -- boolean, only for auth'd account
-	self.username = data.username -- string
-	self.discriminator = data.discriminator -- string
-	
+	self.client = parent.client or parent
+
+	self.messages = {}
+	self.memberData = {}
+
+	self.email = data.email or self.email -- clientUser only
+	self.verified = data.verified or self.verified -- clientUser only
+
+	local user = data.user or data.recipient or data.author
+
+	self.id = data.id or user.id
+	self.avatar = data.avatar or user and user.avatar or ''
+	self.username = data.username or user.username
+	self.discriminator = data.discriminator or user.discriminator
+
+	self:update(data, parent)
+
+end
+
+function User:update(data, parent)
+
+	self.status = data.status or self.status or 'offline'
+	self.gameName = data.game and data.game.name or self.gameName
+	self.lastModified = data.lastModified or self.lastModified
+	self.isFriend = data.type == 1 or self.isFriend
+
+	if data.joinedAt then -- server member
+		self.memberData[parent.id] = {
+			deaf = data.deaf,
+			mute = data.mute,
+			roles = data.roles,
+			joinedAt = data.joinedAt
+		}
+	-- elseif data.recipient then -- private channel recipient
+	-- 	-- self.privateChannel = parent
+	-- elseif data.author then -- message author
+	-- 	-- self.messages[parent.id] = parent
+	end
+
 end
 
 return User
