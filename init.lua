@@ -1,3 +1,4 @@
 return {
-	Client = require('./client')
+	Client = require('./client'),
+	utils = require('./utils')
 }

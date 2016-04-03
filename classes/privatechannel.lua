@@ -1,7 +1,7 @@
-local endpoints = require('../endpoints')
-local request = require('../utils').request
-
 local User = require('./user')
+local Deque = require('./deque')
+local request = require('../utils').request
+local endpoints = require('../endpoints')
 
 local PrivateChannel = require('core').Object:extend()
 
@@ -23,6 +23,7 @@ function PrivateChannel:initialize(data, client)
 	self.recipient = user
 
 	self.messages = {}
+	self.deque = Deque:new()
 
 end
 

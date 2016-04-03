@@ -17,6 +17,17 @@ function Server:initialize(data, client)
 	self.joinedAt = data.joinedAt -- string
 	self.memberCount = data.memberCount -- number
 
+	if self.large then
+		client.ws:send({
+			op = 8,
+			d = {
+				guild_id = self.id,
+				query = '',
+				limit = 0
+			}
+		})
+	end
+
 	self.roles = {}
 	self.members = {}
 	self.channels = {}
@@ -38,7 +49,7 @@ function Server:initialize(data, client)
 	for _, memberData in ipairs(data.presences) do
 		local user = self.members[memberData.user.id]
 		if user then -- sometimes no user, large servers?
-			user:update(memberData)
+			user:update(memberData, self)
 		end
 	end
 

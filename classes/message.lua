@@ -35,11 +35,11 @@ end
 function Message:update(data)
 
 	self.embeds = data.embeds
-	self.content = data.content
-	self.mentions = data.mentions
-	self.attachments = data.attachents
-	self.editedTimestamp = data.editedTimestamp
-	self.mentionEveryone = data.mentionEveryone
+	self.content = data.content or self.content
+	self.mentions = data.mentions or self.mentions
+	self.attachments = data.attachents or self.attachments
+	self.editedTimestamp = data.editedTimestamp or self.editedTimestamp
+	self.mentionEveryone = data.mentionEveryone or self.mentionEveryone
 
 end
 

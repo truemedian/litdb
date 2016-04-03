@@ -1,6 +1,7 @@
 local timer = require('timer')
 
 local User = require('./classes/user')
+local Role = require('./classes/role')
 local Server = require('./classes/server')
 local Channel = require('./classes/channel')
 local Message = require('./classes/message')
@@ -9,7 +10,7 @@ local PrivateChannel = require('./classes/privatechannel')
 
 local events = {}
 
-function events.ready(client, data)
+function events.ready(data, client)
 
 	client.user = User:new(data.user, client) -- object
 	client.users[client.user.id] = client.user
@@ -56,8 +57,7 @@ function events.ready(client, data)
 
 end
 
-
-function events.typingStart(client, data)
+function events.typingStart(data, client)
 
 	local channel = client:getChannelById(data.channelId)
 	local user = client:getUserById(data.userId)
@@ -65,7 +65,7 @@ function events.typingStart(client, data)
 
 end
 
-function events.presenceUpdate(client, data)
+function events.presenceUpdate(data, client)
 
 	local user = client:getUserById(data.user.id)
 	if not user then return end -- invalid user, probably large server
@@ -75,20 +75,20 @@ function events.presenceUpdate(client, data)
 
 end
 
-function events.userUpdate(client, data)
+function events.userUpdate(data, client)
 
 	client.user:update(data, client)
 	client:emit('userUpdate', client.user)
 
 end
 
-function events.voiceStateUpdate(client, data)
+function events.voiceStateUpdate(data, client)
 
 	local server = client:getServerById(data.guildId)
 	local voiceState = server.voiceStates[data.sessionId]
 
 	if not voiceState then
-		voiceState = VoiceState:new(data)
+		voiceState = VoiceState:new(data, server)
 		server.voiceStates[voiceState.sessionId] = voiceState
 		client:emit('voiceJoin', voiceState)
 	elseif voiceState.channelId then
@@ -101,24 +101,30 @@ function events.voiceStateUpdate(client, data)
 
 end
 
-function events.messageCreate(client, data)
+function events.messageCreate(data, client)
 
 	local channel = client:getChannelById(data.channelId)
 	local message = Message:new(data, channel)
 	channel.messages[message.id] = message
+	channel.deque:pushRight(message)
+	if channel.deque:size() > client.maxMessages then
+		local msg = channel.deque:popLeft()
+		channel.messages[msg.id] = nil
+	end
 	client:emit('messageCreate', message)
 
 end
 
-function events.messageDelete(client, data)
+function events.messageDelete(data, client)
 
 	local message = client:getMessageById(data.id)
 	if message then message.channel.messages[message.id] = nil end
+	-- deleted messages stay in the deque and contribute to total count
 	client:emit('messageDelete', message)
 
 end
 
-function events.messageUpdate(client, data)
+function events.messageUpdate(data, client)
 
 	local message = client:getMessageById(data.id)
 
@@ -134,16 +140,15 @@ function events.messageUpdate(client, data)
 
 end
 
-function events.messageAck(client, data)
+function events.messageAck(data, client)
 
-	-- private channels only?
-	local channel = client:getPrivateChannelById(data.channelId) or client:getChannelById(data.channelId)
+	local channel = client:getChannelById(data.channelId)
 	local message = channel:getMessageById(data.messageId)
 	client:emit('messageAcknowledge', channel, message)
 
 end
 
-function events.channelCreate(client, data)
+function events.channelCreate(data, client)
 
 	local server = client:getServerById(data.guildId)
 
@@ -159,7 +164,7 @@ function events.channelCreate(client, data)
 
 end
 
-function events.channelDelete(client, data)
+function events.channelDelete(data, client)
 
 	local server = client:getServerById(data.guildId)
 	local channel = server:getChannelById(data.id)
@@ -168,7 +173,7 @@ function events.channelDelete(client, data)
 
 end
 
-function events.channelUpdate(client, data)
+function events.channelUpdate(data, client)
 
 	local server = client:getServerById(data.guildId)
 	local channel = client:getChannelById(data.guildId)
@@ -184,7 +189,7 @@ function events.channelUpdate(client, data)
 
 end
 
-function events.guildBanAdd(client, data)
+function events.guildBanAdd(data, client)
 
 	local server = client:getServerById(data.guildId)
 	local member = server:getMemberById(data.user.id)
@@ -192,7 +197,7 @@ function events.guildBanAdd(client, data)
 
 end
 
-function events.guildBanRemove(client, data)
+function events.guildBanRemove(data, client)
 
 	local server = client:getServerById(data.guildId)
 	local member = server:getMemberById(data.user.id)
@@ -200,7 +205,7 @@ function events.guildBanRemove(client, data)
 
 end
 
-function events.guildCreate(client, data)
+function events.guildCreate(data, client)
 
 	if data.unavailable then return end
 	local server = Server:new(data, client)
@@ -209,15 +214,16 @@ function events.guildCreate(client, data)
 
 end
 
-function events.guildDelete(client, data)
+function events.guildDelete(data, client)
 
+	if data.unavailable then return end
 	local server = client:getServerById(data.id)
 	client.servers[server.id] = nil
 	client:emit('serverDelete', server)
 
 end
 
-function events.guildUpdate(client, data)
+function events.guildUpdate(data, client)
 
 	local server = client:getServerById(data.id)
 	server:update(data)
@@ -225,10 +231,10 @@ function events.guildUpdate(client, data)
 
 end
 
-function events.guildIntegrationsUpdate(client, data)
+function events.guildIntegrationsUpdate(data, client)
 end
 
-function events.guildMemberAdd(client, data)
+function events.guildMemberAdd(data, client)
 
 	local user = client:getUserById(data.user.id)
 	local server = client:getServerById(data.guildId)
@@ -244,7 +250,7 @@ function events.guildMemberAdd(client, data)
 
 end
 
-function events.guildMemberRemove(client, data)
+function events.guildMemberRemove(data, client)
 
 	local user = client:getUserById(data.user.id)
 	local server = client:getServerById(data.guildId)
@@ -254,7 +260,7 @@ function events.guildMemberRemove(client, data)
 
 end
 
-function events.guildMemberUpdate(client, data)
+function events.guildMemberUpdate(data, client)
 
 	local user = client:getUserById(data.user.id)
 	local server = client:getServerById(data.guildId)
@@ -263,13 +269,50 @@ function events.guildMemberUpdate(client, data)
 
 end
 
-function events.guildRoleCreate(client, data)
+function events.guildMembersChunk(data, client)
+
+	local server = client:getServerById(data.guildId)
+
+	for _, memberData in ipairs(data.members) do
+		local user = client:getUserById(memberData.user.id)
+		if not user then
+			user = User:new(memberData, server)
+			client.users[user.id] = user
+		else
+			user:update(memberData, server)
+		end
+		server.members[user.id] = user
+	end
+
+	client:emit('membersChunk', server)
+
 end
 
-function events.guildRoleDelete(client, data)
+function events.guildRoleCreate(data, client)
+
+	local server = client:getServerById(data.guildId)
+	local role = Role:new(data.role, server)
+	server.roles[role.id] = role
+	client:emit('roleCreate', role, server)
+
 end
 
-function events.guildRoleUpdate(client, data)
+function events.guildRoleDelete(data, client)
+
+	local server = client:getServerById(data.guildId)
+	local role = server:getRoleById(data.roleId)
+	server.roles[role.id] = nil
+	client:emit('roleDelete', role, server)
+
+end
+
+function events.guildRoleUpdate(data, client)
+
+	local server = client:getServerById(data.guildId)
+	local role = server:getRoleById(data.role.id)
+	role:update(data)
+	client:emit('roleUpdate', role, server)
+
 end
 
 return events

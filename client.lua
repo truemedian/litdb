@@ -3,12 +3,14 @@ local core = require('core')
 
 local utils = require('./utils')
 local events = require('./events')
+local package = require('./package')
 local endpoints = require('./endpoints')
 
 local Websocket = require('./classes/websocket')
 
 local request = utils.request
 local camelify = utils.camelify
+
 
 local Client = core.Emitter:extend()
 
@@ -17,11 +19,12 @@ function Client:initialize(email, password)
 	self.users = {}
 	self.friends = {}
 	self.servers = {}
+	self.maxMessages = 100 -- per channel
 	self.privateChannels = {}
 
 	self.headers = {
 		['Content-Type'] = 'application/json',
-		['User-Agent'] = 'Luvit Discord API'
+		['User-Agent'] = string.format('DiscordBot (%s, %s)', package.homepage, package.version)
 	}
 
 end
@@ -36,10 +39,19 @@ end
 -- Authentication --
 
 function Client:login(email, password)
-	local body = {email = email, password = password}
-	local token = request('POST', {endpoints.login}, self.headers, body).token
+
+	local cache, token = io.open('token', 'r')
+	if not cache then
+		local body = {email = email, password = password}
+		token = request('POST', {endpoints.login}, self.headers, body).token
+		local cache = io.open('token', 'w'):write(token):close()
+	else
+		token = cache:read()
+	end
+
 	self.headers['Authorization'] = token
 	self.token = token
+
 end
 
 function Client:logout()
@@ -124,7 +136,7 @@ function Client:websocketConnect()
 			local event = camelify(payload.t)
 			local data = camelify(payload.d)
 			-- p(event)
-			events[event](self, data)
+			events[event](data, self)
 		end
 	end)()
 
@@ -252,10 +264,6 @@ function Client:getVoiceChannelByName(name) -- Server:getVoiceChannelByName(name
 		end
 	end
 	return nil
-end
-
-function Client:getPrivateChannelById(id)
-	return self.privateChannels[id]
 end
 
 function Client:getPrivateChannelByName(name)

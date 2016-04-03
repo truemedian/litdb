@@ -22,7 +22,7 @@ SOFTWARE.]]
 
 return {
 	name = 'SinisterRectus/discord',
-	version = '0.0.4',
+	version = '0.0.5',
 	homepage = 'https://github.com/SinisterRectus/Luvit-Discord',
 	dependencies = {
 		'creationix/coro-http@2.1.1',

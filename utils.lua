@@ -6,7 +6,7 @@ local function request(method, url, headers, body)
 	if type(url) == 'table' then
 		url = table.concat(url, '/')
 	end
-	
+
 	local tbl = {}
 	for k, v in pairs(headers) do
 		table.insert(tbl, {k, v})
@@ -42,7 +42,23 @@ local function camelify(obj)
 
 end
 
+local function split(str)
+
+	local words = {}
+	for word in string.gmatch(str, '%S+') do
+		table.insert(words, word)
+	end
+	return words
+
+end
+
+local function clamp(n, min, max)
+	return math.min(math.max(n, min), max)
+end
+
 return {
 	request = request,
-	camelify = camelify
+	camelify = camelify,
+	split = split,
+	clamp = clamp
 }

@@ -1,5 +1,6 @@
-local endpoints = require('../endpoints')
+local Deque = require('./deque')
 local request = require('../utils').request
+local endpoints = require('../endpoints')
 
 local Channel = require('core').Object:extend()
 
@@ -19,6 +20,7 @@ function Channel:initialize(data, server)
 	self.permissionOverwrites = data.permissionOverwrites -- table (need to objectify)
 
 	self.messages = {}
+	self.deque = Deque:new()
 
 end
 
@@ -42,7 +44,16 @@ function Channel:setTopic(topic)
 	request('PATCH', {endpoints.channels, self.id}, self.client.headers, body)
 end
 
-function Channel:setPosition(position) -- moveUp/Down?
+function Channel:moveUp()
+	self:setPosition(self.position - 1)
+end
+
+function Channel:moveDown()
+	self:setPosition(self.position + 1)
+end
+
+function Channel:setPosition(position)
+	-- doesn't work as expected
 	local body = {name = self.name, position = position, topic = self.topic}
 	request('PATCH', {endpoints.channels, self.id}, self.client.headers, body)
 end
@@ -58,6 +69,10 @@ end
 function Channel:sendMessage(content)
 	local body = {content = content}
 	request('POST', {endpoints.channels, self.id, 'messages'}, self.client.headers, body)
+end
+
+function Channel:getMessageHistory()
+	return request('GET', {endpoints.channels, self.id, 'messages'})
 end
 
 function Channel:getMessageById(id) -- Client:getMessageById(id), Server:getMessageById(id)
