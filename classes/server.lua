@@ -13,29 +13,16 @@ function Server:initialize(data, client)
 	self.client = client
 
 	self.id = data.id -- string
-	self.name = data.name -- string
-	self.icon = data.icon -- string
 	self.large = data.large -- boolean
-	self.region = data.region -- string
-	self.ownerId = data.ownerId -- string
 	self.joinedAt = data.joinedAt -- string
-	self.afkTimeout = data.afkTimeout -- number
 	self.memberCount = data.memberCount -- number
-	self.afkChannelId = data.afkChannelId -- string
-	self.verificationLevel = data.verificationLevel -- number
-
-	self.emojis = data.emojis -- table, not sure what to do with this
-	self.features = data.features -- table, not sure what to do with this
 
 	self.roles = {}
 	self.members = {}
 	self.channels = {}
 	self.voiceStates = {}
 
-	for _, roleData in ipairs(data.roles) do
-		local role = Role:new(roleData, self)
-		self.roles[role.id] = role
-	end
+	self:update(data)
 
 	for _, memberData in ipairs(data.members) do
 		local user = client:getUserById(memberData.user.id)
@@ -50,7 +37,9 @@ function Server:initialize(data, client)
 
 	for _, memberData in ipairs(data.presences) do
 		local user = self.members[memberData.user.id]
-		user:update(memberData)
+		if user then -- sometimes no user, large servers?
+			user:update(memberData)
+		end
 	end
 
 	for _, channelData in ipairs(data.channels) do
@@ -61,6 +50,28 @@ function Server:initialize(data, client)
 	for _, voiceData in ipairs(data.voiceStates) do
 		local voiceState = VoiceState:new(voiceData, self)
 		self.voiceStates[voiceState.sessionId] = voiceState
+	end
+
+end
+
+function Server:update(data)
+
+	self.name = data.name -- string
+	self.icon = data.icon -- string
+	self.region = data.regionId -- string
+	self.ownerId = data.ownerId -- string
+	self.afkTimeout = data.afkTimeout -- number
+	self.afkChannelId = data.afkChannelId -- string
+	self.embedEnabled = data.embedChannelId-- boolean
+	self.embedChannelId = data.embedChannelId -- string
+	self.verificationLevel = data.verificationLevel -- number
+
+	self.emojis = data.emojis -- table, not sure what to do with this
+	self.features = data.features -- table, not sure what to do with this
+
+	for _, roleData in ipairs(data.roles) do
+		local role = Role:new(roleData, self)
+		self.roles[role.id] = role
 	end
 
 end

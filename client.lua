@@ -47,6 +47,49 @@ function Client:logout()
 	return request('POST', {endpoints.logout}, self.headers, body)
 end
 
+-- Profile --
+
+function Client:setUsername(newUsername, password)
+	local body = {
+		avatar = self.user.avatar,
+		email = self.user.email,
+		username = newUsername,
+		password = password
+	}
+	request('PATCH', {endpoints.me}, self.headers, body)
+end
+
+function Client:setAvatar(newAvatar, password)
+	local body = {
+		avatar = newAvatar, -- base64
+		email = self.user.email,
+		username = self.user.username,
+		password = password
+	}
+	request('PATCH', {endpoints.me}, self.headers, body)
+end
+
+function Client:setEmail(newEmail, password)
+	local body = {
+		avatar = self.user.avatar,
+		email = newEmail,
+		username = self.user.username,
+		password = password
+	}
+	request('PATCH', {endpoints.me}, self.headers, body)
+end
+
+function Client:setPassword(newPassword, password)
+	local body = {
+		avatar = self.user.avatar,
+		email = self.user.email,
+		username = self.user.username,
+		password = password,
+		new_password = newPassword
+	}
+	request('PATCH', {endpoints.me}, self.headers, body)
+end
+
 -- Websocket --
 
 function Client:getGateway()
@@ -80,8 +123,8 @@ function Client:websocketConnect()
 			local payload = self.ws:receive()
 			local event = camelify(payload.t)
 			local data = camelify(payload.d)
-			events[event](self, data)
 			-- p(event)
+			events[event](self, data)
 		end
 	end)()
 
@@ -209,6 +252,10 @@ function Client:getVoiceChannelByName(name) -- Server:getVoiceChannelByName(name
 		end
 	end
 	return nil
+end
+
+function Client:getPrivateChannelById(id)
+	return self.privateChannels[id]
 end
 
 function Client:getPrivateChannelByName(name)

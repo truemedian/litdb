@@ -12,8 +12,12 @@ local events = {}
 function events.ready(client, data)
 
 	client.user = User:new(data.user, client) -- object
+	client.users[client.user.id] = client.user
 	client.sessionId = data.sessionId -- string
 	client.heartbeatInterval = data.heartbeatInterval -- number
+	-- client.readState = data.readState -- table, status in each channel
+	-- client.userServerSettings = data.userGuildSettings -- table, settings per server
+	-- client.userSettings = data.userSettings -- table, personal user settings
 
 	for _, friendData in ipairs(data.relationships) do
 		local user = client:getUserById(friendData.user.id)
@@ -41,10 +45,6 @@ function events.ready(client, data)
 		client.privateChannels[privateChannel.id] = privateChannel
 	end
 
-	-- client.readState = data.readState -- table, status in each channel
-	-- client.userServerSettings = data.userGuildSettings -- table, settings per server
-	-- client.userSettings = data.userSettings -- table, personal user settings
-
 	coroutine.wrap(function()
 		while true do
 			timer.sleep(client.heartbeatInterval)
@@ -68,23 +68,18 @@ end
 function events.presenceUpdate(client, data)
 
 	local user = client:getUserById(data.user.id)
-
-	if not user then
-		local server = client:getServerById(data.guildId)
-		user = User:new(data, server)
-		-- client.users[user.id] = user
-		-- server.members[user.id] = user
-		-- don't want to save User because username is nil
-	else
-		user:update(data)
-	end
-
+	if not user then return end -- invalid user, probably large server
+	local server = client:getServerById(data.guildId)
+	user:update(data, server)
 	client:emit('presenceUpdate', user)
 
 end
 
-function events.userSettingsUpdate(client, data)
-	-- client:emit('userSettingsUpdate', data)
+function events.userUpdate(client, data)
+
+	client.user:update(data, client)
+	client:emit('userUpdate', client.user)
+
 end
 
 function events.voiceStateUpdate(client, data)
@@ -125,7 +120,7 @@ end
 
 function events.messageUpdate(client, data)
 
-	local message = channel:getMessageById(data.id)
+	local message = client:getMessageById(data.id)
 
 	if not message then
 		local channel = client:getChannelById(data.channelId)
@@ -141,7 +136,8 @@ end
 
 function events.messageAck(client, data)
 
-	local channel = client:getChannelById(data.channelId)
+	-- private channels only?
+	local channel = client:getPrivateChannelById(data.channelId) or client:getChannelById(data.channelId)
 	local message = channel:getMessageById(data.messageId)
 	client:emit('messageAcknowledge', channel, message)
 
@@ -189,30 +185,82 @@ function events.channelUpdate(client, data)
 end
 
 function events.guildBanAdd(client, data)
+
+	local server = client:getServerById(data.guildId)
+	local member = server:getMemberById(data.user.id)
+	client:emit('memberBan', member, server)
+
 end
 
 function events.guildBanRemove(client, data)
+
+	local server = client:getServerById(data.guildId)
+	local member = server:getMemberById(data.user.id)
+	client:emit('memberUnban', member, server)
+
 end
 
 function events.guildCreate(client, data)
+
+	if data.unavailable then return end
+	local server = Server:new(data, client)
+	client.servers[server.id] = server
+	client:emit('serverCreate', server)
+
 end
 
 function events.guildDelete(client, data)
+
+	local server = client:getServerById(data.id)
+	client.servers[server.id] = nil
+	client:emit('serverDelete', server)
+
 end
 
 function events.guildUpdate(client, data)
+
+	local server = client:getServerById(data.id)
+	server:update(data)
+	client:emit('server.Update', server)
+
 end
 
 function events.guildIntegrationsUpdate(client, data)
 end
 
 function events.guildMemberAdd(client, data)
+
+	local user = client:getUserById(data.user.id)
+	local server = client:getServerById(data.guildId)
+	if not user then
+		user = User:new(data, server)
+		client.users[user.id] = user
+	else
+		user:update(data, server)
+	end
+	server.members[user.id] = user
+
+	client:emit('memberJoin', user, server)
+
 end
 
 function events.guildMemberRemove(client, data)
+
+	local user = client:getUserById(data.user.id)
+	local server = client:getServerById(data.guildId)
+	server.members[user.id] = nil
+	user.memberData[server.id] = nil
+	client:emit('memberLeave', user, server)
+
 end
 
 function events.guildMemberUpdate(client, data)
+
+	local user = client:getUserById(data.user.id)
+	local server = client:getServerById(data.guildId)
+	user:update(data, server)
+	client:emit('memberUpdate', user, server)
+
 end
 
 function events.guildRoleCreate(client, data)
