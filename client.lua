@@ -1,6 +1,6 @@
 local los = require('los')
+local md5 = require('md5')
 local core = require('core')
-
 local utils = require('./utils')
 local events = require('./events')
 local package = require('./package')
@@ -10,7 +10,6 @@ local Websocket = require('./classes/websocket')
 
 local request = utils.request
 local camelify = utils.camelify
-
 
 local Client = core.Emitter:extend()
 
@@ -40,11 +39,12 @@ end
 
 function Client:login(email, password)
 
-	local cache, token = io.open('token', 'r')
+	local filename = md5.sumhexa(email)
+	local cache, token = io.open(filename, 'r')
 	if not cache then
 		local body = {email = email, password = password}
 		token = request('POST', {endpoints.login}, self.headers, body).token
-		local cache = io.open('token', 'w'):write(token):close()
+		local cache = io.open(filename, 'w'):write(token):close()
 	else
 		token = cache:read()
 	end
@@ -111,7 +111,7 @@ end
 function Client:websocketConnect()
 
 	local gateway = self:getGateway()
-	self.ws = Websocket:new(gateway)
+	self.ws = Websocket(gateway)
 
 	self.ws:send({
 		op = 2,
@@ -136,6 +136,7 @@ function Client:websocketConnect()
 			local event = camelify(payload.t)
 			local data = camelify(payload.d)
 			-- p(event)
+			if not events[event] then error(event) end
 			events[event](data, self)
 		end
 	end)()
@@ -244,44 +245,15 @@ function Client:getChannelByName(name) -- Server:getChannelByName(name)
 	return nil
 end
 
-function Client:getTextChannelByName(name) -- Server:getTextChannelByName(name)
-	for _, server in pairs(self.servers) do
-		for _, channel in pairs(server.channels) do
-			if channel.type == 'text' and channel.name == name then
-				return channel
-			end
-		end
-	end
-	return nil
-end
-
-function Client:getVoiceChannelByName(name) -- Server:getVoiceChannelByName(name)
-	for _, server in pairs(self.servers) do
-		for _, channel in pairs(server.channels) do
-			if channel.type == 'voice' and channel.name == name then
-				return channel
-			end
-		end
-	end
-	return nil
-end
-
-function Client:getPrivateChannelByName(name)
-	for _, privateChannel in pairs(self.privateChannels) do
-		if privateChannel.recipient.username == name then
-			return privateChannel
-		end
-	end
-	return nil
-end
-
 -- Messages --
 
 function Client:getMessageById(id) -- Server:getMessageById(id), Channel:getMessageById(id)
 	for _, server in pairs(self.servers) do
 		for _, channel in pairs(server.channels) do
-			local message = channel.messages[id]
-			if message then return message end
+			if channel.type == 'text' then
+				local message = channel.messages[id]
+				if message then return message end
+			end
 		end
 	end
 	return nil

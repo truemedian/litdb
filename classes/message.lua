@@ -1,17 +1,17 @@
 local endpoints = require('../endpoints')
 local request = require('../utils').request
-
 local User = require('./user')
+local Object = require('./object')
 
-local Message = require('core').Object:extend()
+local Message = class(Object)
 
-function Message:initialize(data, channel)
+function Message:__init(data, channel)
+
+	Object.__init(self, data.id, channel.client)
 
 	self.channel = channel
 	self.server = channel.server
-	self.client = channel.client
 
-	self.id = data.id -- string
 	self.nonce = data.nonce -- string
 	self.embeds = data.embeds -- table
 	self.content = data.content -- string
@@ -23,7 +23,7 @@ function Message:initialize(data, channel)
 
 	local user = channel.client:getUserById(data.author.id)
 	if not user then
-		user = User:new(data, self)
+		user = User(data, self)
 		channel.client.users[user.id] = user
 	else
 		user:update(data, self)

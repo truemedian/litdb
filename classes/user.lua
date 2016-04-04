@@ -1,11 +1,13 @@
-local endpoints = require('../endpoints')
 local request = require('../utils').request
+local endpoints = require('../endpoints')
+local Object = require('./object')
 
-local User = require('core').Object:extend()
+local User = class()
 
-function User:initialize(data, parent)
+function User:__init(data, parent)
 
-	self.client = parent.client or parent
+	local user = data.user or data.recipient or data.author
+	Object.__init(self, data.id or user.id, parent.client or parent)
 
 	self.memberData = {}
 	self:update(data, parent)
@@ -16,7 +18,6 @@ function User:update(data, parent)
 
 	local user = data.user or data.recipient or data.author
 
-	self.id = data.id or user.id
 	self.avatar = data.avatar or user and user.avatar or self.avatar -- or ''
 	self.username = data.username or user.username or self.username
 	self.discriminator = data.discriminator or user.discriminator

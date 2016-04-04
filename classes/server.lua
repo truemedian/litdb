@@ -1,18 +1,18 @@
-local endpoints = require('../endpoints')
 local request = require('../utils').request
-
+local endpoints = require('../endpoints')
 local Role = require('./role')
 local User = require('./user')
-local Channel = require('./channel')
+local ServerTextChannel = require('./servertextchannel')
+local ServerVoiceChannel = require('./servervoicechannel')
 local VoiceState = require('./voicestate')
+local Object = require('./object')
 
-local Server = require('core').Object:extend()
+local Server = class(Object)
 
-function Server:initialize(data, client)
+function Server:__init(data, client)
 
-	self.client = client
+	Object.__init(self, data.id, client)
 
-	self.id = data.id -- string
 	self.large = data.large -- boolean
 	self.joinedAt = data.joinedAt -- string
 	self.memberCount = data.memberCount -- number
@@ -38,7 +38,7 @@ function Server:initialize(data, client)
 	for _, memberData in ipairs(data.members) do
 		local user = client:getUserById(memberData.user.id)
 		if not user then
-			user = User:new(memberData, self)
+			user = User(memberData, self)
 			client.users[user.id] = user
 		else
 			user:update(memberData, self)
@@ -54,12 +54,17 @@ function Server:initialize(data, client)
 	end
 
 	for _, channelData in ipairs(data.channels) do
-		local channel = Channel:new(channelData, self)
+		local channel
+		if channelData.type == 'text' then
+			channel = ServerTextChannel(channelData, self)
+		elseif channelData.type == 'voice' then
+			channel = ServerVoiceChannel(channelData, self)
+		end
 		self.channels[channel.id] = channel
 	end
 
 	for _, voiceData in ipairs(data.voiceStates) do
-		local voiceState = VoiceState:new(voiceData, self)
+		local voiceState = VoiceState(voiceData, self)
 		self.voiceStates[voiceState.sessionId] = voiceState
 	end
 
@@ -81,7 +86,7 @@ function Server:update(data)
 	self.features = data.features -- table, not sure what to do with this
 
 	for _, roleData in ipairs(data.roles) do
-		local role = Role:new(roleData, self)
+		local role = Role(roleData, self)
 		self.roles[role.id] = role
 	end
 
@@ -174,7 +179,7 @@ function Server:getChannelByName(name) -- Client:getChannelByName(name)
 	return nil
 end
 
-function Server:getTextChannelByName(name) -- Client:getTextChannelByName(name)
+function Server:getTextChannelByName(name)
 	for _, channel in pairs(self.channels) do
 		if channel.type == 'text' and channel.name == name then
 			return channel
@@ -183,7 +188,7 @@ function Server:getTextChannelByName(name) -- Client:getTextChannelByName(name)
 	return nil
 end
 
-function Server:getVoiceChannelByName(name) -- Client:getVoiceChannelByName(name)
+function Server:getVoiceChannelByName(name)
 	for _, channel in pairs(self.channels) do
 		if channel.type == 'voice' and channel.name == name then
 			return channel

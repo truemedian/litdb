@@ -1,13 +1,14 @@
-local endpoints = require('../endpoints')
 local request = require('../utils').request
+local endpoints = require('../endpoints')
+local Object = require('./object')
 
-local Role = require('core').Object:extend()
+local Role = class(Object)
 
-function Role:initialize(data, server)
+function Role:__init(data, server)
 
-	self.client = server.client
+	Object.__init(self, data.id, server.client)
+
 	self.server = server
-	self.id = data.id -- string
 	self:update(data)
 
 end

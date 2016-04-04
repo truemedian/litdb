@@ -1,29 +1,29 @@
 local timer = require('timer')
-
 local User = require('./classes/user')
 local Role = require('./classes/role')
 local Server = require('./classes/server')
-local Channel = require('./classes/channel')
 local Message = require('./classes/message')
 local VoiceState = require('./classes/voicestate')
 local PrivateChannel = require('./classes/privatechannel')
+local ServerTextChannel = require('./classes/servertextchannel')
+local ServerVoiceChannel = require('./classes/servervoicechannel')
 
 local events = {}
 
 function events.ready(data, client)
 
-	client.user = User:new(data.user, client) -- object
+	client.user = User(data.user, client) -- object
 	client.users[client.user.id] = client.user
-	client.sessionId = data.sessionId -- string
-	client.heartbeatInterval = data.heartbeatInterval -- number
+	-- client.sessionId = data.sessionId -- string
 	-- client.readState = data.readState -- table, status in each channel
-	-- client.userServerSettings = data.userGuildSettings -- table, settings per server
 	-- client.userSettings = data.userSettings -- table, personal user settings
+	-- client.heartbeatInterval = data.heartbeatInterval -- number
+	-- client.userServerSettings = data.userGuildSettings -- table, settings per server
 
 	for _, friendData in ipairs(data.relationships) do
 		local user = client:getUserById(friendData.user.id)
 		if not user then
-			user = User:new(friendData, client)
+			user = User(friendData, client)
 			client.users[user.id] = user
 		else
 			user:update(friendData)
@@ -37,21 +37,21 @@ function events.ready(data, client)
 	end
 
 	for _, serverData in ipairs(data.guilds) do
-		local server = Server:new(serverData, client)
+		local server = Server(serverData, client)
 		client.servers[server.id] = server
 	end
 
 	for _, privateChannelData in ipairs(data.privateChannels) do
-		local privateChannel = PrivateChannel:new(privateChannelData, client)
+		local privateChannel = PrivateChannel(privateChannelData, client)
 		client.privateChannels[privateChannel.id] = privateChannel
 	end
 
-	coroutine.wrap(function()
+	coroutine.wrap(function(interval)
 		while true do
-			timer.sleep(client.heartbeatInterval)
-			client.ws:send({op = 1, d = os.time()})
+			timer.sleep(interval)
+			client.ws:send({op = 1, d = tostring(os.time())})
 		end
-	end)()
+	end)(data.heartbeatInterval)
 
 	client:emit('ready')
 
@@ -88,7 +88,7 @@ function events.voiceStateUpdate(data, client)
 	local voiceState = server.voiceStates[data.sessionId]
 
 	if not voiceState then
-		voiceState = VoiceState:new(data, server)
+		voiceState = VoiceState(data, server)
 		server.voiceStates[voiceState.sessionId] = voiceState
 		client:emit('voiceJoin', voiceState)
 	elseif voiceState.channelId then
@@ -104,7 +104,8 @@ end
 function events.messageCreate(data, client)
 
 	local channel = client:getChannelById(data.channelId)
-	local message = Message:new(data, channel)
+	local message = Message(data, channel)
+	channel.lastMessageId = message.id
 	channel.messages[message.id] = message
 	channel.deque:pushRight(message)
 	if channel.deque:size() > client.maxMessages then
@@ -130,7 +131,7 @@ function events.messageUpdate(data, client)
 
 	if not message then
 		local channel = client:getChannelById(data.channelId)
-		message = Message:new(data, channel)
+		message = Message(data, channel)
 		channel.messages[message.id] = message
 	else
 		message:update(data)
@@ -150,25 +151,33 @@ end
 
 function events.channelCreate(data, client)
 
-	local server = client:getServerById(data.guildId)
-
+	local channel
 	if data.isPrivate then
-		local privateChannel = PrivateChannel:new(data, client)
-		client.privateChannels[privateChannel.id] = privateChannel
-		client:emit('channelCreate', privateChannel)
+		channel = PrivateChannel(data, client)
+		client.privateChannels[channel.id] = channel
 	else
-		local channel = Channel:new(data, server)
+		local server = client:getServerById(data.guildId)
+		if data.type == 'text' then
+			channel = ServerTextChannel(data, server)
+		elseif data.type == 'voice' then
+			channel = ServerVoiceChannel(data, server)
+		end
 		server.channels[channel.id] = channel
-		client:emit('channelCreate', channel)
 	end
+	client:emit('channelCreate', channel)
 
 end
 
 function events.channelDelete(data, client)
 
-	local server = client:getServerById(data.guildId)
-	local channel = server:getChannelById(data.id)
-	server.channels[channel.id] = nil
+	if data.isPrivate then
+		local channel = client:getPrivateChannelById(data.id)
+		client.privateChannels[channel.id] = nil
+	else
+		local server = client:getServerById(data.guildId)
+		local channel = server:getChannelById(data.id)
+		server.channels[channel.id] = nil
+	end
 	client:emit('channelDelete', channel)
 
 end
@@ -177,14 +186,7 @@ function events.channelUpdate(data, client)
 
 	local server = client:getServerById(data.guildId)
 	local channel = client:getChannelById(data.guildId)
-
-	if not channel then
-		channel = Channel:new(data, server)
-		server.channels[channel.id] = channel
-	else
-		channel:update(data)
-	end
-
+	channel:update(data)
 	client:emit('channelUpdate', channel)
 
 end
@@ -208,7 +210,7 @@ end
 function events.guildCreate(data, client)
 
 	if data.unavailable then return end
-	local server = Server:new(data, client)
+	local server = Server(data, client)
 	client.servers[server.id] = server
 	client:emit('serverCreate', server)
 
@@ -227,19 +229,19 @@ function events.guildUpdate(data, client)
 
 	local server = client:getServerById(data.id)
 	server:update(data)
-	client:emit('server.Update', server)
+	client:emit('serverUpdate', server)
 
 end
 
-function events.guildIntegrationsUpdate(data, client)
-end
+-- function events.guildIntegrationsUpdate(data, client)
+-- end
 
 function events.guildMemberAdd(data, client)
 
 	local user = client:getUserById(data.user.id)
 	local server = client:getServerById(data.guildId)
 	if not user then
-		user = User:new(data, server)
+		user = User(data, server)
 		client.users[user.id] = user
 	else
 		user:update(data, server)
@@ -276,7 +278,7 @@ function events.guildMembersChunk(data, client)
 	for _, memberData in ipairs(data.members) do
 		local user = client:getUserById(memberData.user.id)
 		if not user then
-			user = User:new(memberData, server)
+			user = User(memberData, server)
 			client.users[user.id] = user
 		else
 			user:update(memberData, server)
@@ -291,7 +293,7 @@ end
 function events.guildRoleCreate(data, client)
 
 	local server = client:getServerById(data.guildId)
-	local role = Role:new(data.role, server)
+	local role = Role(data.role, server)
 	server.roles[role.id] = role
 	client:emit('roleCreate', role, server)
 
