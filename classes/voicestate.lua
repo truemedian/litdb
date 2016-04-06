@@ -1,10 +1,10 @@
 local Object = require('./object')
 
-local VoiceState = class(Object)
+class('VoiceState', Object)
 
-function VoiceState:__init(data, server)
+function VoiceState:initialize(data, server)
 
-	Object.__init(self, data.sessionId, server.client)
+	Object.initialize(self, data.sessionId, server.client)
 
 	self.server = server -- parent object
 

@@ -1,14 +1,15 @@
 local Deque = require('./deque')
 local Object = require('./object')
 local Server = require('./server')
+local Message = require('./message')
 local request = require('../utils').request
 local endpoints = require('../endpoints')
 
-local TextChannel = class(Object)
+class('TextChannel', Object)
 
-function TextChannel:__init(data, parent)
+function TextChannel:initialize(data, parent)
 
-    Object.__init(self, data.id, parent.client or parent)
+    Object.initialize(self, data.id, parent.client or parent)
 
     self.isPrivate = data.isPrivate
     self.lastMessageId = data.lastMessageId
@@ -18,9 +19,14 @@ function TextChannel:__init(data, parent)
 
 end
 
-function TextChannel:sendMessage(content)
+function TextChannel:createMessage(content)
     local body = {content = content}
-    request('POST', {endpoints.channels, self.id, 'messages'}, self.client.headers, body)
+    local data = request('POST', {endpoints.channels, self.id, 'messages'}, self.client.headers, body)
+    return Message(data, self) -- not the same object that is cached
+end
+
+function TextChannel:sendMessage(content) -- alias for createMessage
+    return self:createMessage(content)
 end
 
 function TextChannel:getMessageHistory()

@@ -1,4 +1,3 @@
-local timer = require('timer')
 local User = require('./classes/user')
 local Role = require('./classes/role')
 local Server = require('./classes/server')
@@ -46,12 +45,7 @@ function events.ready(data, client)
 		client.privateChannels[privateChannel.id] = privateChannel
 	end
 
-	coroutine.wrap(function(interval)
-		while true do
-			timer.sleep(interval)
-			client.ws:send({op = 1, d = tostring(os.time())})
-		end
-	end)(data.heartbeatInterval)
+	client:keepAliveHandler(data.heartbeatInterval)
 
 	client:emit('ready')
 
@@ -61,7 +55,7 @@ function events.typingStart(data, client)
 
 	local channel = client:getChannelById(data.channelId)
 	local user = client:getUserById(data.userId)
-	client:emit('typingStart', channel, user)
+	client:emit('typingStart', user, channel)
 
 end
 
@@ -145,7 +139,7 @@ function events.messageAck(data, client)
 
 	local channel = client:getChannelById(data.channelId)
 	local message = channel:getMessageById(data.messageId)
-	client:emit('messageAcknowledge', channel, message)
+	client:emit('messageAcknowledge', message)
 
 end
 
@@ -238,8 +232,8 @@ end
 
 function events.guildMemberAdd(data, client)
 
-	local user = client:getUserById(data.user.id)
 	local server = client:getServerById(data.guildId)
+	local member = server:getMemberById(data.user.id)
 	if not user then
 		user = User(data, server)
 		client.users[user.id] = user
@@ -248,26 +242,26 @@ function events.guildMemberAdd(data, client)
 	end
 	server.members[user.id] = user
 
-	client:emit('memberJoin', user, server)
+	client:emit('memberJoin', member, server)
 
 end
 
 function events.guildMemberRemove(data, client)
 
-	local user = client:getUserById(data.user.id)
 	local server = client:getServerById(data.guildId)
+	local member = server:getMemberById(data.user.id)
 	server.members[user.id] = nil
 	user.memberData[server.id] = nil
-	client:emit('memberLeave', user, server)
+	client:emit('memberLeave', member, server)
 
 end
 
 function events.guildMemberUpdate(data, client)
 
-	local user = client:getUserById(data.user.id)
 	local server = client:getServerById(data.guildId)
+	local member = server:getMemberById(data.user.id)
 	user:update(data, server)
-	client:emit('memberUpdate', user, server)
+	client:emit('memberUpdate', member, server)
 
 end
 
@@ -295,7 +289,7 @@ function events.guildRoleCreate(data, client)
 	local server = client:getServerById(data.guildId)
 	local role = Role(data.role, server)
 	server.roles[role.id] = role
-	client:emit('roleCreate', role, server)
+	client:emit('roleCreate', role)
 
 end
 
@@ -304,7 +298,7 @@ function events.guildRoleDelete(data, client)
 	local server = client:getServerById(data.guildId)
 	local role = server:getRoleById(data.roleId)
 	server.roles[role.id] = nil
-	client:emit('roleDelete', role, server)
+	client:emit('roleDelete', role)
 
 end
 
@@ -313,7 +307,7 @@ function events.guildRoleUpdate(data, client)
 	local server = client:getServerById(data.guildId)
 	local role = server:getRoleById(data.role.id)
 	role:update(data)
-	client:emit('roleUpdate', role, server)
+	client:emit('roleUpdate', role)
 
 end
 

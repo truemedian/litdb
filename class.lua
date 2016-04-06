@@ -1,30 +1,27 @@
 return function(...)
 
-	local class, bases = {}, {...}
+	local class, bases, name = {}, {...}
+
+	if type(bases[1]) == 'string' then
+		name = table.remove(bases, 1)
+		getfenv(2)[name] = class
+	end
+
 	for _, base in ipairs(bases)  do
 		for k, v in pairs(base) do
 			class[k] = v
 		end
 	end
 
+	class.__name = name
 	class.__index = class
 	class.__bases = bases
-
-	-- local function initBases(class, obj, ...)
-	-- 	for _, base in ipairs(class.__bases) do
-	-- 		if type(base.__init) == 'function' then
-	-- 			base.__init(obj, ...)
-	-- 			initBases(base, obj, ...)
-	-- 		end
-	-- 	end
-	-- end
 
 	setmetatable(class, {
 		__call = function(class, ...)
 			local obj = setmetatable({}, class)
-			-- initBases(class, obj, ...)
-			if type(obj.__init) == 'function' then
-				obj:__init(...)
+			if type(obj.initialize) == 'function' then
+				obj:initialize(...)
 			end
 			return obj
 		end

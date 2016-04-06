@@ -1,13 +1,13 @@
+local Object = require('./object')
 local request = require('../utils').request
 local endpoints = require('../endpoints')
-local Object = require('./object')
 
-local User = class()
+class('User', Object)
 
-function User:__init(data, parent)
+function User:initialize(data, parent)
 
 	local user = data.user or data.recipient or data.author
-	Object.__init(self, data.id or user.id, parent.client or parent)
+	Object.initialize(self, data.id or user.id, parent.client or parent)
 
 	self.memberData = {}
 	self:update(data, parent)

@@ -1,13 +1,11 @@
 local User = require('./user')
 local TextChannel = require('./textchannel')
 
-local PrivateChannel = class(TextChannel)
+class('PrivateChannel', TextChannel)
 
-function PrivateChannel:__init(data, server)
+function PrivateChannel:initialize(data, client)
 
-    TextChannel.__init(self, data, server)
-
-    self.server = server
+    TextChannel.initialize(self, data, client)
 
     local user = self.client:getUserById(self.id)
     if not user then

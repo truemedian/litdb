@@ -1,6 +1,6 @@
-local Object = class()
+class('Object')
 
-function Object:__init(id, client)
+function Object:initialize(id, client)
     self.id = id
     self.client = client
 end

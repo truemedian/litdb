@@ -1,32 +1,23 @@
-local request = require('../utils').request
-local endpoints = require('../endpoints')
 local Role = require('./role')
 local User = require('./user')
+local Object = require('./object')
+local request = require('../utils').request
+local endpoints = require('../endpoints')
+local VoiceState = require('./voicestate')
 local ServerTextChannel = require('./servertextchannel')
 local ServerVoiceChannel = require('./servervoicechannel')
-local VoiceState = require('./voicestate')
-local Object = require('./object')
 
-local Server = class(Object)
+class("Server", Object)
 
-function Server:__init(data, client)
+function Server:initialize(data, client)
 
-	Object.__init(self, data.id, client)
+	Object.initialize(self, data.id, client)
 
 	self.large = data.large -- boolean
 	self.joinedAt = data.joinedAt -- string
 	self.memberCount = data.memberCount -- number
 
-	if self.large then
-		client.ws:send({
-			op = 8,
-			d = {
-				guild_id = self.id,
-				query = '',
-				limit = 0
-			}
-		})
-	end
+	if self.large then client.websocket:op8(self.id) end
 
 	self.roles = {}
 	self.members = {}
@@ -156,12 +147,14 @@ end
 
 function Server:createTextChannel(name)
 	local body = {name = name, type = 'text'}
-	request('POST', {endpoints.servers, self.id, 'channels'}, self.client.headers, body)
+	local data = request('POST', {endpoints.servers, self.id, 'channels'}, self.client.headers, body)
+	return ServerTextChannel(data, self) -- not the same object that is cached
 end
 
 function Server:createVoiceChannel(name)
 	local body = {name = name, type = 'voice'}
-	request('POST', {endpoints.servers, self.id, 'channels'}, self.client.headers, body)
+	local data = request('POST', {endpoints.servers, self.id, 'channels'}, self.client.headers, body)
+	return ServerVoiceChannel(data, self) -- not the same object that is cached
 end
 
 function Server:getChannelById(id) -- Client:getChannelById(id)

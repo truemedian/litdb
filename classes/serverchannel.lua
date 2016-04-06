@@ -2,11 +2,12 @@ local Object = require('./object')
 local request = require('../utils').request
 local endpoints = require('../endpoints')
 
-local ServerChannel = class(Object)
+class('ServerChannel', Object)
 
-function ServerChannel:__init(data, server)
+function ServerChannel:initialize(data, server)
 
-    Object.__init(self, data.id, server.client)
+    Object.initialize(self, data.id, server.client)
+    self.server = server
 
     self.type = data.type
     self.name = data.name

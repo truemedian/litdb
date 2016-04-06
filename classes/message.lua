@@ -1,13 +1,13 @@
-local endpoints = require('../endpoints')
-local request = require('../utils').request
 local User = require('./user')
 local Object = require('./object')
+local request = require('../utils').request
+local endpoints = require('../endpoints')
 
-local Message = class(Object)
+class('Message', Object)
 
-function Message:__init(data, channel)
+function Message:initialize(data, channel)
 
-	Object.__init(self, data.id, channel.client)
+	Object.initialize(self, data.id, channel.client)
 
 	self.channel = channel
 	self.server = channel.server

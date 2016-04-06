@@ -1,13 +1,13 @@
 local los = require('los')
 local md5 = require('md5')
 local core = require('core')
+local timer = require('timer')
 local utils = require('./utils')
 local events = require('./events')
 local package = require('./package')
 local endpoints = require('./endpoints')
-
+local Server = require('./classes/server')
 local Websocket = require('./classes/websocket')
-
 local request = utils.request
 local camelify = utils.camelify
 
@@ -56,7 +56,7 @@ end
 
 function Client:logout()
 	local body = {token = self.token}
-	return request('POST', {endpoints.logout}, self.headers, body)
+	request('POST', {endpoints.logout}, self.headers, body)
 end
 
 -- Profile --
@@ -111,35 +111,37 @@ end
 function Client:websocketConnect()
 
 	local gateway = self:getGateway()
-	self.ws = Websocket(gateway)
+	self.websocket = Websocket(gateway)
+	self.websocket:op2(self.token)
 
-	self.ws:send({
-		op = 2,
-		d = {
-			token = self.token,
-			v = 3,
-			properties = {
-				['$os'] = los.type(),
-				['$browser'] = 'discord',
-				['$device'] = 'discord',
-				['$referrer'] = '',
-				['$referring_domain'] = ''
-			},
-			large_threadhold = 100,
-			compress = false
-		}
-	})
+	self:eventHandler()
+
+end
+
+function Client:eventHandler()
 
 	coroutine.wrap(function()
 		while true do
-			local payload = self.ws:receive()
+			local payload = self.websocket:receive()
 			local event = camelify(payload.t)
 			local data = camelify(payload.d)
-			-- p(event)
 			if not events[event] then error(event) end
 			events[event](data, self)
 		end
 	end)()
+	-- need to handle websocket disconnection
+
+end
+
+function Client:keepAliveHandler(interval)
+
+	coroutine.wrap(function(interval)
+		while true do
+			timer.sleep(interval)
+			self.websocket:op1()
+		end
+	end)(interval)
+	-- need to handle websocket disconnection
 
 end
 
@@ -166,7 +168,8 @@ end
 
 function Client:createServer(name, regionId)
 	local body = {name = name, region = regionId}
-	request('POST', {endpoints.servers}, self.headers, body)
+	local data = request('POST', {endpoints.servers}, self.headers, body)
+	return Server(data, self) -- not the same object that is cached
 end
 
 function Client:getServerById(id)
