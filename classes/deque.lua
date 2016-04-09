@@ -1,6 +1,6 @@
 class('Deque')
 
-function Deque:initialize()
+function Deque:__init()
 	self.list = {}
 	self.first = 0
 	self.last = -1

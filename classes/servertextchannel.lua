@@ -3,10 +3,10 @@ local ServerChannel = require('./serverchannel')
 
 class('ServerTextChannel', ServerChannel, TextChannel)
 
-function ServerTextChannel:initialize(data, server)
+function ServerTextChannel:__init(data, server)
 
-    ServerChannel.initialize(self, data, server)
-    TextChannel.initialize(self, data, server)
+    ServerChannel.__init(self, data, server)
+    TextChannel.__init(self, data, server.client)
 
 end
 

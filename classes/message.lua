@@ -5,9 +5,9 @@ local endpoints = require('../endpoints')
 
 class('Message', Object)
 
-function Message:initialize(data, channel)
+function Message:__init(data, channel)
 
-	Object.initialize(self, data.id, channel.client)
+	Object.__init(self, data.id, channel.client)
 
 	self.channel = channel
 	self.server = channel.server
@@ -21,14 +21,7 @@ function Message:initialize(data, channel)
 	self.attachments = data.attachents -- table
 	self.mentionEveryone = data.mentionEveryone -- boolean
 
-	local user = channel.client:getUserById(data.author.id)
-	if not user then
-		user = User(data, self)
-		channel.client.users[user.id] = user
-	else
-		user:update(data, self)
-	end
-	self.author = user
+	self.author = self.server:getMemberById(data.author.id)
 
 end
 

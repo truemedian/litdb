@@ -4,9 +4,9 @@ local endpoints = require('../endpoints')
 
 class('Role', Object)
 
-function Role:initialize(data, server)
+function Role:__init(data, server)
 
-	Object.initialize(self, data.id, server.client)
+	Object.__init(self, data.id, server.client)
 
 	self.server = server
 	self:update(data)

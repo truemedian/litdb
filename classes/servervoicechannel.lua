@@ -2,8 +2,8 @@ local ServerChannel = require('./serverchannel')
 
 class('ServerVoiceChannel', ServerChannel)
 
-function ServerVoiceChannel:initialize(data, server)
-    ServerChannel.initialize(self, data, server)
+function ServerVoiceChannel:__init(data, server)
+    ServerChannel.__init(self, data, server)
     self.bitrate = data.bitrate
 end
 

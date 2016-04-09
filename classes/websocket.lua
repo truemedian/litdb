@@ -4,7 +4,7 @@ local websocket = require('coro-websocket')
 
 class('Websocket')
 
-function Websocket:initialize(gateway)
+function Websocket:__init(gateway)
 	if gateway then self:connect(gateway) end
 end
 
@@ -21,14 +21,14 @@ end
 
 function Websocket:receive()
 	local message = self.read()
-	if not message then return end
+	if not message then return end -- need to handle this
 	return json.decode(message.payload)
 end
 
-function Websocket:op1()
+function Websocket:op1(sequence)
 	self:send({
 		op = 1,
-		d = tostring(os.time())
+		d = sequence -- formerly os.time()
 	})
 end
 
@@ -40,12 +40,12 @@ function Websocket:op2(token)
 			v = 3,
 			properties = {
 				['$os'] = los.type(),
-				['$browser'] = 'discord',
-				['$device'] = 'discord',
+				['$browser'] = 'Discordia',
+				['$device'] = 'Discordia',
 				['$referrer'] = '',
 				['$referring_domain'] = ''
 			},
-			large_threadhold = 100,
+			large_threadhold = 100, -- 50 to 250
 			compress = false
 		}
 	})

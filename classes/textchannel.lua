@@ -7,9 +7,9 @@ local endpoints = require('../endpoints')
 
 class('TextChannel', Object)
 
-function TextChannel:initialize(data, parent)
+function TextChannel:__init(data, client)
 
-    Object.initialize(self, data.id, parent.client or parent)
+    Object.__init(self, data.id, client)
 
     self.isPrivate = data.isPrivate
     self.lastMessageId = data.lastMessageId

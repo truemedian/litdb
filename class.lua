@@ -20,8 +20,8 @@ return function(...)
 	setmetatable(class, {
 		__call = function(class, ...)
 			local obj = setmetatable({}, class)
-			if type(obj.initialize) == 'function' then
-				obj:initialize(...)
+			if type(obj.__init) == 'function' then
+				obj:__init(...)
 			end
 			return obj
 		end

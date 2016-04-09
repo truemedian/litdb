@@ -1,5 +1,6 @@
 local User = require('./classes/user')
 local Role = require('./classes/role')
+local Member = require('./classes/member')
 local Server = require('./classes/server')
 local Message = require('./classes/message')
 local VoiceState = require('./classes/voicestate')
@@ -12,28 +13,8 @@ local events = {}
 function events.ready(data, client)
 
 	client.user = User(data.user, client) -- object
-	client.users[client.user.id] = client.user
-	-- client.sessionId = data.sessionId -- string
-	-- client.readState = data.readState -- table, status in each channel
-	-- client.userSettings = data.userSettings -- table, personal user settings
-	-- client.heartbeatInterval = data.heartbeatInterval -- number
-	-- client.userServerSettings = data.userGuildSettings -- table, settings per server
-
-	for _, friendData in ipairs(data.relationships) do
-		local user = client:getUserById(friendData.user.id)
-		if not user then
-			user = User(friendData, client)
-			client.users[user.id] = user
-		else
-			user:update(friendData)
-		end
-		client.friends[user.id] = user
-	end
-
-	for _, friendData in ipairs(data.presences) do
-		local user = client:getUserById(friendData.user.id)
-		user:update(friendData)
-	end
+	client.email = data.user.email -- string
+	client.verified = data.user.verified -- boolean
 
 	for _, serverData in ipairs(data.guilds) do
 		local server = Server(serverData, client)
@@ -54,17 +35,22 @@ end
 function events.typingStart(data, client)
 
 	local channel = client:getChannelById(data.channelId)
-	local user = client:getUserById(data.userId)
+	local user = channel.recipient or channel.server:getMemberById(data.userId)
 	client:emit('typingStart', user, channel)
 
 end
 
 function events.presenceUpdate(data, client)
 
-	local user = client:getUserById(data.user.id)
-	if not user then return end -- invalid user, probably large server
+	-- data.roles exists, but not sure if a role change fires presenceUpdate
+	-- fires for status update and game update
+	-- seems to fire for username/avatar/email changes, too
+	-- see guildMemberUpdate for role changes
 	local server = client:getServerById(data.guildId)
-	user:update(data, server)
+	if not server then return end -- probably "unavailable"
+	local member = server:getMemberById(data.user.id)
+	if not member then return end -- invalid user, probably large server
+	member:update(data)
 	client:emit('presenceUpdate', user)
 
 end
@@ -72,6 +58,8 @@ end
 function events.userUpdate(data, client)
 
 	client.user:update(data, client)
+	client.email = data.email
+	client.verified = data.verified
 	client:emit('userUpdate', client.user)
 
 end
@@ -113,7 +101,8 @@ end
 function events.messageDelete(data, client)
 
 	local message = client:getMessageById(data.id)
-	if message then message.channel.messages[message.id] = nil end
+	if not message then return end
+	message.channel.messages[message.id] = nil
 	-- deleted messages stay in the deque and contribute to total count
 	client:emit('messageDelete', message)
 
@@ -178,6 +167,7 @@ end
 
 function events.channelUpdate(data, client)
 
+	-- can private channels update?
 	local server = client:getServerById(data.guildId)
 	local channel = client:getChannelById(data.guildId)
 	channel:update(data)
@@ -189,7 +179,7 @@ function events.guildBanAdd(data, client)
 
 	local server = client:getServerById(data.guildId)
 	local member = server:getMemberById(data.user.id)
-	client:emit('memberBan', member, server)
+	client:emit('memberBan', member)
 
 end
 
@@ -197,7 +187,7 @@ function events.guildBanRemove(data, client)
 
 	local server = client:getServerById(data.guildId)
 	local member = server:getMemberById(data.user.id)
-	client:emit('memberUnban', member, server)
+	client:emit('memberUnban', member)
 
 end
 
@@ -227,22 +217,17 @@ function events.guildUpdate(data, client)
 
 end
 
--- function events.guildIntegrationsUpdate(data, client)
--- end
+function events.guildIntegrationsUpdate(data, client)
+	-- unhandled for now
+end
 
 function events.guildMemberAdd(data, client)
 
 	local server = client:getServerById(data.guildId)
-	local member = server:getMemberById(data.user.id)
-	if not user then
-		user = User(data, server)
-		client.users[user.id] = user
-	else
-		user:update(data, server)
-	end
-	server.members[user.id] = user
-
-	client:emit('memberJoin', member, server)
+	local member = Member(data, server)
+	server.members[member.id] = member
+	server.memberCount = server.memberCount + 1
+	client:emit('memberJoin', member)
 
 end
 
@@ -250,18 +235,19 @@ function events.guildMemberRemove(data, client)
 
 	local server = client:getServerById(data.guildId)
 	local member = server:getMemberById(data.user.id)
-	server.members[user.id] = nil
-	user.memberData[server.id] = nil
-	client:emit('memberLeave', member, server)
+	server.members[member.id] = nil
+	server.memberCount = server.memberCount - 1
+	client:emit('memberLeave', member)
 
 end
 
 function events.guildMemberUpdate(data, client)
 
+	-- I think this is only for role updates
 	local server = client:getServerById(data.guildId)
 	local member = server:getMemberById(data.user.id)
-	user:update(data, server)
-	client:emit('memberUpdate', member, server)
+	member.roles = data.roles
+	client:emit('memberUpdate', member)
 
 end
 
@@ -270,14 +256,8 @@ function events.guildMembersChunk(data, client)
 	local server = client:getServerById(data.guildId)
 
 	for _, memberData in ipairs(data.members) do
-		local user = client:getUserById(memberData.user.id)
-		if not user then
-			user = User(memberData, server)
-			client.users[user.id] = user
-		else
-			user:update(memberData, server)
-		end
-		server.members[user.id] = user
+		local member = Member(memberData, server)
+		server.members[member.id] = member
 	end
 
 	client:emit('membersChunk', server)

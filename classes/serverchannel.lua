@@ -4,26 +4,21 @@ local endpoints = require('../endpoints')
 
 class('ServerChannel', Object)
 
-function ServerChannel:initialize(data, server)
+function ServerChannel:__init(data, server)
 
-    Object.initialize(self, data.id, server.client)
+    Object.__init(self, data.id, server.client)
     self.server = server
 
     self.type = data.type
-    self.name = data.name
-    self.topic = data.topic
-    self.position = data.position
-    self.permissionOverwrites = data.permissionOverwrites -- need to objectify
+    self:update(data)
 
 end
 
 function ServerChannel:update(data)
-
-    self.name = data.new
+    self.name = data.name
     self.topic = data.topic
     self.position = data.position
     self.permissionOverwrites = data.permissionOverwrites
-
 end
 
 function ServerChannel:delete(data)
