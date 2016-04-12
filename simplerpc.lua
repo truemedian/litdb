@@ -22,24 +22,34 @@ return function (path, port)
 		ws.writer(msg)
 	end
 
-	function simplerpc:makejsonrpcrequest(ws, method, cb, ...)
-		local params = {...}
+	function simplerpc:makejsonrpcrequest(ws, method, params, cb)
 		if #params == 1 then
 			params = params[1]
 		end
 
-		ws.writer{
-			opcode = 1,
-			payload = json.stringify{
-				jsonrpc = "2.0",
-				method = method,
-				params = params,
-				id = ws.indexer
+		if cb then --normal request
+			ws.writer{
+				opcode = 1,
+				payload = json.stringify{
+					jsonrpc = "2.0",
+					method = method,
+					params = params,
+					id = ws.indexer
+				}
 			}
-		}
-		ws.running[ws.indexer] = cb
+			ws.running[ws.indexer] = cb
 
-		ws.indexer = ws.indexer + 1
+			ws.indexer = ws.indexer + 1
+		else --notification request
+			ws.writer{
+				opcode = 1,
+				payload = json.stringify{
+					jsonrpc = "2.0",
+					method = method,
+					params = params,
+				}
+			}
+		end
 	end
 
 	function simplerpc:handlejsonresponse(ws, msg, payload)
@@ -93,8 +103,14 @@ return function (path, port)
 			}
 		}, {
 			__index = function(tab, key)
-				return function(cb, ...)
-					simplerpc:makejsonrpcrequest(tab, key, cb, ...)
+				return function(...)
+					local args = {...}
+					if type(args[#args]) == "function" then
+						local cb = table.remove(args)
+						simplerpc:makejsonrpcrequest(tab, key, args, cb)
+					else
+						simplerpc:makejsonrpcrequest(tab, key, args)
+					end
 				end
 			end
 		}))
@@ -112,6 +128,10 @@ return function (path, port)
 			end
 		end
 
+		if simplerpc.onclosed then
+			simplerpc.onclosed(me) --lets you collect the data you may have set on the connection
+		end
+
 		table.remove(simplerpc.connections, pos)
 
 		print("closed: ", pos)
@@ -124,7 +144,9 @@ return function (path, port)
 	return setmetatable(simplerpc, {
 		__index = function(tab, key)
 			return function(...)
-
+				for k, con in pairs(tab.connections) do
+					con[key](...)
+				end
 			end
 		end
 	})

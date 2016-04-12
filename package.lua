@@ -1,6 +1,6 @@
 return {
 	name = "LennyPenny/simplerpc",
-	version = "1.0.3",
+	version = "1.1.0",
 	description = "Simple JSON-RPC 2.0 server",
 	tags = { "lua", "lit", "luvit" },
 	license = "MIT",
