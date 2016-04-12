@@ -1,6 +1,6 @@
 local json = require"json"
 
-local function makesimplerpc()
+return function (path, port)
 	local simplerpc = {
 		connections = {}
 	}
@@ -71,7 +71,7 @@ local function makesimplerpc()
 	local weblit = require "weblit"
 
 	weblit.app.bind{
-		port = 1337
+		port = port or 80
 	}
 
 	weblit.app.use(require"weblit-logger")
@@ -79,7 +79,7 @@ local function makesimplerpc()
 	weblit.app.use(require"weblit-etag-cache")
 
 	weblit.app.use(weblit.websocket({
-		path = "/lmao"
+		path = path or "/"
 	}, function(req, read, write)
 		print("New Connection!")
 
@@ -129,5 +129,3 @@ local function makesimplerpc()
 		end
 	})
 end
-
-return makesimplerpc()
