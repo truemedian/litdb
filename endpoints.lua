@@ -9,6 +9,6 @@ return {
 	logout = api .. "/auth/logout",
 	servers = api .. "/guilds",
 	channels = api .. "/channels",
-	invite = api .. "/invite",
+	invites = api .. "/invites",
 	voice = api .. "/voice"
 }

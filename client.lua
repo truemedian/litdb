@@ -1,12 +1,19 @@
 local md5 = require('md5')
+local json = require('json')
+local http = require('coro-http')
 local timer = require('timer')
 local utils = require('./utils')
 local events = require('./events')
 local package = require('./package')
 local endpoints = require('./endpoints')
-local Server = require('./classes/server')
-local Websocket = require('./classes/websocket')
-local request = utils.request
+
+local Invite = require('./classes/discord/invite')
+local Server = require('./classes/discord/server')
+
+local Error = require('./classes/utils/error')
+local Warning = require('./classes/utils/warning')
+local WebSocket = require('./classes/utils/websocket')
+
 local camelify = utils.camelify
 
 local Client = require('core').Emitter:extend()
@@ -16,6 +23,7 @@ function Client:initialize(email, password)
 	self.servers = {}
 	self.maxMessages = 100 -- per channel
 	self.privateChannels = {}
+	self.keepAliveHandlers = {}
 
 	self.headers = {
 		['Content-Type'] = 'application/json',
@@ -26,10 +34,12 @@ end
 
 -- overwrite original emit method to make it non-blocking
 local emit = Client.emit
+local wrappedEmit = function(self, name, ...)
+	return emit(self, name, ...)
+end
+
 function Client:emit(name, ...)
-	return coroutine.wrap(function(name, ...)
-		return emit(self, name, ...)
-	end)(name, ...)
+	return coroutine.wrap(wrappedEmit)(self, name, ...)
 end
 
 function Client:run(email, password)
@@ -43,8 +53,9 @@ end
 
 function Client:login(email, password)
 
+	local token
 	local filename = md5.sumhexa(email) .. '.cache'
-	local cache, token = io.open(filename, 'r')
+	local cache = io.open(filename, 'r')
 	if not cache then
 		token = self:getToken(email, password)
 		io.open(filename, 'w'):write(token):close()
@@ -59,24 +70,76 @@ end
 
 function Client:logout()
 	local body = {token = self.token}
-	request('POST', {endpoints.logout}, self.headers, body)
+	self:request('POST', {endpoints.logout}, body)
 end
 
 function Client:getToken(email, password)
 	local body = {email = email, password = password}
-	return request('POST', {endpoints.login}, self.headers, body).token
+	return self:request('POST', {endpoints.login}, body).token
 end
 
--- Websocket --
+-- HTTP --
+
+function Client:request(method, url, body)
+
+	if type(url) == 'table' then
+		url = table.concat(url, '/')
+	end
+
+	local headers = {}
+	for k, v in pairs(self.headers) do
+		table.insert(headers, {k, v})
+	end
+
+	local encodedBody
+	if body then
+		encodedBody = json.encode(body)
+		table.insert(headers, {'Content-Length', encodedBody:len()})
+	end
+
+	local res, data = http.request(method, url, headers, encodedBody)
+
+	if res.code > 299 then
+
+		if res.code == 400 then -- bad request
+			Error('Bad request. Check arguments.', debug.traceback())
+		elseif res.code == 403 then -- forbidden
+			Warning('Forbidden request attempted. Check client permissions.', debug.traceback())
+		elseif res.code == 429 then -- too many requests
+			local delay
+			for _, header in ipairs(res) do
+				if header[1] == 'Retry-After' then
+					delay = header[2]
+					break
+				end
+			end
+			Warning('Too many requests. Retrying in' .. delay .. 'ms.', debug.traceback())
+			timer.sleep(delay)
+			return self:request(method, url, body)
+		else
+			Error(string.format('Unhandled HTTP error: %i / %s', res.code, res.reason), debug.traceback())
+		end
+
+	elseif res.code > 199 then
+
+		local obj = json.decode(data)
+		return camelify(obj), true
+
+	end
+
+end
+
+-- WebSocket --
 
 function Client:getGateway()
-	return request('GET', {endpoints.gateway}, self.headers).url
+	return self:request('GET', {endpoints.gateway}).url
 end
 
 function Client:websocketConnect()
 
+	local gateway
 	local filename ='gateway.cache'
-	local cache, gateway = io.open(filename, 'r')
+	local cache = io.open(filename, 'r')
 	if not cache then
 		gateway = self:getGateway()
 		io.open(filename, 'w'):write(gateway):close()
@@ -84,44 +147,61 @@ function Client:websocketConnect()
 		gateway = cache:read()
 	end
 
-	self.websocket = Websocket(gateway)
-	self.websocket:op2(self.token)
+	self.websocket = WebSocket(gateway)
+	self.websocket:identify(self.token)
 
-	self:websocketReceiver()
+	self:websocketReceiver(gateway)
 
 end
 
-function Client:websocketReceiver()
+function Client:websocketReceiver(gateway)
 
-	return coroutine.wrap(function()
+	return coroutine.wrap(function(gateway)
 		while true do
 			local payload = self.websocket:receive()
-			if payload.op == 0 then
-				self.sequence = payload.s
-				local event = camelify(payload.t)
-				local data = camelify(payload.d)
-				self:emit('raw', event, data)
-				if not events[event] then error('Unhandled event ' .. event) end
-				events[event](data, self)
+			if payload then
+				if payload.op == 0 then
+					self.sequence = payload.s
+					self:emit('raw', payload)
+					local event = camelify(payload.t)
+					local data = camelify(payload.d)
+					if events[event] then
+						events[event](data, self)
+					else
+						Warning('Unhandled WebSocket event: ' .. payload.t, debug.traceback())
+					end
+				else
+					Warning('Unhandled WebSocket payload: ' .. payload.op, debug.traceback())
+				end
 			else
-				error('Unhandled payload ' .. payload.op)
+				Warning('WebSocket disconnected. Reconnecting after 5 seconds.', debug.traceback())
+				self:stopKeepAliveHandlers()
+				timer.sleep(5000)
+				self.websocket:connect(gateway)
+				self.websocket:resume(self.token, self.sessionId, self.sequence)
 			end
 		end
-	end)()
-	-- need to handle websocket disconnection
+	end)(gateway)
 
 end
 
-function Client:keepAliveHandler(interval)
-
+function Client:startKeepAliveHandler(interval)
+	local handler = {}
+	table.insert(self.keepAliveHandlers, handler)
 	return coroutine.wrap(function(interval)
 		while true do
 			timer.sleep(interval)
-			self.websocket:op1(self.sequence)
+			if handler.stopped then return end
+			self.websocket:heartbeat(self.sequence)
 		end
 	end)(interval)
-	-- need to handle websocket disconnection
+end
 
+function Client:stopKeepAliveHandlers()
+	for _, handler in ipairs(self.keepAliveHandlers) do
+		handler.stopped = true
+	end
+	self.keepAliveHandlers = {}
 end
 
 -- Profile --
@@ -133,7 +213,7 @@ function Client:setUsername(newUsername, password)
 		username = newUsername,
 		password = password
 	}
-	request('PATCH', {endpoints.me}, self.headers, body)
+	self:request('PATCH', {endpoints.me}, body)
 end
 
 function Client:setAvatar(newAvatar, password)
@@ -143,7 +223,7 @@ function Client:setAvatar(newAvatar, password)
 		username = self.user.username,
 		password = password
 	}
-	request('PATCH', {endpoints.me}, self.headers, body)
+	self:request('PATCH', {endpoints.me}, body)
 end
 
 function Client:setEmail(newEmail, password)
@@ -153,7 +233,7 @@ function Client:setEmail(newEmail, password)
 		username = self.user.username,
 		password = password
 	}
-	request('PATCH', {endpoints.me}, self.headers, body)
+	self:request('PATCH', {endpoints.me}, body)
 end
 
 function Client:setPassword(newPassword, password)
@@ -164,34 +244,36 @@ function Client:setPassword(newPassword, password)
 		password = password,
 		new_password = newPassword
 	}
-	request('PATCH', {endpoints.me}, self.headers, body)
+	self:request('PATCH', {endpoints.me}, body)
+end
+
+function Client:setStatusIdle()
+	self.idleSince = os.time()
+	self.websocket:statusUpdate(self.idleSince, self.user.gameName)
+end
+
+function Client:setStatusOnline()
+	self.idleSince = nil
+	self.websocket:statusUpdate(self.idleSince, self.user.gameName)
+end
+
+function Client:setGameName(gameName)
+	self.websocket:statusUpdate(self.idleSince, gameName)
 end
 
 -- Invites --
 
--- function Client:getInvite(code)
-	-- return request('POST', {endpoints.invite, code}, self.headers, {})
--- end
-
--- function Client:acceptInvite(invite) -- Invite:accept()
-	-- local body = {validate = invite.code}
-	-- return request('POST', {endpoints.channels, invite.channel.id, 'invites'}, self.headers, body)
--- end
-
--- function Client:deleteInvite(invite) -- Invite:delete()
-	-- return request('DELETE', {endpoints.invite, invite.code}, self.headers)
--- end
-
--- function Client:getChannelInvites(channel) -- Channel:getInvites()
-	-- return request('GET', {endpoints.channels, channel.id, 'invites'}, self.headers)
--- end
+function Client:acceptInviteByCode(code)
+	local body = {validate = code}
+	return self:request('POST', {endpoints.invites, code}, body)
+end
 
 -- Servers --
 
 function Client:createServer(name, regionId)
 	local body = {name = name, region = regionId}
-	local data = request('POST', {endpoints.servers}, self.headers, body)
-	return Server(data, self) -- not the same object that is cached
+	local data, success = self:request('POST', {endpoints.servers}, body)
+	if success then return Server(data, self) end
 end
 
 function Client:getServerById(id)
@@ -208,7 +290,7 @@ function Client:getServerByName(name)
 end
 
 function Client:getRegions()
-	return request('GET', {endpoints.voice, 'regions'}, self.headers)
+	return self:request('GET', {endpoints.voice, 'regions'})
 end
 
 -- Channels --
