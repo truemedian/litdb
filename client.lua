@@ -18,7 +18,7 @@ local camelify = utils.camelify
 
 local Client = require('core').Emitter:extend()
 
-function Client:initialize(email, password)
+function Client:initialize()
 
 	self.servers = {}
 	self.maxMessages = 100 -- per channel
@@ -42,16 +42,23 @@ function Client:emit(name, ...)
 	return coroutine.wrap(wrappedEmit)(self, name, ...)
 end
 
-function Client:run(email, password)
-	return coroutine.wrap(function()
-		self:login(email, password)
-		self:websocketConnect()
-	end)()
+function Client:run(a, b)
+	if not b then
+		return coroutine.wrap(function()
+			self:botLogin(a)
+			self:websocketConnect()
+		end)()
+	else
+		return coroutine.wrap(function()
+			self:userLogin(a, b)
+			self:websocketConnect()
+		end)()
+	end
 end
 
 -- Authentication --
 
-function Client:login(email, password)
+function Client:userLogin(email, password)
 
 	local token
 	local filename = md5.sumhexa(email) .. '.cache'
@@ -66,6 +73,11 @@ function Client:login(email, password)
 	self.headers['Authorization'] = token
 	self.token = token
 
+end
+
+function Client:botLogin(token)
+	self.headers['Authorization'] = 'Bot ' .. token
+	self.token = token
 end
 
 function Client:logout()
@@ -123,7 +135,7 @@ function Client:request(method, url, body)
 	elseif res.code > 199 then
 
 		local obj = json.decode(data)
-		return camelify(obj), true
+		return camelify(obj)
 
 	end
 
@@ -272,8 +284,8 @@ end
 
 function Client:createServer(name, regionId)
 	local body = {name = name, region = regionId}
-	local data, success = self:request('POST', {endpoints.servers}, body)
-	if success then return Server(data, self) end
+	local data = self:request('POST', {endpoints.servers}, body)
+	if data then return Server(data, self) end
 end
 
 function Client:getServerById(id)
