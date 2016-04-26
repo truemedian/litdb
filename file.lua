@@ -18,7 +18,7 @@ limitations under the License.
 
 --[[lit-meta
   name = "luvit/http"
-  version = "2.0.0"
+  version = "2.0.1"
   dependencies = {
     "luvit/net@2.0.0",
     "luvit/url@2.0.0",
@@ -118,8 +118,14 @@ function ServerResponse:initialize(socket)
   self.headersSent = false
   self.headers = setmetatable({}, headerMeta)
 
+  local extra = self._extra_http or {}
+  self._extra_http = extra
   for _, evt in pairs({'close', 'drain', 'end' }) do
-    self.socket:on(evt, utils.bind(self.emit, self, evt))
+    if extra[evt] then
+      self.socket:removeListener(evt,extra[evt])
+    end
+    extra[evt] = utils.bind(self.emit, self, evt)
+    self.socket:on(evt, extra[evt])
   end
 end
 
