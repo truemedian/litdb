@@ -129,6 +129,9 @@ local function makeCore(config)
       error("Not a package: " .. path)
     end
     local author, name, version = pkg.normalize(meta)
+    if not (author and name) then
+      error("Malformed package metadata. Package name must be of the format 'author/package'.")
+    end
     if config.upstream then core.sync(author, name) end
 
     local kind, hash = import(db, fs, path)
@@ -199,6 +202,9 @@ local function makeCore(config)
     if template == defaultTemplate and flavor == "regular" and version == semver.normalize(luvi.version) then
       local exe = uv.exepath()
       local stdout = exec(exe, "-v")
+      if jit.os == "Windows" then
+        stdout = stdout:gsub('.exe','')
+      end      
       local iversion = stdout:match("luvi version: v(%d+%.%d+%.%d+)")
                     or stdout:match("luvi v(%d+%.%d+%.%d+)")
       if iversion == version then
