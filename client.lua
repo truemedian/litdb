@@ -45,38 +45,39 @@ end
 function Client:run(a, b)
 	if not b then
 		return coroutine.wrap(function()
-			self:botLogin(a)
-			self:websocketConnect()
+			self:loginWithToken(a)
+			self:connectWebsocket()
 		end)()
 	else
 		return coroutine.wrap(function()
-			self:userLogin(a, b)
-			self:websocketConnect()
+			self:loginWithEmail(a, b)
+			self:connectWebsocket()
 		end)()
 	end
 end
 
 -- Authentication --
 
-function Client:userLogin(email, password)
+function Client:loginWithEmail(email, password)
 
 	local token
 	local filename = md5.sumhexa(email) .. '.cache'
 	local cache = io.open(filename, 'r')
 	if not cache then
 		token = self:getToken(email, password)
-		io.open(filename, 'w'):write(token):close()
+		if token then
+			io.open(filename, 'w'):write(token):close()
+		end
 	else
 		token = cache:read()
 	end
 
-	self.headers['Authorization'] = token
-	self.token = token
+	self:loginWithToken(token)
 
 end
 
-function Client:botLogin(token)
-	self.headers['Authorization'] = 'Bot ' .. token
+function Client:loginWithToken(token)
+	self.headers['Authorization'] = token
 	self.token = token
 end
 
@@ -147,14 +148,16 @@ function Client:getGateway()
 	return self:request('GET', {endpoints.gateway}).url
 end
 
-function Client:websocketConnect()
+function Client:connectWebsocket()
 
 	local gateway
 	local filename ='gateway.cache'
 	local cache = io.open(filename, 'r')
 	if not cache then
 		gateway = self:getGateway()
-		io.open(filename, 'w'):write(gateway):close()
+		if gateway then
+			io.open(filename, 'w'):write(gateway):close()
+		end
 	else
 		gateway = cache:read()
 	end
@@ -162,11 +165,11 @@ function Client:websocketConnect()
 	self.websocket = WebSocket(gateway)
 	self.websocket:identify(self.token)
 
-	self:websocketReceiver(gateway)
+	self:startWebsocketReceiver(gateway)
 
 end
 
-function Client:websocketReceiver(gateway)
+function Client:startWebsocketReceiver(gateway)
 
 	return coroutine.wrap(function(gateway)
 		while true do
@@ -288,6 +291,10 @@ function Client:createServer(name, regionId)
 	if data then return Server(data, self) end
 end
 
+function Client:getRegions()
+	return self:request('GET', {endpoints.voice, 'regions'})
+end
+
 function Client:getServerById(id)
 	return self.servers[id]
 end
@@ -299,10 +306,6 @@ function Client:getServerByName(name)
 		end
 	end
 	return nil
-end
-
-function Client:getRegions()
-	return self:request('GET', {endpoints.voice, 'regions'})
 end
 
 -- Channels --

@@ -14,6 +14,10 @@ local events = {}
 
 function events.ready(data, client)
 
+	if data.user.bot then
+		client.headers['Authorization'] = 'Bot ' .. client.headers['Authorization']
+	end
+
 	client.user = User(data.user, client)
 	client.email = data.user.email
 	client.verified = data.user.verified
@@ -33,8 +37,13 @@ function events.ready(data, client)
 
 	client:startKeepAliveHandler(data.heartbeatInterval)
 
-	client.readyTimeout = timer.setTimeout(1000, function()
-		client:emit('ready')
+	client.readyInterval = timer.setInterval(1000, function()
+		if client.loading then
+			client.loading = nil
+		else
+			timer.clearInterval(client.readyInterval)
+			client:emit('ready')
+		end
 	end)
 
 end
@@ -212,8 +221,8 @@ function events.guildCreate(data, client)
 	client.servers[server.id] = server
 	client:emit('serverCreate', server)
 
-	if client.readyTimeout then
-		client.readyTimeout:again()
+	if client.readyInterval then
+		client.waiting = true
 	end
 
 end
@@ -280,8 +289,8 @@ function events.guildMembersChunk(data, client)
 
 	client:emit('membersChunk', server)
 
-	if client.readyTimeout then
-		client.readyTimeout:again()
+	if client.readyInterval then
+		client.loading = true
 	end
 
 end
