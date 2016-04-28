@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/msgpack"
-  version = "2.2.1"
+  version = "2.3.0"
   description = "A pure lua implementation of the msgpack format."
   homepage = "https://github.com/creationix/msgpack-lua"
   keywords = {"codec", "msgpack"}
@@ -177,11 +177,13 @@ local function encode(value)
   elseif t == "table" then
     local isMap = false
     local index = 1
+    local max = 0
     for key in pairs(value) do
-      if type(key) ~= "number" or key ~= index then
+      if type(key) ~= "number" or (key > 10 and key ~= index) then
         isMap = true
         break
       else
+        max = key
         index = index + 1
       end
     end
@@ -205,7 +207,7 @@ local function encode(value)
       end
     else
       local parts = {}
-      local l = #value
+      local l = max
       for i = 1, l do
         parts[i] = encode(value[i])
       end
@@ -293,12 +295,7 @@ local function decode(data, offset)
     return buffer(bytes, sub(data, offset + 6, offset + len)), len
   elseif c == 0xca then
     if bigEndian then
-      copy(fbox, char(
-        byte(data, offset + 2),
-        byte(data, offset + 3),
-        byte(data, offset + 4),
-        byte(data, offset + 5)
-      ))
+      copy(fbox, sub(data, 2, 5))
     else
       copy(fbox, char(
         byte(data, offset + 5),
@@ -310,16 +307,7 @@ local function decode(data, offset)
     return fbox[0], 5
   elseif c == 0xcb then
     if bigEndian then
-      copy(dbox, char(
-        byte(data, offset + 2),
-        byte(data, offset + 3),
-        byte(data, offset + 4),
-        byte(data, offset + 5),
-        byte(data, offset + 6),
-        byte(data, offset + 7),
-        byte(data, offset + 8),
-        byte(data, offset + 9)
-      ))
+      copy(dbox, sub(data, 2, 9))
     else
       copy(dbox, char(
         byte(data, offset + 9),
