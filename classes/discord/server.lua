@@ -25,7 +25,7 @@ function Server:__init(data, client)
 	self.channels = {}
 	self.voiceStates = {}
 
-	self:update(data)
+	self:_update(data)
 
 	if data.members then
 		for _, memberData in ipairs(data.members) do
@@ -38,7 +38,7 @@ function Server:__init(data, client)
 		for _, memberData in ipairs(data.presences) do
 			local member = self.members[memberData.user.id]
 			if member then -- sometimes no user, large servers?
-				member:update(memberData) -- status and game update
+				member:_update(memberData) -- status and game update
 			end -- need to emit warning event
 		end
 	end
@@ -68,7 +68,7 @@ function Server:__init(data, client)
 
 end
 
-function Server:update(data)
+function Server:_update(data)
 
 	self.name = data.name -- string
 	self.icon = data.icon -- string
@@ -95,6 +95,11 @@ function Server:setName(name)
 	self.client:request('PATCH', {endpoints.servers, self.id}, body)
 end
 
+function Server:setRegion(regionId)
+	local body = {region = regionId}
+	self.client:request('PATCH', {endpoints.servers, self.id}, body)
+end
+
 function Server:setIcon(icon)
 	local body = {icon = icon}
 	self.client:request('PATCH', {endpoints.servers, self.id}, body)
@@ -116,27 +121,12 @@ function Server:setAfkChannel(channel)
 	self.client:request('PATCH', {endpoints.servers, self.id}, body)
 end
 
-function Server:setRegion(regionId)
-	local body = {region = regionId}
-	self.client:request('PATCH', {endpoints.servers, self.id}, body)
-end
-
 function Server:leave()
 	self.client:request('DELETE', {endpoints.me, 'guilds', self.id})
 end
 
 function Server:delete()
 	self.client:request('DELETE', {endpoints.servers, self.id})
-end
-
-function Server:getBannedUsers()
-	local banTable = self.client:request('GET', {endpoints.servers, self.id, 'bans'})
-	local users = {}
-	for _, banData in ipairs(banTable) do
-		local user = User(banData.user, self.client)
-		users[user.id] = user
-	end
-	return users
 end
 
 function Server:getInvites()
@@ -149,8 +139,17 @@ function Server:getInvites()
 	return invites
 end
 
+function Server:getBannedUsers()
+	local banTable = self.client:request('GET', {endpoints.servers, self.id, 'bans'})
+	local users = {}
+	for _, banData in ipairs(banTable) do
+		local user = User(banData.user, self.client)
+		users[user.id] = user
+	end
+	return users
+end
+
 function Server:banUser(user) -- User:ban(server)
-	-- do they need to be a member?
 	self.client:request('PUT', {endpoints.servers, self.id, 'bans', user.id}, {})
 end
 

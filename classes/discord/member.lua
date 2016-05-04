@@ -18,9 +18,9 @@ function Member:__init(data, server)
 
 end
 
-function Member:update(data)
+function Member:_update(data)
 	if data.user and data.user.username then
-		User.update(self, data.user)
+		User._update(self, data.user)
 	end
 	self.status = data.status or 'offline'-- string
 	self.gameName = data.game and data.game.name -- string or nil

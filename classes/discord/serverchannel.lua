@@ -10,11 +10,11 @@ function ServerChannel:__init(data, server)
 	self.server = server
 
 	self.type = data.type
-	self:update(data)
+	self:_update(data)
 
 end
 
-function ServerChannel:update(data)
+function ServerChannel:_update(data)
 	self.name = data.name
 	self.topic = data.topic
 	self.position = data.position
@@ -36,7 +36,8 @@ function ServerChannel:setName(name)
 end
 
 function ServerChannel:createInvite()
-	self.client:request('POST', {endpoints.channels, self.id, 'invites'}, {})
+	local data = self.client:request('POST', {endpoints.channels, self.id, 'invites'}, {})
+	return Invite(data, self.server)
 end
 
 function ServerChannel:getInvites()

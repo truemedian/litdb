@@ -8,6 +8,7 @@ function User:__init(data, client)
 
 	Base.__init(self, data.id, client)
 
+	self.bot = data.bot or false
 	self.name = data.username
 	self.avatar = data.avatar or ''
 	self.username = data.username
@@ -17,7 +18,7 @@ function User:__init(data, client)
 
 end
 
-function User:update(data)
+function User:_update(data)
 	self.avatar = data.avatar or ''
 	self.username = data.username
 	self.discriminator = data.discriminator

@@ -73,14 +73,14 @@ function events.presenceUpdate(data, client)
 	if not server then return end
 	local member = server:getMemberById(data.user.id)
 	if not member then return end
-	member:update(data)
+	member:_update(data)
 	client:emit('presenceUpdate', member)
 
 end
 
 function events.userUpdate(data, client)
 
-	client.user:update(data, client)
+	client.user:_update(data, client)
 	client.email = data.email
 	client.verified = data.verified
 	client:emit('userUpdate', client.user)
@@ -96,8 +96,8 @@ function events.voiceStateUpdate(data, client)
 		voiceState = VoiceState(data, server)
 		server.voiceStates[voiceState.sessionId] = voiceState
 		client:emit('voiceJoin', voiceState)
-	elseif voiceState.channelId then
-		voiceState:update(data)
+	elseif data.channelId then
+		voiceState:_update(data)
 		client:emit('voiceUpdate', voiceState)
 	else
 		server.voiceStates[voiceState.sessionId] = nil
@@ -140,7 +140,7 @@ function events.messageUpdate(data, client)
 		message = Message(data, channel)
 		channel.messages[message.id] = message
 	else
-		message:update(data)
+		message:_update(data)
 	end
 
 	client:emit('messageUpdate', message)
@@ -193,7 +193,7 @@ function events.channelUpdate(data, client)
 	-- can private channels update?
 	local server = client:getServerById(data.guildId)
 	local channel = client:getChannelById(data.guildId)
-	channel:update(data)
+	channel:_update(data)
 	client:emit('channelUpdate', channel)
 
 end
@@ -238,7 +238,7 @@ end
 function events.guildUpdate(data, client)
 
 	local server = client:getServerById(data.id)
-	server:update(data)
+	server:_update(data)
 	client:emit('serverUpdate', server)
 
 end
@@ -316,7 +316,7 @@ function events.guildRoleUpdate(data, client)
 
 	local server = client:getServerById(data.guildId)
 	local role = server:getRoleById(data.role.id)
-	role:update(data)
+	role:_update(data)
 	client:emit('roleUpdate', role)
 
 end
