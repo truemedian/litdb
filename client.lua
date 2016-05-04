@@ -21,6 +21,7 @@ local Client = require('core').Emitter:extend()
 function Client:initialize()
 
 	self.servers = {}
+	self.reconnects = 0
 	self.maxMessages = 500 -- per channel
 	self.privateChannels = {}
 	self.keepAliveHandlers = {}
@@ -90,8 +91,6 @@ end
 function Client:logout(exit)
 	self.headers['Authorization'] = nil
 	self.token = nil
-	local body = {token = self.token}
-	self:request('POST', {endpoints.logout}, body)
 end
 
 function Client:getToken(email, password)
@@ -102,6 +101,10 @@ end
 -- HTTP --
 
 function Client:request(method, url, body, tries)
+
+	while self.isRateLimited do
+		timer.sleep(300)
+	end
 
 	local tries = tries or 1
 
@@ -129,7 +132,7 @@ function Client:request(method, url, body, tries)
 		elseif res.code == 403 then -- forbidden
 			Error('Forbidden request attempted. Check client permissions.', debug.traceback())
 		elseif res.code == 429 then -- too many requests
-			local delay
+			self.isRateLimited = true
 			for _, header in ipairs(res) do
 				if header[1] == 'Retry-After' then
 					delay = header[2]
@@ -138,6 +141,7 @@ function Client:request(method, url, body, tries)
 			end
 			Warning('Too many requests. Retrying in ' .. delay .. ' ms.', debug.traceback())
 			timer.sleep(delay)
+			self.isRateLimited = false
 			return self:request(method, url, body)
 		elseif res.code == 502 then
 			if tries < 5 then
@@ -214,16 +218,22 @@ function Client:startWebsocketHandler(gateway)
 					Warning('Unhandled WebSocket payload: ' .. payload.op, debug.traceback())
 				end
 			else
-				local expected = self.token == nil
-				self:emit('disconnect', expected)
-				self:stopKeepAliveHandlers()
-				if not expected then
-					Warning('WebSocket disconnected while logged in. Reconnecting in 5 seconds.', debug.traceback())
-					timer.sleep(5000)
-					self.websocket:connect(gateway)
-					self.websocket:resume(self.token, self.sessionId, self.sequence)
+				self.reconnects = self.reconnects + 1
+				if self.reconnects < 5 then
+					local expected = self.token == nil
+					self:emit('disconnect', expected)
+					self:stopKeepAliveHandlers()
+					if not expected then
+						Warning('WebSocket disconnected while logged in. Reconnecting in 5 seconds.', debug.traceback())
+						timer.sleep(5000)
+						self.websocket:connect(gateway)
+						self.websocket:resume(self.token, self.sessionId, self.sequence)
+					else
+						return
+					end
 				else
-					return
+					Error('WebSocket is experiencing difficulties. Check connection to Discord.', debug.traceback())
+					os.exit()
 				end
 			end
 		end
@@ -239,6 +249,9 @@ function Client:startKeepAliveHandler(interval)
 			timer.sleep(interval)
 			if handler.stopped then return end
 			self.websocket:heartbeat(self.sequence)
+			if self.reconnects > 0 then
+				self.reconnects = self.reconnects - 1
+			end
 		end
 	end)(interval)
 end
