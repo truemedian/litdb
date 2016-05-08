@@ -12,6 +12,7 @@ function Member:__init(data, server)
 	self.roles = data.roles -- table of role IDs
 	self.server = server -- object
 	self.status = 'offline' -- string
+	self.nickname = data.nick -- string
 	self.joinedAt = data.joinedAt -- string
 
 	-- don't call update, it gets confused
@@ -22,8 +23,13 @@ function Member:_update(data)
 	if data.user and data.user.username then
 		User._update(self, data.user)
 	end
-	self.status = data.status or 'offline'-- string
+	self.status = data.status or self.status or 'offline'-- string
 	self.gameName = data.game and data.game.name or self.gameName-- string or nil
+end
+
+function Member:setNickname(nickname)
+	local body = {nick = nickname or ''}
+	self.client:request('PATCH', {endpoints.servers, self.server.id, 'members', self.id}, body)
 end
 
 return Member

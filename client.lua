@@ -10,9 +10,9 @@ local endpoints = require('./endpoints')
 local Invite = require('./classes/discord/invite')
 local Server = require('./classes/discord/server')
 
-local Error = require('./classes/utils/error')
-local Warning = require('./classes/utils/warning')
-local WebSocket = require('./classes/utils/websocket')
+local Error = require('./classes/error')
+local Warning = require('./classes/warning')
+local WebSocket = require('./classes/websocket')
 
 local camelify = utils.camelify
 
@@ -133,6 +133,7 @@ function Client:request(method, url, body, tries)
 			Error('Forbidden request attempted. Check client permissions.', debug.traceback())
 		elseif res.code == 429 then -- too many requests
 			self.isRateLimited = true
+			local delay
 			for _, header in ipairs(res) do
 				if header[1] == 'Retry-After' then
 					delay = header[2]
@@ -275,6 +276,11 @@ function Client:setUsername(newUsername, password)
 	self:request('PATCH', {endpoints.me}, body)
 end
 
+function Client:setNickname(server, nickname)
+	local body = {nick = nickname or ''}
+	self:request('PATCH', {endpoints.servers, server.id, 'members', self.user.id}, body)
+end
+
 function Client:setAvatar(newAvatar, password)
 	local body = {
 		avatar = newAvatar, -- base64
@@ -394,7 +400,7 @@ function Client:getMemberByName(name) -- Server:getMemberByName(name)
 	for _, server in pairs(self.servers) do
 		local member = server.members[id]
 		for _, member in pairs(server.members) do
-			if member.username == name then
+			if member.nickname == name or member.username == name then
 				return member
 			end
 		end

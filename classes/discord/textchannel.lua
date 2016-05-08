@@ -1,5 +1,5 @@
-local Deque = require('../utils/deque')
 local Base = require('./base')
+local Deque = require('../deque')
 local Server = require('./server')
 local Message = require('./message')
 local endpoints = require('../../endpoints')
@@ -18,14 +18,24 @@ function TextChannel:__init(data, client)
 
 end
 
-function TextChannel:createMessage(content)
+function TextChannel:createMessage(content, mentions)
+	if mentions and not self.isPrivate then
+		local words = {}
+		for _, obj in ipairs(mentions) do
+			if obj.getMentionString then
+				table.insert(words, obj:getMentionString())
+			end
+		end
+		table.insert(words, content)
+		content = table.concat(words, ' ')
+	end
 	local body = {content = content}
 	local data = self.client:request('POST', {endpoints.channels, self.id, 'messages'}, body)
 	if data then return Message(data, self) end
 end
 
-function TextChannel:sendMessage(content) -- alias for createMessage
-	return self:createMessage(content)
+function TextChannel:sendMessage(content, mentions) -- alias for createMessage
+	return self:createMessage(content, mentions)
 end
 
 function TextChannel:getMessageHistory()

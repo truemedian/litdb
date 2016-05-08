@@ -113,7 +113,7 @@ function events.messageCreate(data, client)
 	channel.lastMessageId = message.id
 	channel.messages[message.id] = message
 	channel.deque:pushRight(message)
-	if channel.deque:size() > client.maxMessages then
+	if channel.deque:getCount() > client.maxMessages then
 		local msg = channel.deque:popLeft()
 		channel.messages[msg.id] = nil
 	end
@@ -320,7 +320,7 @@ function events.guildRoleUpdate(data, client)
 
 	local server = client:getServerById(data.guildId)
 	local role = server:getRoleById(data.role.id)
-	role:_update(data)
+	role:_update(data.role)
 	client:emit('roleUpdate', role)
 
 end

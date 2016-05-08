@@ -25,8 +25,6 @@ function Server:__init(data, client)
 	self.channels = {}
 	self.voiceStates = {}
 
-	self:_update(data)
-
 	if data.members then
 		for _, memberData in ipairs(data.members) do
 			local member = Member(memberData, self)
@@ -63,6 +61,8 @@ function Server:__init(data, client)
 	self.defaultChannel = self.channels[self.id]
 	self.defaultRole = self.roles[self.id]
 	self.me = self.members[client.user.id]
+
+	self:_update(data)
 
 end
 
@@ -132,7 +132,7 @@ function Server:getInvites()
 	local invites = {}
 	for _, inviteData in ipairs(inviteTable) do
 		local invite = Invite(inviteData, self)
-		invites[invite.id] = invite
+		invites[invite.code] = invite
 	end
 	return invites
 end
@@ -233,7 +233,7 @@ end
 
 function Server:getMemberByName(name) -- Client:getUserByName(name)
 	for _, member in pairs(self.members) do
-		if member.username == name then
+		if member.nickname == name or member.username == name then
 			return member
 		end
 	end

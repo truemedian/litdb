@@ -22,7 +22,7 @@ SOFTWARE.]]
 
 return {
 	name = 'SinisterRectus/discordia',
-	version = '0.3.5',
+	version = '0.4.0',
 	homepage = 'https://github.com/SinisterRectus/Discordia',
 	dependencies = {
 		'creationix/md5@v1.0.2-1',
@@ -35,7 +35,7 @@ return {
 	author = 'Sinister Rectus',
 	files = {
 		'*.lua',
-		'classes/utils/*.lua',
+		'classes/*.lua',
 		'classes/discord/*.lua'
 	}
 }
