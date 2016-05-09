@@ -2,6 +2,7 @@
 
 local platform = require('platform')
 local registry = require('registry')()
+platform.registry = registry
 local register = registry.register
 local alias = registry.alias
 local String = registry.String
@@ -139,6 +140,17 @@ assert(register("realpath", "Gets the realpath by resolving symlinks", {
   {"fullPath", String}
 }, platform.realpath))
 
+assert(register("largefiles", "Find the largest files in a filesystem", {
+  {"rootPath", String},
+  {"limit", Int},
+  {"minSize", Int},
+  {"onError", Function},
+  {"onUpdate", Function}
+}, {
+  {"biggest", Array{String,Int}}
+}, platform.largefiles))
+
+
 assert(register("diskusage", "Calculate diskusage of folders and subfolders", {
   {"path", String},
   {"depth", Int},
@@ -180,16 +192,29 @@ if platform.gid then
   }, platform.gid))
 end
 
+local SpawnOptions = assert(alias("SpawnOptions", "Options for spawning child processes", {
+  args = Optional(Array(String)),
+  env = Optional(Array(String)),
+  cwd = Optional(String),
+  uid = Optional(Int),
+  gid = Optional(Int),
+  user = Optional(String),
+  group = Optional(String),
+}))
+
+assert(register("spawn", "spawn an arbitrary child process with streaming pipes", {
+  {"command", String},
+  {"options", SpawnOptions},
+  {"stdout", Function},
+  {"stderr", Function},
+  {"error", Function},
+  {"exit", Function},
+}, {
+  {"data", Function},
+  {"kill", Function},
+}, platform.spawn))
+
 if platform.pty then
-  local SpawnOptions = assert(alias("SpawnOptions", "Options for spawning child processes", {
-    args = Optional(Array(String)),
-    env = Optional(Array(String)),
-    cwd = Optional(String),
-    uid = Optional(Int),
-    gid = Optional(Int),
-    user = Optional(String),
-    group = Optional(String),
-  }))
 
   local WinSize = assert(alias("WinSize", "Cols/Rows pair for pty window size", NamedTuple {
     {"cols", Int},
@@ -204,11 +229,9 @@ if platform.pty then
     {"error", Function},
     {"exit", Function},
   }, {
-    {"child", NamedTuple {
-      {"write", Function},
-      {"kill", Function},
-      {"resize", Function},
-    }}
+    {"write", Function},
+    {"kill", Function},
+    {"resize", Function},
   }, platform.pty))
 
 end
@@ -324,5 +347,30 @@ assert(register("script", "Run a remote script against the platform API", {
 }, {
   {"result", Any},
 }, platform.script))
+
+assert(register("eval", "Turn a piece of lua into a callable function", {
+  {"name", String},
+  {"code", String},
+}, {
+  {"fn", Function}
+}, platform.eval))
+
+assert(register("register", "Register an ad-hoc script to be run multiple times", {
+  {"name", String},
+  {"code", String},
+}, {
+  {"success", Bool}
+}, platform.register))
+
+assert(register("exec", "Semantic sugar around spawn", {
+  {"command", String},
+  {"spawnOptions", SpawnOptions},
+  {"stdin", String}
+}, {
+  {"stdout", String},
+  {"stderr", String},
+  {"code", Int},
+  {"signal", Int}
+}, platform.exec))
 
 return registry

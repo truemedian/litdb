@@ -1,7 +1,6 @@
 local uv = require('uv')
 local ffi = require('ffi')
 
-
 local pack = table.pack
 
 -- Function to make it easy to consume callback-based APIs in a coroutine world.
@@ -27,7 +26,10 @@ local function pathjoin(path, name)
   return path .. (path:match("\\") and  "\\" or "/") .. name
 end
 
-local platform = {}
+local custom = {}
+local platform = setmetatable({}, {
+  __index = custom
+})
 
 -- echo returns whatever it was given
 function platform.echo(...)
@@ -42,6 +44,8 @@ end
 --   )
 -- ) -> (exists: Boolean)
 function platform.scandir(path, onEntry)
+  onEntry = onEntry.emit or onEntry
+
   local err, req = async(uv.fs_scandir, path)
   if not req then
     if not err or err:match("^ENOENT:") then return false end
@@ -59,6 +63,7 @@ end
 --   data: Emitter(chunk: Buffer)
 -- ) -> (exists: Boolean)
 function platform.readstream(path, onData)
+  onData = onData.emit or onData
   local err, fd, chunk
   err, fd = async(uv.fs_open, path, "r", 438)
   if not fd then
@@ -113,6 +118,8 @@ end
 --   error: Emitter(String)
 -- ) -> (data: Emitter(Optional(Buffer)))
 function platform.writestream(path, onError)
+  onError = onError.emit or onError
+
   local err, fd = async(uv.fs_open, path, "w", 438)
   if not fd then error(err or "Unknown problem opening file: " .. path) end
   return function (data)
@@ -254,16 +261,14 @@ function platform.lstat(path)
     if err and err:match("^ENOENT:") then return nil end
     error(err or "Unknown error statting " .. path)
   end
-  return {
-    stat.mtime.sec,
-    stat.atime.sec,
-    stat.size,
-    stat.type,
-    stat.mode,
-    stat.uid,
-    stat.gid
-  }
- end
+  return stat.mtime.sec,
+         stat.atime.sec,
+        stat.size,
+        stat.type,
+        stat.mode,
+        stat.uid,
+        stat.gid
+end
 
 -- chmod (
 --   path: String
@@ -312,6 +317,73 @@ function platform.realpath(path)
   return path
 end
 
+function platform.largefiles(rootPath, limit, minSize, onError, onUpdate)
+  onError = onError.emit or onError
+  onUpdate = onUpdate.emit or onUpdate
+  local biggest = {}
+  local len = 0
+
+  local insert = table.insert
+
+  local function store(name, size)
+    if len == 0 then
+      biggest[1] = {name, size}
+      len = 1
+      return
+    end
+
+    if len >= limit and size <= biggest[len][2] then
+      return
+    end
+
+    -- Insert value at sorted position
+    local i = 1
+    while true do
+      if size > biggest[i][2] then
+        insert(biggest, i, {name, size})
+        len = len + 1
+        onUpdate(biggest)
+        break
+      end
+      i = i + 1
+      if i > len then
+        biggest[i] = {name, size}
+        len = len + 1
+        break
+      end
+    end
+    if len > limit then
+      biggest[len] = nil
+      len = limit
+    end
+  end
+
+  local function search(path)
+    local err, req = async(uv.fs_scandir, path)
+    if not req then
+      return onError(path, err)
+    end
+    while true do
+      local name = uv.fs_scandir_next(req)
+      if not name then break end
+      local subpath = pathjoin(path, name)
+      local stat
+      err, stat = async(uv.fs_lstat, subpath)
+      if stat then
+        if stat.type == "directory" then
+          search(subpath)
+        elseif stat.size >= minSize then
+          store(subpath, stat.size)
+        end
+      else
+        onError(path, err)
+      end
+    end
+  end
+  search(rootPath)
+  return biggest
+end
+
 -- diskusage (
 --   path: String
 --   depth: Integer
@@ -325,6 +397,8 @@ end
 --   )
 -- ) -> (exists: Bool)
 function platform.diskusage(rootPath, maxDepth, onEntry, onError)
+  onEntry = onEntry.emit or onEntry
+  onError = onError.emit or onError
   local function scan(path, depth)
     local err, stat = async(uv.fs_lstat, path)
     if not stat then
@@ -431,6 +505,149 @@ if ffi.os ~= "Windows" then
 
 end
 
+
+local function attachReader(stream, onData, onError)
+  local function onEvent(err, data)
+    return coroutine.wrap(function()
+      if err then
+        return onError(err)
+      end
+      stream:read_stop()
+      onData(data)
+      stream:read_start(onEvent)
+    end)()
+  end
+  stream:read_start(onEvent)
+end
+
+local function makeWriter(stream, onError)
+  return function (chunk)
+    local err
+    if chunk then
+      err = async(stream.write, stream, chunk)
+    else
+      err = async(stream.shutdown, stream)
+      if not stream:is_closing() then
+        stream:close()
+      end
+    end
+    if err then
+      onError(err)
+    end
+  end
+end
+
+local function makeKiller(child, handles)
+  return function (signal)
+    child:kill(signal)
+    if not child:is_closing() then
+      child:close()
+    end
+    for i = 1, #handles do
+      if not handles[i]:is_closing() then
+        handles[i]:close()
+      end
+    end
+  end
+end
+
+function platform.exec(command, spawnOptions, stdin)
+
+  local stdinpipe = uv.new_pipe(true)
+  local stdoutpipe = uv.new_pipe(true)
+  local stderrpipe = uv.new_pipe(true)
+
+  local child
+  local thread = coroutine.running()
+  local stdout, stderr, exitCode, signal
+  local function check()
+    if stdout and stderr and exitCode and signal then
+      if not stdinpipe:is_closing() then
+        stdinpipe:close()
+      end
+      if not stderrpipe:is_closing() then
+        stderrpipe:close()
+      end
+      if not stdoutpipe:is_closing() then
+        stdoutpipe:close()
+      end
+      if not child:is_closing() then
+        child:close()
+      end
+      assert(coroutine.resume(thread, stdout, stderr, exitCode, signal))
+    end
+  end
+
+
+  spawnOptions.stdio = {stdinpipe, stdoutpipe, stderrpipe}
+
+  child = uv.spawn(command, spawnOptions, function (code, sig)
+    exitCode = code
+    signal = sig
+    check()
+  end)
+
+
+  if stdin then
+    stdinpipe:write(stdin)
+  end
+  stdinpipe:shutdown()
+
+  local outTable = {}
+  stdoutpipe:read_start(function (err, data)
+    if err then
+      return assert(coroutine.resume(thread, nil, err))
+    end
+
+    if data then
+      outTable[#outTable+1] = data
+    else
+      stdout = table.concat(outTable)
+      check()
+    end
+  end)
+
+  local errTable = {}
+  stderrpipe:read_start(function (err, data)
+    if err then
+      return assert(coroutine.resume(thread, nil, err))
+    end
+
+    if data then
+      errTable[#errTable+1] = data
+    else
+      stderr = table.concat(errTable)
+      check()
+    end
+  end)
+
+  return coroutine.yield()
+end
+
+function platform.spawn(command, options, onStdout, onStderr, onError, onExit)
+  onStdout = onStdout.emit or onStdout
+  onError = onError.emit or onError
+  onExit = onExit.emit or onExit
+
+  local stdin = uv.new_pipe(false)
+  local stdout = uv.new_pipe(false)
+  local stderr = uv.new_pipe(false)
+  options.stdio = {stdin, stdout, stderr}
+
+  local child = uv.spawn(command, options, function (...)
+    local args = {...}
+    return coroutine.wrap(function ()
+      return onExit(unpack(args))
+    end)()
+  end)
+
+  attachReader(stdout, onStdout, onError)
+  attachReader(stderr, onStderr, onError)
+
+  return makeWriter(stdin, onError),
+         makeKiller(child, {stdin, stderr, stdout})
+end
+
 if ffi.os == "OSX" or ffi.os == "Linux" then
   -- Define the bits of the system API we need.
   ffi.cdef[[
@@ -500,6 +717,10 @@ if ffi.os == "OSX" or ffi.os == "Linux" then
   --   resize: Emitter(WinSize)
   -- )
   function platform.pty(shell, size, options, onData, onError, onExit)
+    onData = onData.emit or onData
+    onError = onError.emit or onError
+    onExit = onExit.emit or onExit
+
     local master, slave = openpty(unpack(size))
 
     local uid = options.uid
@@ -520,10 +741,7 @@ if ffi.os == "OSX" or ffi.os == "Linux" then
       cwd = options.cwd,
       uid = uid,
       gid = gid,
-      detached = true
     }, function (...)
-      write, kill, resize = write, kill, resize
-
       local args = {...}
       coroutine.wrap(function ()
         return onExit(unpack(args))
@@ -532,33 +750,10 @@ if ffi.os == "OSX" or ffi.os == "Linux" then
 
     local pipe = uv.new_pipe(false)
     pipe:open(master)
-    pipe:read_start(function (err, data)
-      coroutine.wrap(function ()
-        if err then
-          return onError(err)
-        else
-          return onData(data)
-        end
-      end)()
-    end)
+    attachReader(pipe, onData, onError)
 
-    function write(chunk)
-      local err
-      if chunk then
-        err = async(pipe.write, pipe, chunk)
-      else
-        err = async(pipe.shutdown, pipe)
-        pipe:close()
-      end
-      -- TODO: handle err in own callback
-      if err then
-        onError(err)
-      end
-    end
-
-    function kill(signal)
-      child:kill(signal)
-    end
+    write = makeWriter(pipe, onError)
+    kill = makeKiller(child, {pipe})
 
     local size_s = ffi.new("struct winsize")
     function resize(cols, rows)
@@ -568,7 +763,7 @@ if ffi.os == "OSX" or ffi.os == "Linux" then
       end
     end
 
-    return {write, kill, resize}
+    return write, kill, resize
 
   end
 end
@@ -743,7 +938,7 @@ platform.os = readOnly{
 local env = readOnly(platform)
 
 platform.script = function (code)
-  local fn, err = loadstring(code)
+  local fn, err = loadstring(code, "<inline-script>")
   if not fn then
     error("ESYNTAXERROR: " .. err)
   end
@@ -753,6 +948,38 @@ platform.script = function (code)
     error("EEXCEPTION: " .. result[2])
   end
   return unpack(result, 2)
+end
+
+function platform.eval(name, lua)
+  local fn, err = loadstring(lua, name)
+  if not fn then
+    error("ESYNTAXERROR: " .. err)
+  end
+  setfenv(fn, env)
+  return
+end
+
+-- register(name: String, code: String) -> (success: Bool)
+function platform.register(name, code)
+  local registry = platform.registry
+  local register = registry.register
+  local Any = registry.Any
+
+  local fn, err = loadstring(code, name)
+  if not fn then
+    error("ESYNTAXERROR: " .. err)
+  end
+  setfenv(fn, env)
+
+  -- Expose to other scripts
+  custom[name] = fn
+  print("register", name)
+  assert(register(name, "Custom user defined function", {
+  }, {
+    {"exports", Any},
+  }, fn))
+
+  return true
 end
 
 return platform
