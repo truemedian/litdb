@@ -177,7 +177,7 @@ end
 function events.channelDelete(data, client)
 
 	if data.isPrivate then
-		local channel = client:getPrivateChannelById(data.id)
+		local channel = client:getChannelById(data.id)
 		client.privateChannels[channel.id] = nil
 	else
 		local server = client:getServerById(data.guildId)
@@ -269,10 +269,10 @@ end
 
 function events.guildMemberUpdate(data, client)
 
-	-- I think this is only for role updates
 	local server = client:getServerById(data.guildId)
 	local member = server:getMemberById(data.user.id)
 	member.roles = data.roles
+	member.nickname = data.nick
 	client:emit('memberUpdate', member)
 
 end
