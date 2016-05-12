@@ -67,8 +67,8 @@ function table.values(tbl)
 end
 
 function table.randomipair(tbl)
-	local k = math.random(#tbl)
-	return k, tbl[k]
+	local i = math.random(#tbl)
+	return i, tbl[i]
 end
 
 function table.randompair(tbl)
@@ -90,6 +90,14 @@ function string.split(str)
 		table.insert(words, word)
 	end
 	return words
+end
+
+function string.totable(str)
+	local chars = {}
+	for char in string.gmatch(str, '.') do
+		table.insert(chars, char)
+	end
+	return chars
 end
 
 -- math --

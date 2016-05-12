@@ -38,13 +38,25 @@ function TextChannel:sendMessage(content, mentions) -- alias for createMessage
 	return self:createMessage(content, mentions)
 end
 
-function TextChannel:getMessageHistory()
-	local data = self.client:request('GET', {endpoints.channels, self.id, 'messages'})
+function TextChannel:broadcastTyping()
+	self.client:request('POST', {endpoints.channels, self.id, 'typing'}, {})
+end
+
+function TextChannel:getMessageHistory(limit)
+	local data = self.client:request('GET', {endpoints.channels, self.id, string.format('messages?limit=%i', limit or 50)})
 	local messages = {}
 	for _, messageData in ipairs(data) do
 		table.insert(messages, Message(messageData, self))
 	end
 	return messages
+end
+
+function TextChannel:bulkDelete(messages)
+	local body = {messages = {}}
+	for _, message in pairs(messages) do
+		table.insert(body.messages, message.id)
+	end
+	self.client:request('POST', {endpoints.channels, self.id, 'messages', 'bulk_delete'}, body)
 end
 
 function TextChannel:getMessageById(id)
