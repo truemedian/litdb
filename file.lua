@@ -18,7 +18,7 @@ limitations under the License.
 
 --[[lit-meta
   name = "luvit/http"
-  version = "2.0.1"
+  version = "2.1.0"
   dependencies = {
     "luvit/net@2.0.0",
     "luvit/url@2.0.0",
@@ -381,6 +381,8 @@ function ClientRequest:initialize(options, callback)
       table.insert(self, 1, { 'User-Agent', user_agent })
     end
   end
+
+  options.host = host_found or options.hostname or options.host
 
   if not host_found and options.host then
     table.insert(self, 1, { 'Host', options.host })
