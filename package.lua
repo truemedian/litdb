@@ -1,7 +1,7 @@
 return
 {
 	license = 'MIT',
-	version = '0.0.1a',
+	version = '0.0.2a',
 	name = 'satom99/litcord',
 	description = "Yet another unofficial Lua client API for Discord.",
 	author = "Santi 'AdamJames' T. <satom99@github>",
@@ -21,6 +21,9 @@ return
 		'structures/*.lua',
 	},
 	dependencies = {
+		'luvit/json@2.5.2',
+		'luvit/timer@2.0.0',
+		'luvit/secure-socket@1.1.2',
 		'creationix/coro-http@2.1.1',
 		'creationix/coro-websocket@1.0.0-1',
 	},
