@@ -19,7 +19,7 @@ limitations under the License.
 --- luvit thread management
 --[[lit-meta
   name = "luvit/thread"
-  version = "2.0.0"
+  version = "2.1.0"
   license = "Apache 2"
   homepage = "https://github.com/luvit/luvit/blob/master/deps/thread.lua"
   description = "thread module for luvit"
@@ -47,6 +47,9 @@ local function start(thread_func, ...)
 
     -- Load luvi environment
     local _, mainRequire = require('luvibundle').commonBundle(paths)
+
+    -- Inject the global process table
+    _G.process = mainRequire('process').globalProcess()
 
     -- Run function with require injected
     local fn = loadstring(dumped)
@@ -102,6 +105,10 @@ local function work(thread_func, notify_entry)
 
       -- Load luvi environment
       local _, mainRequire = require('luvibundle').commonBundle(paths)
+
+      -- Inject the global process table
+      _G.process = _G.process or mainRequire('process').globalProcess()
+
       -- require injected
       getfenv(fn).require = mainRequire
 
