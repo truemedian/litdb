@@ -1,7 +1,7 @@
 return
 {
-	api = require('./api'),
-	status = require('./status'),
+	settings = require('./settings'),
+	rest = require('./rest'),
+	socket = require('./socket'),
 	events = require('./events'),
-	OPcodes = require('./OPcodes'),
 }

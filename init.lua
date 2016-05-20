@@ -1,4 +1,4 @@
 return
 {
-	Client = require('./Client'),
+	Client = require('./client'),
 }

@@ -1,4 +1,4 @@
-local class = require('./class')
+local class = require('./new')
 
 local Cache = class()
 
@@ -28,8 +28,8 @@ end
 function Cache:remove (object)
 	for i,v in ipairs(self.__data) do
 		if v[self.discriminator] == object[self.discriminator] then
-			v = nil --
 			table.remove(self.__data, i)
+			v = nil
 			break
 		end
 	end

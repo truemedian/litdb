@@ -1,6 +1,6 @@
 return
 {
-	new = require('./class'),
+	new = require('./new'),
 	Cache = require('./Cache'),
 	EventsBased = require('./EventsBased'),
 }

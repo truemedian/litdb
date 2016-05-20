@@ -1,69 +1,29 @@
 local classes = require('../classes')
-local class = classes.new
 local base = require('./base')
 
-local api = require('../client/api')
+local User = require('./User')
+local Invite = require('./Invite')
 
-local Server = class(base)
+local Server = classes.new(base)
 
 function Server:__constructor ()
+	self.bans = classes.Cache()
 	self.roles = classes.Cache()
 	self.members = classes.Cache()
 	self.channels = classes.Cache()
 end
 
-function Server:onUpdate ()
+function Server:__onUpdate ()
 	self.owner = self.parent.users:get('id', self.owner_id)
-	self.afk_channel = self.parent.channels:get('id', self.afk_channel_id)
-	self.embed_channel = self.parent.channels:get('id', self.embed_channel_id)
-end
-
-function Server:createChannel (settings)
-	api.request(
-		{
-			type = 'POST',
-			path = 'guilds/'..self.id..'/channels',
-			token = self.parent.socket.token,
-			data = settings,
-		}
-	)
-end
-function Server:createTextChannel (name)
-	self:createChannel(
-		{
-			type = 'text',
-			name = name,
-		}
-	)
-end
-function Server:createVoiceChannel (name, bitrate)
-	self:createChannel(
-		{
-			type = 'voice',
-			name = name,
-			bitrate = bitrate or 96000,
-		}
-	)
-end
-
-function Server:delete ()
-	local success = api.request(
-		{
-			type = 'DELETE',
-			path = 'guilds/'..self.id,
-			token = self.parent.socket.token,
-		}
-	)
-	if not success then return end
-	self.parent.servers:remove(self)
+	self.afk_channel = self.channels:get('id', self.afk_channel_id)
+	self.embed_channel = self.channels:get('id', self.embed_channel_id)
 end
 
 function Server:modify (settings)
-	api.request(
+	self.parent.rest:request(
 		{
-			type = 'PATCH',
+			method = 'PATCH',
 			path = 'guilds/'..self.id,
-			token = self.parent.socket.token,
 			data = settings,
 		}
 	)
@@ -96,6 +56,93 @@ function Server:setOwner (owner)
 end
 function Server:setSplash (splash)
 	self:modify({splash = splash})
+end
+
+function Server:delete ()
+	self.parent.rest:request(
+		{
+			method = 'DELETE',
+			path = 'guilds/'..self.id,
+		}
+	)
+	self.parent.servers:remove(self)
+end
+
+function Server:unbanUser (user)
+	local userID = user
+	if type(user) == 'table' then
+		userID = user.id
+	end
+	self.parent.rest:request(
+		{
+			method = 'DELETE',
+			path = 'guild/'..self.id..'/bans/'..userID,
+		}
+	)
+end
+
+function Server:createChannel (settings)
+	self.parent.rest:request(
+		{
+			method = 'POST',
+			path = 'guilds/'..self.id..'/channels',
+			data = settings,
+		}
+	)
+end
+function Server:createTextChannel (name)
+	self:createChannel(
+		{
+			type = 'text',
+			name = name,
+		}
+	)
+end
+function Server:createVoiceChannel (name, bitrate)
+	self:createChannel(
+		{
+			type = 'voice',
+			name = name,
+			bitrate = bitrate or 96000,
+		}
+	)
+end
+
+function Server:getInvites ()
+	if not self.invites then
+		self.invites = classes.Cache()
+		local invites = self.parent.rest:request(
+			{
+				method = 'GET',
+				path = 'guilds/'..self.id..'/invites',
+			}
+		)
+		for _,v in ipairs(invites) do
+			v.inviter = nil
+			local invite = Invite(self)
+			invite:update(v)
+			self.invites:add(invite)
+		end
+	end
+	return self.invites
+end
+
+function Server:fetchBans ()
+	local bans = self.parent.rest:request(
+		{
+			method = 'GET',
+			path = 'guilds/'..self.id..'/bans',
+		}
+	)
+	for _,v in ipairs(bans) do
+		local user = self.parent.users:get('id', data.id)
+		if not user then
+			user = User(self)
+			self.parent.users:add(user)
+		end
+		user:update(data)
+		self.bans:add(user)
+	end
 end
 
 return Server

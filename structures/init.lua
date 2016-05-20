@@ -1,12 +1,13 @@
 return
 {
-	Message = require('./Message'),
-
 	User = require('./User'),
 
-	Server = require('./Server'),
-	ServerMember = require('./ServerMember'),
-	Role = require('./Role'),
-
 	Channel = require('./Channel'),
+	Message = require('./Message'),
+
+	Server = require('./Server'),
+	Role = require('./Role'),
+	ServerMember = require('./ServerMember'),
+	
+	Invite = require('./Invite'),
 }

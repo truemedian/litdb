@@ -1,12 +1,10 @@
-local classes = require('../classes')
-local class = classes.new
+local class = require('../classes/new')
 local base = require('./base')
 
 local Role = class(base)
 
-function Role:onUpdate ()
-
+function Role:__onUpdate ()
+	
 end
-
 
 return Role

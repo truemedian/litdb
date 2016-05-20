@@ -1,9 +1,9 @@
-local class = require('../classes/class')
+local class = require('../classes/new')
 local base = require('./base')
 
 local User = class(base)
 
-function User:onUpdate ()
+function User:__onUpdate ()
 	
 end
 

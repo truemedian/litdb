@@ -1,4 +1,4 @@
-local class = require('../classes/class')
+local class = require('../classes/new')
 
 local base = class()
 
@@ -10,10 +10,10 @@ function base:update (data)
 	for k,v in pairs(data) do
 		self[k] = v
 	end
-	self:onUpdate()
+	self:__onUpdate()
 end
 
-function base:onUpdate ()
+function base:__onUpdate ()
 end
 
 return base

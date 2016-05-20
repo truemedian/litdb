@@ -1,48 +1,49 @@
-local classes = require('../classes')
-local class = classes.new
-local constants = require('../constants')
+local json = require('json')
 
-local api = require('./api')
-local Socket = require('./Socket')
+local classes = require('../classes')
+local constants = require('../constants')
 local structures = require('../structures')
 
-local Client = class(classes.EventsBased)
+local rest = require('./rest')
+local Socket = require('./Socket')
+
+
+local Client = classes.new(classes.EventsBased)
 
 function Client:__constructor (settings)
-	self.settings =
-	{
-		socket =
-		{
-			autoReconnect = true,
-			large_threshold = 250,
-		},
-		forceFetch = false,
-	}
+	-- Settings
+	self.settings = constants.settings
+	if settings then
+		for k,v in pairs(settings) do
+			self.settings[k] = v
+		end
+	end
+	-- Storage
 	self.users = classes.Cache()
 	self.servers = classes.Cache()
-	self.channels = classes.Cache()
-	self:initHandlers()
+	self.__channels = classes.Cache()
+	-- Core
+	self.rest = rest(self)
 	self.socket = Socket(self)
+	--
+	self:__initHandlers()
 end
 
 function Client:login (config)
 	if not config or (not config.token and not (config.email and config.password)) then return end
 	coroutine.wrap(
 		function()
-			self.socket.token = config.token
-			if not self.socket.token then
-				self.socket.token = api.request(
+			self.socket.token = config.token or self.rest:request(
+				{
+					method = 'POST',
+					path = self.rest.endPoints.LOGIN,
+					data =
 					{
-						type = 'GET',
-						path = constants.api.endPoints.LOGIN,
-						data =
-						{
-							email = config.email,
-							password = config.password,
-						},
-					}
-				).token
-			end
+						email = config.email,
+						password = config.password,
+					},
+				}
+			).token
 			self.socket:connect()
 		end
 	)()
@@ -50,118 +51,76 @@ end
 
 -- Stats
 function Client:setStats (config)
-	if config.game or config.status then
+	if config.game then
 		self.socket:send(
+			constants.socket.OPcodes.STATUS_UPDATE,
 			{
-				op = constants.OPcodes.STATUS_UPDATE,
-				d =
-				{
-					idle_since = (((config.status == 0) and nil) or 1),
-					game =
-					{
-						name = (config.game or self.user.game),
-					},
-				},
+				idle_since = json.null,
+				game = {
+					name = config.game,
+				}
 			}
 		)
 	end
-	if config.username or config.avatar then
-		api.request(
+	if config.name or config.avatar then
+		self.rest:request(
 			{
-				type = 'PATCH',
-				path = constants.api.endPoints.USERS_ME,
-				token = self.socket.token,
+				method = 'PATCH',
+				path = self.rest.endPoints.USERS_ME,
 				data = config,
 			}
 		)
 	end
 end
-function Client:setStatus (status)
-	self:setStats({status = status})
+function Client:setGame (game)
+	self:setStats({game = game})
 end
-function Client:setUsername (username)
-	self:setStats({username = username})
+function Client:setName (name)
+	self:setStats({name = name})
 end
 function Client:setAvatar (avatar)
 	self:setStats({avatar = avatar})
 end
-function Client:setGame (game)
-	self:setStats({game = game})
-end
 
 -- Invites
 function Client:acceptInvite (code)
-	api.request(
+	self.rest:request(
 		{
-			type = 'POST',
+			method = 'POST',
 			path = 'invites/'..code,
-			token = self.socket.token,
 		}
 	)
 end
 
 -- Creating guilds
 function Client:getRegions ()
-	return api.request(
+	return self.rest:request(
 		{
-			type = 'GET',
-			path = constants.api.endPoints.VOICE_REGIONS,
+			method = 'GET',
+			path = self.rest.endPoints.VOICE_REGIONS,
 		}
 	)
 end
-function Client:createServer ()
-	local data = api.request(
+function Client:createServer (name, region, icon)
+	local guild = self.rest:request(
 		{
-			type = 'POST',
-			path = constants.api.endPoints.GUILDS,
-			token = self.socket.token,
+			method = 'POST',
+			path = self.rest.endPoints.GUILDS,
+			data = {
+				name = name,
+				region = region,
+				icon = icon,
+			},
 		}
 	)
 	local server = structures.Server(self)
 	self.servers:add(server)
-	server:update(data)
+	server:update(guild)
 	return server
 end
 
--- Sending messages
-function Client:sendMessage (channel, content, options)
-	local channelID = channel
-	if type(channel) == 'table' then
-		channelID = channel.id
-	end
-	options = options or {}
-	options.content = content
-	return api.request(
-		{
-			type = 'POST',
-			path = 'channels/'..channelID..'/messages',
-			token = self.socket.token,
-			data = options,
-		}
-	)
-end
-
--- Removing bans
-function Client:unbanUser (server, user)
-	local serverID = server
-	if type(server) == 'table' then
-		serverID = server.id
-	end
-	local userID = user
-	if type(user) == 'table' then
-		userID = user.id
-	end
-	api.request(
-		{
-			type = 'DELETE',
-			path = 'guild/'..serverID..'/bans/'..userID,
-			token = self.socket.token,
-		}
-	)
-end
-
--- Core events
-function Client:initHandlers ()
+function Client:__initHandlers ()
+	-- Ready
 	self:on(
 		constants.events.READY,
 		function(data)
@@ -169,133 +128,183 @@ function Client:initHandlers ()
 			user:update(data.user)
 			self.users:add(user)
 			self.user = user
+			for _,v in ipairs(data.private_channels) do
+				self:dispatchEvent(constants.events.CHANNEL_CREATE, v)
+			end
 		end
 	)
-	------------------------------------------------------------------------
-	-- Message
+	-- Users
+	self:on(
+		constants.events.PRESENCE_UPDATE,
+		function(data)
+			local user = self.users:get('id', data.id)
+			if data.status == 'offline' then
+				if user then
+					self.users:remove(user)
+				end
+				return
+			end
+			if not user then
+				user = structures.User(self)
+				self.users:add(user)
+			end
+			user:update(data)
+		end
+	)
+	-- Channels
+	self:on(
+		{
+			constants.events.CHANNEL_CREATE,
+			constants.events.CHANNEL_UPDATE,
+		},
+		function(data)
+			if data.is_private then
+				local recipient = self.users:get('id', data.recipient.id)
+				if not recipient then
+					recipient = structures.User(self)
+					self.users:add(recipient)
+				end
+				recipient:update(data.recipient)
+				--
+				data.recipient = nil
+				if not recipient.channel then
+					recipient.channel = structures.Channel(recipient) -- so that 'client' is accessible through User's parent
+					self.__channels:add(recipient.channel)
+				end
+				recipient.channel:update(data)
+			else
+				local server = self.servers:get('id', data.guild_id)
+				if not server then return end -- should exist
+				--
+				data.guild_id = nil
+				local channel = server.channels:get('id', data.id)
+				if not channel then
+					channel = structures.Channel(server)
+					server.channels:add(channel)
+					self.__channels:add(channel)
+				end
+				channel:update(data)
+			end
+		end
+	)
+	self:on(
+		constants.events.CHANNEL_DELETE,
+		function(data)
+			if data.is_private then
+				local recipient = self.users:get('id', data.recipient.id)
+				if not recipient then return end
+				recipient.channel = nil
+				self.__channels:remove(recipient.channel)
+			else
+				local server = self.servers:get('id', data.guild_id)
+				if not server then return end -- should exist
+				local channel = server.channels:get('id', data.id)
+				if not channel then return end
+				server.channels:remove(channel)
+				self.__channels:remove(channel)
+			end
+		end
+	)
+	-- Messages
 	self:on(
 		constants.events.MESSAGE_CREATE,
 		function(data)
-			local user = structures.User(self)
-			user:update(data.author)
-			self.users:add(user) -- will fail if already exists, intended
-			local message = structures.Message(self)
+			local channel = self.__channels:get('id', data.channel_id)
+			if not channel then return end -- rip
+			--
+			local author = self.users:get('id', data.author.id)
+			if not author then
+				author = structures.User(self)
+				self.users:add(author)
+			end
+			author:update(data.author)
+			--
+			local message = structures.Message(channel, author)
+			channel.history:add(message)
 			message:update(data)
-			self:dispatchEvent('message', message)
+			self:dispatchEvent(
+				'message',
+				message
+			)
 		end
 	)
-	self:on( -- may not contain full data
+	self:on(
 		constants.events.MESSAGE_UPDATE,
 		function(data)
-			local message = structures.Message(self)
+			local channel = self.__channels:get('id', data.channel_id)
+			if not channel then return end -- rip
+			local message = channel.history:get('id', data.id)
+			if not message then return end
 			message:update(data)
-			self:dispatchEvent('messageUpdate', message)
+			self:dispatchEvent(
+				'messageUpdated',
+				message
+			)
 		end
 	)
-	------------------------------------------------------------------------
-	-- Users
-	local function user_update(data)
-		local user = self.users:get('id', data.id)
-		if data.status == 'offline' then
-			if user then
-				self.users:remove(user)
-			end
-			return
-		end
-		if not user then
-			user = structures.User(self)
-			self.users:add(user)
-		end
-		user:update(data)
-		return user
-	end
-	self:on(constants.events.PRESENCE_UPDATE, user_update)
-	------------------------------------------------------------------------
-	-- Servers (guilds)
-	local function guild_update(data)
-		data.roles = nil
-		data.members = nil
-		data.channels = nil
-		--
-		local server = self.servers:get('id', data.id)
-		if not server then
-			server = structures.Server(self)
-			self.servers:add(server)
-		end
-		server:update(data)
-		return server
-	end
+	-- Guilds
 	self:on(
-		constants.events.GUILD_CREATE,
+		{
+			constants.events.GUILD_CREATE,
+			constants.events.GUILD_UPDATE,
+		},
 		function(data)
 			local roles = data.roles
 			local members = data.members
 			local channels = data.channels
+			data.roles = nil
+			data.members = nil
+			data.channels = nil
 			--
-			local server = guild_update(data)
-			if not server then return end
-			-- Members
-			if not members then
-				self.socket:send(
-					{
-						op = constants.OPcodes.REQUEST_GUILD_MEMBERS,
-						d =
-						{
-							guild_id = data.id,
-							query = '',
-							limit = 0,
-						}
-					}
-				)
-			else
+			local server = self.servers:get('id', data.id)
+			if not server then
+				server = structures.Server(self)
+				self.servers:add(server)
+			end
+			server:update(data)
+			--
+			for _,v in ipairs(members) do
+				self:dispatchEvent(constants.events.GUILD_MEMBER_ADD, v)
+			end
+			--
+			for _,v in ipairs(channels) do
+				v.guild_id = data.id
+				self:dispatchEvent(constants.events.CHANNEL_CREATE, v)
+			end
+			--
+			for _,v in ipairs(roles) do
 				self:dispatchEvent(
-					constants.events.GUILD_MEMBERS_CHUNK,
+					constants.events.GUILD_ROLE_CREATE,
 					{
 						guild_id = data.id,
-						members = members,
+						role = v,
 					}
 				)
-			end
-			-- Channels
-			if channels then
-				for _,v in ipairs(channels) do
-					v.guild_id = data.id
-					self:dispatchEvent(constants.events.CHANNEL_CREATE, v)
-				end
-			end
-			-- Roles
-			if roles then
-				for _,v in ipairs(roles) do
-					self:dispatchEvent(
-						constants.events.GUILD_ROLE_CREATE,
-						{
-							guild_id = data.id,
-							role = v,
-						}
-					)
-				end
 			end
 		end
 	)
-	self:on(constants.events.GUILD_UPDATE, guild_update)
 	self:on(
 		constants.events.GUILD_DELETE,
 		function(data)
 			self.servers:remove(data)
 		end
 	)
-	-- Members
+	-- Guild members
 	self:on(
-		constants.events.GUILD_MEMBERS_CHUNK,
+		constants.events.GUILD_MEMBER_ADD,
 		function(data)
 			local server = self.servers:get('id', data.guild_id)
 			if not server then return end
-			for _,v in ipairs(data.members) do
-				local user = user_update(v.user)
-				local member = structures.ServerMember(server)
-				member:update(v)
-				server.members:add(member)
+			local user = self.users:get('id', data.user.id)
+			if not user then
+				user = structures.User(self)
+				self.users:add(user)
 			end
+			user:update(data.user)
+			--
+			local member = structures.ServerMember(server)
+			member:update(data)
+			server.members:add(member)
 		end
 	)
 	self:on(
@@ -306,19 +315,24 @@ function Client:initHandlers ()
 			server.members:remove(data.user)
 		end
 	)
-	-- Roles
-	local function role_update(data)
-		local server = self.servers:get('id', data.guild_id)
-		if not server then return end
-		local role = server.roles:get('id', data.role.id)
-		if not role then
-			role = structures.Role(self)
+	-- Guild roles
+	self:on(
+		{
+			constants.events.GUILD_ROLE_CREATE,
+			constants.events.GUILD_ROLE_UPDATE,
+		},
+		function(data)
+			local server = self.servers:get('id', data.guild_id)
+			if not server then return end
+			local role = server.roles:get('id', data.role.id)
+			if not role then
+				role = structures.Role(self)
+				server.roles:add(role)
+			end
+			role:update(data.role)
 			server.roles:add(role)
 		end
-		role:update(data.role)
-	end
-	self:on(constants.events.GUILD_ROLE_CREATE, role_update)
-	self:on(constants.events.GUILD_ROLE_UPDATE, role_update)
+	)
 	self:on(
 		constants.events.GUILD_ROLE_DELETE,
 		function(data)
@@ -327,31 +341,33 @@ function Client:initHandlers ()
 			server.roles:remove(data.role)
 		end
 	)
-	------------------------------------------------------------------------
-	-- Channels
-	local function channel_update(data)
-		local server = self.servers:get('id', data.guild_id)
-		if not data.is_private and not server then return end
-		local channel = self.channels:get('id', data.id)
-		if not channel then
-			channel = structures.Channel(self)
-			self.channels:add(channel)
-		end
-		channel:update(data)
-		if not data.is_private then
-			server.channels:add(channel)
-		end
-	end
-	self:on(constants.events.CHANNEL_CREATE, channel_update)
-	self:on(constants.events.CHANNEL_UPDATE, channel_update) -- guild channels only (?)
+	-- Guild bans
 	self:on(
-		constants.events.CHANNEL_DELETE,
+		constants.events.GUILD_BAN_ADD,
 		function(data)
-			self.channels:remove(data)
+			local server = self.servers:get('id', data.guild_id)
+			if not server then return end
+			local user = self.users:get('id', data.id)
+			if not user then
+				user = structures.User(self)
+				self.users:add(user)
+			end
+			user:update(data)
+			server.bans:add(user)
 		end
 	)
-	------------------------------------------------------------------------
-	self.initHandlers = nil
+	self:on(
+		constants.events.GUILD_BAN_REMOVE,
+		function(data)
+			local server = self.servers:get('id', data.guild_id)
+			if not server then return end
+			local ban = server.bans:get('id', user.id)
+			if not ban then return end
+			server.bans:remove(ban)
+		end
+	)
+	--
+	self.__initHandlers = nil
 end
 
 return Client

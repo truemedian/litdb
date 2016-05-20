@@ -1,18 +1,18 @@
-local timer = require('timer')
 local json = require('json')
+local timer = require('timer')
 local WebSocket = require('coro-websocket')
 
-local api = require('./api')
-local class = require('../classes/class')
-local constants = require('../constants')
+local class = require('../classes/new')
 local package = require('../package')
---
+local constants = require('../constants')
+
+
 local Socket = class()
 
 function Socket:__constructor (client)
 	self.client = client
-	self.settings = client.settings.socket
-	self.status = constants.status.IDLE
+	self.status = constants.socket.status.IDLE
+	--
 	client:on(
 		constants.events.READY,
 		function(data)
@@ -20,10 +20,8 @@ function Socket:__constructor (client)
 				data.heartbeat_interval,
 				function()
 					self:send(
-						{
-							op = constants.OPcodes.HEARTBEAT,
-							d = self.sequence,
-						}
+						constants.socket.OPcodes.HEARTBEAT,
+						self.sequence
 					)
 				end
 			)
@@ -31,14 +29,19 @@ function Socket:__constructor (client)
 	)
 end
 
-function Socket:send (what)
-	if not self.write then return end
+function Socket:send (opcode, data)
+	if not self.__write then return end
 	coroutine.wrap(
 		function()
-			self.write(
+			self.__write(
 				{
 					opcode = 1,
-					payload = json.encode(what),
+					payload = json.encode(
+						{
+							op = opcode,
+							d = data,
+						}
+					),
 				}
 			)
 		end
@@ -46,61 +49,71 @@ function Socket:send (what)
 end
 
 function Socket:connect ()
+	if self.status == constants.socket.status.CONNECTED then return end
 	if not self.gateway then
-		self.gateway = api.request(
+		print('Retrieving gateway.')
+		self.gateway = self.client.rest:request(
 			{
-				type = 'GET',
+				method = 'GET',
 				path = 'gateway',
 			}
 		).url..'/'
 	end
 	print('Connecting.')
 	local url = WebSocket.parseUrl(self.gateway)
-	_, self.read, self.write = WebSocket.connect(url)
+	_, self.__read, self.__write = WebSocket.connect(url)
 	--
-	if not self.read or not self.write then
+	if not self.__read or not self.__write then
 		print('Unable to connect.')
 		return
 	end
 	--
+	self.status = constants.socket.status.CONNECTED
 	print('Connected, identifying.')
 	self:send(
+		constants.socket.OPcodes.IDENTIFY,
 		{
-			op = constants.OPcodes.IDENTIFY,
-			d =
+			token = self.token,
+			properties =
 			{
-				token = self.token,
-				properties =
-				{
-					['$os'] = package.name,
-					['$device'] = package.name,
-					['$browser'] = '',
-					['$referrer'] = '',
-					['$referring_domain'] = package.homepage,
-				},
-				compress = false,
-				large_threshold = self.settings.large_threshold,
+				['$os'] = package.name,
+				['$device'] = package.name,
+				['$browser'] = '',
+				['$referrer'] = '',
+				['$referring_domain'] = package.homepage,
 			},
+			compress = false,
+			large_threshold = self.client.settings.large_threshold,
 		}
 	)
 	--
-	self:listen()
+	self:__listen()
 end
 
-function Socket:listen () -- reading
+function Socket:__reconnect ()
+	self:connect()
+end
+
+function Socket:__listen () -- reading
 	print('Listening.')
 	while true do
-		if not self.read then return end
-		local read = self.read()
+		if not self.__read then break end
+		local read = self.__read()
 		if read and read.payload then
 			local data = json.decode(read.payload)
-			if data.op == constants.OPcodes.DISPATCH then
+			if data.op == constants.socket.OPcodes.DISPATCH then
 				self.sequence = data.s
 				self.client:dispatchEvent(data.t, data.d)
 			end
 		else
-			timer.clearInterval(self.timer)
 			print('Disconnected.')
+			timer.clearInterval(self.timer)
+			self.status = constants.socket.status.IDLE
+			if self.client.settings.auto_reconnect then
+				print('Reconnecting.')
+				self.status = constants.socket.status.RECONNECTING
+				self:__reconnect()
+			end
 			break
 		end
 	end
