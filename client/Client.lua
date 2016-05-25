@@ -30,7 +30,9 @@ function Client:__constructor (settings)
 end
 
 function Client:login (config)
-	if not config or (not config.token and not (config.email and config.password)) then return end
+	if not config or (not config.token and not (config.email and config.password)) then
+		return print('* Wrong or not specified login details.')
+	end
 	coroutine.wrap(
 		function()
 			self.socket.token = config.token or self.rest:request(
@@ -76,7 +78,7 @@ function Client:setGame (game)
 	self:setStats({game = game})
 end
 function Client:setName (name)
-	self:setStats({name = name})
+	self:setStats({username = name})
 end
 function Client:setAvatar (avatar)
 	self:setStats({avatar = avatar})
@@ -113,6 +115,7 @@ function Client:createServer (name, region, icon)
 			},
 		}
 	)
+	if not guild then return end
 	local server = structures.Server(self)
 	self.servers:add(server)
 	server:update(guild)
@@ -176,6 +179,8 @@ function Client:__initHandlers ()
 				local server = self.servers:get('id', data.guild_id)
 				if not server then return end -- should exist
 				--
+				local permission_overwrites = data.permission_overwrites or {}
+				data.permission_overwrites = nil
 				data.guild_id = nil
 				local channel = server.channels:get('id', data.id)
 				if not channel then
@@ -184,6 +189,15 @@ function Client:__initHandlers ()
 					self.__channels:add(channel)
 				end
 				channel:update(data)
+				--
+				if not channel.permission_overwrites then
+					channel.permission_overwrites = classes.Cache()
+					for _,v in ipairs(permission_overwrites) do
+						local overwrite = structures.Overwrite(channel)
+						overwrite:update(v)
+						channel.permission_overwrites:add(overwrite)
+					end
+				end
 			end
 		end
 	)
@@ -193,7 +207,6 @@ function Client:__initHandlers ()
 			if data.is_private then
 				local recipient = self.users:get('id', data.recipient.id)
 				if not recipient then return end
-				recipient.channel = nil
 				self.__channels:remove(recipient.channel)
 			else
 				local server = self.servers:get('id', data.guild_id)
@@ -249,9 +262,9 @@ function Client:__initHandlers ()
 			constants.events.GUILD_UPDATE,
 		},
 		function(data)
-			local roles = data.roles
-			local members = data.members
-			local channels = data.channels
+			local roles = data.roles or {}
+			local members = data.members or {}
+			local channels = data.channels or {}
 			data.roles = nil
 			data.members = nil
 			data.channels = nil
@@ -326,9 +339,10 @@ function Client:__initHandlers ()
 			if not server then return end
 			local role = server.roles:get('id', data.role.id)
 			if not role then
-				role = structures.Role(self)
+				role = structures.Role(server)
 				server.roles:add(role)
 			end
+			data.role.permissions = structures.Permissions(role, data.role.permissions)
 			role:update(data.role)
 			server.roles:add(role)
 		end
@@ -338,7 +352,7 @@ function Client:__initHandlers ()
 		function(data)
 			local server = self.servers:get('id', data.guild_id)
 			if not server then return end
-			server.roles:remove(data.role)
+			server.roles:remove(data.role_id)
 		end
 	)
 	-- Guild bans
@@ -361,7 +375,7 @@ function Client:__initHandlers ()
 		function(data)
 			local server = self.servers:get('id', data.guild_id)
 			if not server then return end
-			local ban = server.bans:get('id', user.id)
+			local ban = server.bans:get('id', data.id)
 			if not ban then return end
 			server.bans:remove(ban)
 		end

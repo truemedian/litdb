@@ -48,6 +48,11 @@ function Socket:send (opcode, data)
 	)()
 end
 
+function Socket:disconnect()
+	self.__manualDisconnect = true
+	self.__write()
+end
+
 function Socket:connect ()
 	if self.status == constants.socket.status.CONNECTED then return end
 	if not self.gateway then
@@ -96,27 +101,35 @@ end
 
 function Socket:__listen () -- reading
 	print('Listening.')
-	while true do
-		if not self.__read then break end
-		local read = self.__read()
-		if read and read.payload then
-			local data = json.decode(read.payload)
-			if data.op == constants.socket.OPcodes.DISPATCH then
-				self.sequence = data.s
-				self.client:dispatchEvent(data.t, data.d)
+	coroutine.wrap(
+		function()
+			while true do
+				if not self.__read then break end
+				local read = self.__read()
+				if read and read.payload then
+					local data = json.decode(read.payload)
+					if data.op == constants.socket.OPcodes.DISPATCH then
+						self.sequence = data.s
+						self.client:dispatchEvent(data.t, data.d)
+					end
+				else
+					print('Disconnected.')
+					if self.timer then
+						self.timer:stop()
+						self.timer:close()
+					end
+					self.status = constants.socket.status.IDLE
+					if not self.__manualDisconnect and self.client.settings.auto_reconnect then
+						print('Reconnecting.')
+						self.status = constants.socket.status.RECONNECTING
+						self:__reconnect()
+					end
+					self.__manualDisconnect = false
+					break
+				end
 			end
-		else
-			print('Disconnected.')
-			timer.clearInterval(self.timer)
-			self.status = constants.socket.status.IDLE
-			if self.client.settings.auto_reconnect then
-				print('Reconnecting.')
-				self.status = constants.socket.status.RECONNECTING
-				self:__reconnect()
-			end
-			break
 		end
-	end
+	)()
 end
 
 return Socket

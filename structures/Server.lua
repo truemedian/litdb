@@ -2,6 +2,7 @@ local classes = require('../classes')
 local base = require('./base')
 
 local User = require('./User')
+local Role = require('./Role')
 local Invite = require('./Invite')
 
 local Server = classes.new(base)
@@ -11,6 +12,7 @@ function Server:__constructor ()
 	self.roles = classes.Cache()
 	self.members = classes.Cache()
 	self.channels = classes.Cache()
+	self.invites = classes.Cache()
 end
 
 function Server:__onUpdate ()
@@ -109,8 +111,8 @@ function Server:createVoiceChannel (name, bitrate)
 end
 
 function Server:getInvites ()
-	if not self.invites then
-		self.invites = classes.Cache()
+	if not self.__retrievedInvites then
+		self.__retrievedInvites = true
 		local invites = self.parent.rest:request(
 			{
 				method = 'GET',
@@ -127,22 +129,41 @@ function Server:getInvites ()
 	return self.invites
 end
 
-function Server:fetchBans ()
-	local bans = self.parent.rest:request(
+function Server:getBans ()
+	if not self.bans then
+		local bans = self.parent.rest:request(
+			{
+				method = 'GET',
+				path = 'guilds/'..self.id..'/bans',
+			}
+		)
+		for _,v in ipairs(bans) do
+			local user = self.parent.users:get('id', data.id)
+			if not user then
+				user = User(self)
+				self.parent.users:add(user)
+			end
+			user:update(data)
+			self.bans:add(user)
+		end
+	end
+	return self.bans
+end
+
+function Server:createRole (config)
+	local data = self.parent.rest:request(
 		{
-			method = 'GET',
-			path = 'guilds/'..self.id..'/bans',
+			method = 'POST',
+			path = 'guilds/'..self.id..'/roles',
 		}
 	)
-	for _,v in ipairs(bans) do
-		local user = self.parent.users:get('id', data.id)
-		if not user then
-			user = User(self)
-			self.parent.users:add(user)
-		end
-		user:update(data)
-		self.bans:add(user)
+	local role = Role(self)
+	self.roles:add(role)
+	role:update(data)
+	if config then
+		role:edit(config)
 	end
+	return role
 end
 
 return Server

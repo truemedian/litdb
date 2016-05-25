@@ -6,7 +6,7 @@ local base = require('../constants/rest')
 local class = require('../classes/new')
 local package = require('../package')
 
-function Error (code, message)
+local function Error (code, message)
 	print('* Unhandled REST error: '..code..' - '..message)
 end
 
@@ -59,7 +59,7 @@ function rest:request (config)
 			timer.sleep(250)
 			return self:request(config)
 		end
-		return Error(response.code, response.reason)
+		return Error(response.code, response.reason..' ('..config.path..')')
 	end
 	return json.decode(received)
 end
