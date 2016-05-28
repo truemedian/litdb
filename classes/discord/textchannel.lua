@@ -1,14 +1,14 @@
-local Base = require('./base')
 local Deque = require('../deque')
 local Server = require('./server')
+local Channel = require('./channel')
 local Message = require('./message')
 local endpoints = require('../../endpoints')
 
-local TextChannel = class('TextChannel', Base)
+local TextChannel = class('TextChannel', Channel)
 
 function TextChannel:__init(data, client)
 
-	Base.__init(self, data.id, client)
+	Channel.__init(self, data, client)
 
 	self.isPrivate = data.isPrivate
 	self.lastMessageId = data.lastMessageId
@@ -21,7 +21,7 @@ end
 function TextChannel:createMessage(content, mentions)
 	if mentions and not self.isPrivate then
 		local words = {}
-		for _, obj in ipairs(mentions) do
+		for _, obj in pairs(mentions) do
 			if obj.getMentionString then
 				table.insert(words, obj:getMentionString())
 			end
@@ -43,7 +43,7 @@ function TextChannel:broadcastTyping()
 end
 
 function TextChannel:getMessageHistory(limit)
-	local data = self.client:request('GET', {endpoints.channels, self.id, string.format('messages?limit=%i', limit or 50)})
+	local data = self.client:request('GET', {endpoints.channels, self.id, string.format('messages?limit=%i', limit or 1)})
 	local messages = {}
 	for _, messageData in ipairs(data) do
 		table.insert(messages, Message(messageData, self))

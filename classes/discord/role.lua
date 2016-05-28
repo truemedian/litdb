@@ -1,5 +1,6 @@
 local Base = require('./base')
 local Color = require('../color')
+local Permissions = require('../permissions')
 local endpoints = require('../../endpoints')
 
 local Role = class('Role', Base)
@@ -15,32 +16,29 @@ end
 
 function Role:_update(data)
 
-	self.name = data.name -- text
-	self.hoist = data.hoist -- boolean
-	self.color = Color(data.color) -- number
-	self.managed = data.managed -- boolean
-	self.position = data.position -- number
-	self.permissions = data.permissions -- number
+	self.name = data.name
+	self.hoist = data.hoist
+	self.managed = data.managed
+	self.position = data.position
+
+	self.color = Color(data.color)
+	self.permissions = Permissions(data.permissions)
 
 end
 
-function Role:setColor(color)
-	local body = {color = color:toDec(), hoist = self.hoist, name = self.name, permissions = self.permissions}
-	self.client:request('PATCH', {endpoints.servers, self.server.id, 'roles', self.id}, body)
+local setParams = {'color', 'hoist', 'name', 'permissions'}
+for _, param in ipairs(setParams) do
+	local functionName = "set" .. (param:gsub("^%l", string.upper))
+	Role[functionName] = function(self, value) return self:set({[param] = value}) end
 end
 
-function Role:setHoist(hoist)
-	local body = {color = self.color, hoist = hoist, name = self.name, permissions = self.permissions}
-	self.client:request('PATCH', {endpoints.servers, self.server.id, 'roles', self.id}, body)
-end
-
-function Role:setName(name)
-	local body = {color = self.color, hoist = self.hoist, name = name, permissions = self.permissions}
-	self.client:request('PATCH', {endpoints.servers, self.server.id, 'roles', self.id}, body)
-end
-
-function Role:setPermissions(permissions)
-	local body = {color = self.color, hoist = self.hoist, name = self.name, permissions = permissions}
+function Role:set(options)
+	local body = {}
+	for _, param in ipairs(setParams) do
+		body[param] = options[param] or self[param]
+	end
+	body.color = body.color:toDec()
+	body.permissions = body.permissions:toDec()
 	self.client:request('PATCH', {endpoints.servers, self.server.id, 'roles', self.id}, body)
 end
 

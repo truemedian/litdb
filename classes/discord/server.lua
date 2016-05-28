@@ -24,6 +24,8 @@ function Server:__init(data, client)
 	self.channels = {}
 	self.voiceStates = {}
 
+	self:_update(data)
+
 	if data.members then
 		for _, memberData in ipairs(data.members) do
 			local member = Member(memberData, self)
@@ -57,12 +59,9 @@ function Server:__init(data, client)
 		end
 	end
 
-	self:_update(data)
-
 	self.defaultChannel = self.channels[self.id]
 	self.defaultRole = self.roles[self.id]
 	self.me = self.members[client.user.id]
-
 
 end
 
@@ -129,6 +128,7 @@ end
 
 function Server:getInvites()
 	local inviteTable = self.client:request('GET', {endpoints.servers, self.id, 'invites'})
+	if not inviteTable then return end
 	local invites = {}
 	for _, inviteData in ipairs(inviteTable) do
 		local invite = Invite(inviteData, self)
@@ -139,6 +139,7 @@ end
 
 function Server:getBannedUsers()
 	local banTable = self.client:request('GET', {endpoints.servers, self.id, 'bans'})
+	if not banTable then return end
 	local users = {}
 	for _, banData in ipairs(banTable) do
 		local user = User(banData.user, self.client)
@@ -175,10 +176,10 @@ function Server:getRoleByName(name) -- Client:getRoleByName(name)
 	return nil
 end
 
--- function Server:createRole(data)
-	-- self.client:request('POST', {endpoints.servers, self.id, 'roles'}, data)
-	-- need to figure out proper data format
--- end
+function Server:createRole()
+	local data = self.client:request('POST', {endpoints.servers, self.id, 'roles'}, {})
+	if data then return Role(data, self) end
+end
 
 function Server:createTextChannel(name)
 	local body = {name = name, type = 'text'}
@@ -233,7 +234,7 @@ end
 
 function Server:getMemberByName(name) -- Client:getUserByName(name)
 	for _, member in pairs(self.members) do
-		if member.nickname == name or member.username == name then
+		if member.name == name then
 			return member
 		end
 	end
