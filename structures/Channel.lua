@@ -1,3 +1,4 @@
+local utils = require('../utils')
 local classes = require('../classes')
 local base = require('./base')
 
@@ -63,10 +64,12 @@ function Channel:getInvites()
 			}
 		)
 		for _,v in ipairs(invites) do
+			v.guild = nil
 			v.inviter = nil
 			local invite = Invite(self)
 			invite:update(v)
 			self.invites:add(invite)
+			self.parent.invites:add(invite)
 		end
 	end
 	return self.invites
@@ -86,13 +89,16 @@ function Channel:modify (config)
 		{
 			method = 'PATCH',
 			path = 'channels/'..self.id,
-			data = { -- config, -- gives a bad request error, so no config directly..
-				name = config.name or self.name,
-				position = config.position or self.position,
-				topic = config.topic or self.topic,
-				bitrate = config.bitrate or self.bitrate,
-				user_limit = config.user_limit or self.user_limit,
-			},
+			data = utils.merge(
+				config,
+				{
+					name = config.name or self.name,
+					position = config.position or self.position,
+					topic = config.topic or self.topic,
+					bitrate = config.bitrate or self.bitrate,
+					user_limit = config.user_limit or self.user_limit,
+				}
+			)
 		}
 	)
 end
