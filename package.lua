@@ -1,6 +1,6 @@
 return {
   name = "luvit/lit",
-  version = "3.3.4",
+  version = "3.4.0",
   homepage = "https://github.com/luvit/lit",
   description = "The Luvit Invention Toolkit is a luvi app that handles dependencies and luvi builds.",
   tags = {"lit", "meta"},
@@ -28,7 +28,9 @@ return {
     "creationix/git@2.0.7",
     "creationix/prompt@2.0.0",
     "creationix/ssh-rsa@2.0.0",
-    "creationix/websocket-codec@2.0.0",
+    "creationix/weblit-app@2.1.1",
+    "creationix/weblit-auto-headers@2.0.2",
+    "creationix/weblit-websocket@2.1.0",
   },
   files = {
     "commands/README",
