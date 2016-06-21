@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/coro-channel"
-  version = "2.2.0"
+  version = "2.2.1"
   homepage = "https://github.com/luvit/lit/blob/master/deps/coro-channel.lua"
   description = "An adapter for wrapping uv streams as coro-streams and chaining filters."
   tags = {"coro", "adapter"}
@@ -94,7 +94,11 @@ local function makeRead(socket, decode, closer)
     end
     buffer = buffer .. chunk
     while true do
-      local item, extra = decode(buffer)
+      local success, item, extra = pcall(decode, buffer)
+      if not success then
+        dispatch {nil, item}
+        return
+      end
       if not extra then return end
       buffer = extra
       dispatch {item}
