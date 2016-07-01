@@ -1,4 +1,4 @@
-local md5 = require('md5')
+-- local md5 = require('md5')
 local json = require('json')
 local http = require('coro-http')
 local timer = require('timer')

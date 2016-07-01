@@ -32,6 +32,13 @@ function Member:_update(data)
 	end
 	self.status = data.status or self.status or 'offline'
 	self.gameName = data.game and data.game.name or self.gameName
+	if data.roles then
+		self.roles = {}
+		for _, roleId in ipairs(data.roles) do
+			self.roles[roleId] = self.server.roles[roleId]
+		end
+	end
+	self.nickname = data.nick
 end
 
 local setParams = {'nickname', 'roles', 'mute', 'deaf'}
@@ -46,6 +53,13 @@ function Member:set(options)
 		body[param] = options[param] or self[param]
 	end
 	body.nick, body.nickname = body.nickname or '', nil -- adjust for compatibility
+	local roles = body.roles;
+	for i=1,#roles do
+		local v = roles[i];
+		if type(v) == 'table' then
+			roles[i] = v.id;
+		end
+	end;
 	self.client:request('PATCH', {endpoints.servers, self.server.id, 'members', self.id}, body)
 end
 
