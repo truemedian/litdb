@@ -120,13 +120,16 @@ end
 
 -- Voice
 function Channel:join ()
-	if not self.isVoice or self.voiceConnection then return end
-	self.voiceConnection = VoiceConnection(self)
+	if not self.isVoice then return end
+	if not self.parent.__voiceConnection then
+		self.parent.__voiceConnection = VoiceConnection(self.parent)
+	end
+	self.parent.__voiceConnection:connect(self.id)
 end
 
 function Channel:leave ()
-	if not self.isVoice or not self.voiceConnection then return end
-	self.voiceConnection:disconnect()
+	if not self.isVoice or (self.parent.__voiceConnection.channel_id ~= self.id) then return end
+	self.parent.__voiceConnection:disconnect()
 end
 
 return Channel
