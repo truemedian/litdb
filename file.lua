@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 --[[lit-meta
   name = "cyrilis/pretty-print"
-  version = "0.0.1"
+  version = "0.0.2"
   homepage = "https://github.com/luvit/luvit/blob/master/deps/pretty-print.lua"
   description = "A lua value pretty printer and colorizer for terminals."
   tags = {"colors", "tty"}
@@ -353,13 +353,7 @@ else
   uv.pipe_open(stderr, 2)
 end
 
-prettyPrint({
-    ["你好世界！"] = {
-        ["哈哈哈哈哈"] = function()
-            local a = 1;
-        end
-    }
-})
+_G.p = prettyPrint
 
 return {
   loadColors = loadColors,
