@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "SoniEx2/mdxml"
-  version = "0.0.3"
+  version = "0.1.0"
   description = "Markdown Extensible Markup Language and Markdown-serialized XML (MDXML) Parser, LPeg-based"
   tags = { "mdxml", "lpeg" }
   license = "BSL-1.0"
@@ -64,6 +64,11 @@ function mdxml.parse(s)
       end
       local contents = line:sub(x)
       if contents:sub(1,1) == "#" then -- tag/attr/etc
+        if contents:match("#?#?#?#?#?#?") ~= "#"
+        and contents:match("#?#?#?#?#?#?") ~= "######"
+        and #t == 0 then
+          t = {t} -- ???
+        end
         if contents:sub(1,6) == "######" then
           -- TODO create macro system
           error("Invalid ######")
@@ -112,7 +117,7 @@ function mdxml.parse(s)
         elseif contents:sub(1,2) == "##" then -- attr
           local y = t[#t]
           if type(y) ~= "table" then
-            error("Illegal ##")
+            error("Illegal ## " .. pos)
           end
           local attr = Data:match(contents:sub(3))
           if y[attr] or attr == lastattr[y] then
