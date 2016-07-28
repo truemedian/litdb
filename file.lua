@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "SoniEx2/mdxml"
-  version = "0.0.2"
+  version = "0.0.3"
   description = "Markdown Extensible Markup Language and Markdown-serialized XML (MDXML) Parser, LPeg-based"
   tags = { "mdxml", "lpeg" }
   license = "BSL-1.0"
@@ -32,7 +32,7 @@ local backslashEscaped
     error("Unknown backslash escape at position " .. i)
   end)
 local Line = lpeg.C((wsc + (backslashEscaped + 1 - nl))^0) / function(x) return x end * nl * lpeg.Cp()
-local Data = lpeg.S(" \t")^0 * lpeg.Cs((wsc / " " + (backslashEscaped + 1 - (lpeg.S(" \t")^0 * nl)))^0) * lpeg.S(" \t")^0 * nl
+local Data = lpeg.S(" \t")^0 * lpeg.Cs((wsc / " " + backslashEscaped + 1 - (lpeg.S(" \t")^0 * nl))^0) * lpeg.S(" \t")^0 * nl
 local LineIgnored = (wsc + (1 - nl))^0 * nl * lpeg.Cp()
 local Empty = (lpeg.P(">") * lpeg.S(" ")^-1)^0 * nl
 local Depth = (lpeg.P(">") * lpeg.S(" ")^-1)^0 / function(x)
