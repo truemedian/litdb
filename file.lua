@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "SoniEx2/mdxml"
-  version = "0.1.0"
+  version = "0.1.1"
   description = "Markdown Extensible Markup Language and Markdown-serialized XML (MDXML) Parser, LPeg-based"
   tags = { "mdxml", "lpeg" }
   license = "BSL-1.0"
@@ -32,7 +32,7 @@ local backslashEscaped
     error("Unknown backslash escape at position " .. i)
   end)
 local Line = lpeg.C((wsc + (backslashEscaped + 1 - nl))^0) / function(x) return x end * nl * lpeg.Cp()
-local Data = lpeg.S(" \t")^0 * lpeg.Cs((wsc / " " + backslashEscaped + 1 - (lpeg.S(" \t")^0 * nl))^0) * lpeg.S(" \t")^0 * nl
+local Data = lpeg.S(" \t")^0 * lpeg.Cs((ws / " " + inlineComment / "" + backslashEscaped + 1 - (lpeg.S(" \t")^0 * nl))^0) * lpeg.S(" \t")^0 * nl
 local LineIgnored = (wsc + (1 - nl))^0 * nl * lpeg.Cp()
 local Empty = (lpeg.P(">") * lpeg.S(" ")^-1)^0 * nl
 local Depth = (lpeg.P(">") * lpeg.S(" ")^-1)^0 / function(x)
@@ -64,8 +64,8 @@ function mdxml.parse(s)
       end
       local contents = line:sub(x)
       if contents:sub(1,1) == "#" then -- tag/attr/etc
-        if contents:match("#?#?#?#?#?#?") ~= "#"
-        and contents:match("#?#?#?#?#?#?") ~= "######"
+        if contents:match("^#?#?#?#?#?#?") ~= "#"
+        and contents:match("^#?#?#?#?#?#?") ~= "######"
         and #t == 0 then
           t = {t} -- ???
         end
@@ -137,7 +137,10 @@ function mdxml.parse(s)
         end
         _, pos = LineIgnored:match(s, pos) -- align to next newline
       else -- anything else
-        t[#t+1] = Data:match(contents)
+        local temp = Data:match(contents)
+        if temp ~= "" then -- ignore comment lines
+          t[#t+1] = temp
+        end
       end
     end
   end
