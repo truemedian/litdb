@@ -1,17 +1,22 @@
--- for older versions of luvit and alternative package managers
 return {
-  name = "voronianski/utopia",
-  version = "1.0.0-beta",
-  description = "High performance middleware framework for Luvit.io",
+  name = 'voronianski/utopia',
+  version = '1.0.1',
+  description = 'High performance middleware framework for Luvit.io',
   repository = {
-    url = "http://github.com/luvitrocks/luvit-utopia.git",
+    url = 'http://github.com/luvitrocks/luvit-utopia.git',
   },
-  tags = {"utopia", "express", "connect"},
+  tags = {'utopia', 'express', 'connect', 'middleware', 'server'},
   author = {
-    name = "Dmitri Voronianski",
-    email = "dmitri.voronianski@gmail.com"
+    name = 'Dmitri Voronianski',
+    email = 'dmitri.voronianski@gmail.com'
   },
-  homepage = "https://github.com/luvitrocks/luvit-utopia",
-  licenses = {"MIT"},
-  main = 'init.lua'
+  homepage = 'https://github.com/luvitrocks/luvit-utopia',
+  licenses = {'MIT'},
+  dependencies = {
+    'filwisher/lua-tape'
+  },
+  files = {
+    '**.lua',
+    '!test*'
+  }
 }
