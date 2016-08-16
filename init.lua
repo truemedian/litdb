@@ -1,3 +1,21 @@
+--[[
+
+Copyright 2015 Dennis Schridde <dennis.schridde@uni-heidelberg.de>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS-IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+--]]
+
 local ffi = require("ffi")
 
 ffi.cdef[[
@@ -19,6 +37,18 @@ int getdate_r(const char *string, struct tm *res);
 char *strptime(const char *s, const char *format, struct tm *tm);
 ]]
 
+local struct_tm_fields = {
+  "tm_sec",
+  "tm_min",
+  "tm_hour",
+  "tm_mday",
+  "tm_mon",
+  "tm_year",
+  "tm_wday",
+  "tm_yday",
+  "tm_isdst",
+}
+
 local function struct_tm_to_lua(tm)
   return {
     sec = tm.tm_sec,
@@ -35,6 +65,7 @@ end
 
 local date = {}
 
+--[[ FIXME: UNTESTED
 function date.getdate(str)
   local tm = ffi.new("struct tm")
   ffi.fill(tm, ffi.sizeof(tm))
@@ -64,13 +95,40 @@ function date.getdate(str)
 
   return struct_tm_to_lua(tm)
 end
+]]
 
 function date.strptime(str, fmt)
+  local cstr = ffi.cast("const char *", str)
   local tm = ffi.new("struct tm")
   ffi.fill(tm, ffi.sizeof(tm))
 
-  local cstr = ffi.cast("const char *", str)
-  local ret = ffi.C.strptime(str, fmt, tm)
+  local fmt1, fmt2 = fmt:match("(.*)%%N(.*)")
+  if fmt1 ~= nil and fmt2 ~= nil then
+    local ret1 = ffi.C.strptime(cstr, fmt1, tm)
+    if ret1 == nil then
+      return 0, nil
+    end
+
+    local tm2 = ffi.new("struct tm")
+    ffi.fill(tm2, ffi.sizeof(tm2))
+
+    -- skip nanoseconds
+    local ret1_ns = ffi.string(ret1):match("([0-9]+).*")
+    local ret2 = ffi.C.strptime(ret1 + #ret1_ns, fmt2, tm2)
+    if ret2 == nil then
+      return 0, nil
+    end
+
+    for _,k in ipairs(struct_tm_fields) do
+      if tm[k] == 0 then
+        tm[k] = tm2[k]
+      end
+    end
+
+    return (ret2 - cstr), struct_tm_to_lua(tm)
+  end
+
+  local ret = ffi.C.strptime(cstr, fmt, tm)
   if ret == nil then
     return 0, nil
   end

@@ -1,5 +1,8 @@
 # luvit-date
 
+[![Build Status](https://travis-ci.org/urzds/luvit-date.svg?branch=master)](https://travis-ci.org/urzds/luvit-date)
+[![Coverage Status](https://coveralls.io/repos/urzds/luvit-date/badge.svg?branch=master&service=github)](https://coveralls.io/github/urzds/luvit-date?branch=master)
+
 Thin wrappers around the POSIX.1-2001 functions `getdate()` and `strptime()`, modified to return Lua compatible time tables.
 
 ## getdate
