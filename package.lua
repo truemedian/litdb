@@ -1,6 +1,6 @@
 return {
   name = 'voronianski/oauth',
-  version = '1.0.0',
+  version = '1.0.1',
   description = 'OAuth wrapper for Luvit.io',
   repository = {
     url = 'https://github.com/luvitrocks/luvit-oauth.git',
