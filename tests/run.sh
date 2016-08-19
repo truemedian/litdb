@@ -22,10 +22,7 @@ fi
 
 luvit "${luvit_args[@]}" "${scriptdir}"/run.lua "${run_args[@]}"
 
-if [[ "${coverage}" = *generate* ]] ; then
+if [[ "${coverage}" = *report* ]] ; then
 	echo "Generating coverage report ..."
-	for test in tests/test-*.lua ; do
-		lib=$(basename "${test}" .lua)
-		luacov tests/libs/"${lib}".lua
-	done
+	luacov
 fi
