@@ -1,6 +1,6 @@
 return {
   name = "darmie/luvit-base64",
-  version = "0.0.1",
+  version = "0.0.2",
   homepage = 'https://github.com/darmie/luvit-base64',
   files = {
     "*.lua",
