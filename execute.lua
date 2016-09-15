@@ -1,5 +1,7 @@
-local types = require('./types')
-local util = require('./util')
+local path = (...):gsub('%.[^%.]+$', '')
+local types = require(path .. '.types')
+local util = require(path .. '.util')
+local introspection = require(path .. '.introspection')
 
 local function typeFromAST(node, schema)
   local innerType
@@ -148,10 +150,10 @@ local function completeValue(fieldType, result, subSelections, context)
 
   if fieldTypeName == 'NonNull' then
     local innerType = fieldType.ofType
-    local completedResult = completeValue(innerType, result, context)
+    local completedResult = completeValue(innerType, result, subSelections, context)
 
     if completedResult == nil then
-      error('No value provided for non-null ' .. innerType.name)
+      error('No value provided for non-null ' .. (innerType.name or innerType.__type))
     end
 
     return completedResult
@@ -169,9 +171,8 @@ local function completeValue(fieldType, result, subSelections, context)
     end
 
     local values = {}
-
-    for i, value in ipairs(values) do
-      values[i] = completeValue(innerType, value, context)
+    for i, value in ipairs(result) do
+      values[i] = completeValue(innerType, value, subSelections, context)
     end
 
     return values
@@ -195,7 +196,7 @@ local function getFieldEntry(objectType, object, fields, context)
   local firstField = fields[1]
   local fieldName = firstField.name.value
   local responseKey = getFieldResponseKey(firstField)
-  local fieldType = objectType.fields[fieldName]
+  local fieldType = introspection.fieldMap[fieldName] or objectType.fields[fieldName]
 
   if fieldType == nil then
     return nil
@@ -206,7 +207,7 @@ local function getFieldEntry(objectType, object, fields, context)
     argumentMap[argument.name.value] = argument
   end
 
-  local arguments = util.map(fieldType.arguments, function(argument, name)
+  local arguments = util.map(fieldType.arguments or {}, function(argument, name)
     local supplied = argumentMap[name] and argumentMap[name].value
     return supplied and util.coerceValue(supplied, argument, context.variables) or argument.defaultValue
   end)
@@ -224,10 +225,9 @@ local function getFieldEntry(objectType, object, fields, context)
   }
 
   local resolvedObject = (fieldType.resolve or defaultResolver)(object, arguments, info)
-
   local subSelections = mergeSelectionSets(fields)
-  local responseValue = completeValue(fieldType.kind, resolvedObject, subSelections, context)
-  return responseValue
+
+  return completeValue(fieldType.kind, resolvedObject, subSelections, context)
 end
 
 evaluateSelections = function(objectType, object, selections, context)

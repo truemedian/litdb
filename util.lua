@@ -13,6 +13,38 @@ function util.find(t, fn)
   end
 end
 
+function util.filter(t, fn)
+  local res = {}
+  for k,v in pairs(t) do
+    if fn(v) then
+      table.insert(res, v)
+    end
+  end
+  return res
+end
+
+function util.values(t)
+  local res = {}
+  for _, value in pairs(t) do
+    table.insert(res, value)
+  end
+  return res
+end
+
+function util.compose(f, g)
+  return function(...) return f(g(...)) end
+end
+
+function util.bind1(func, x)
+  return function(y)
+    return func(x, y)
+  end
+end
+
+function util.trim(s)
+  return s:gsub('^%s+', ''):gsub('%s$', ''):gsub('%s%s+', ' ')
+end
+
 function util.coerceValue(node, schemaType, variables)
   variables = variables or {}
 
@@ -48,7 +80,7 @@ function util.coerceValue(node, schemaType, variables)
         error('Unknown input object field "' .. field.name .. '"')
       end
 
-      return util.coerceValue(schemaType.fields[field.name].kind, field.value, variables)
+      return util.coerceValue(field.value, schemaType.fields[field.name].kind, variables)
     end)
   end
 
