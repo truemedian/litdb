@@ -1,4 +1,5 @@
 local fs = require('fs')
+local __dirname = module.dir
 
 function favicon (path, options)
   local icon -- caching the icon
