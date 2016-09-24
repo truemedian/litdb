@@ -1,6 +1,6 @@
 return {
   name = 'voronianski/favicon',
-  version = '1.0.0',
+  version = '1.0.1',
   description = 'Favicon serving luvit.io middleware with caching',
   repository = {
     url = 'http://github.com/luvitrocks/luvit-favicon.git',
@@ -15,6 +15,7 @@ return {
   dependencies = {},
   files = {
     '**.lua',
+    'favicon.ico',
     '!test*',
     '!example*'
   }
