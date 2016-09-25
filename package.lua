@@ -1,6 +1,6 @@
 return {
   name = 'voronianski/request-query',
-  version = '1.0.0',
+  version = '1.0.1',
   description = 'Automatically parse querystring to `req.query` table',
   repository = {
     url = 'http://github.com/luvitrocks/luvit-request-query.git',
