@@ -1,9 +1,9 @@
 local path = require('path')
 local fs = require('fs')
-local mime = require('mime')
 local os = require('os')
 local parseUrl = require('url').parse
 local decodeURI = require('querystring').urldecode
+local mimes = require('./mimes')
 
 -- static files middleware
 -- root - directory path required
@@ -21,35 +21,35 @@ function static (root, options)
   options.index = options.index or 'index.html'
   options.maxAge = options.maxAge or 0
 
-  return function (req, res, follow)
-    if req.method ~= 'GET' and req.method ~= 'HEAD' then return follow() end
+  return function (req, res, nxt)
+    if req.method ~= 'GET' and req.method ~= 'HEAD' then return nxt() end
 
     local function serveFiles (route)
       fs.open(route, 'r', function (err, fd)
-        if err then return follow() end
+        if err then return nxt() end
 
         fs.fstat(fd, function (err, stat)
           if err then
             fs.close(fd)
-            return follow(err)
+            return nxt(err)
           end
 
           local headers
           local code = 200
-          local etag = stat.size .. '-' .. stat.mtime
+          local etag = stat.size .. '-' .. stat.mtime.sec
 
           if etag == req.headers['if-none-match'] then code = 304 end
 
-          res:setHeader('Content-Type', mime.getType(route))
+          res:setHeader('Content-Type', mimes.getType(route))
           res:setHeader('Content-Length', stat.size)
-          res:setHeader('Last-Modified', os.date("!%a, %d %b %Y %H:%M:%S GMT", stat.mtime))
+          res:setHeader('Last-Modified', os.date("!%a, %d %b %Y %H:%M:%S GMT", stat.mtime.sec))
           res:setHeader('Etag', etag)
           res:setHeader('Cache-Control', 'public, max-age=' .. (options.maxAge / 1000))
 
           -- skip directories
           if stat.is_directory then
             fs.close(fd)
-            res:setCode(302)
+            res:writeHead(302)
             res:setHeader('Location', req.url .. '/')
             return res:finish()
           end
@@ -57,10 +57,10 @@ function static (root, options)
           -- skip hidden files if no option specified
           if not options.hidden and '.' == path.basename(route):sub(1, 1) then
             fs.close(fd)
-            return follow()
+            return nxt()
           end
 
-          res:setCode(code)
+          res:writeHead(code)
 
           if req.method == 'HEAD' or code == 304 then
             fs.close(fd)
