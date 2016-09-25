@@ -1,6 +1,6 @@
 return {
   name = 'voronianski/static',
-  version = '1.0.1',
+  version = '1.0.2',
   description = 'Serve static files with luvit.io and Utopia',
   repository = {
     url = 'http://github.com/luvitrocks/luvit-static.git',
