@@ -1,6 +1,6 @@
 return {
   name = 'voronianski/static',
-  version = '1.0.2',
+  version = '1.0.3',
   description = 'Serve static files with luvit.io and Utopia',
   repository = {
     url = 'http://github.com/luvitrocks/luvit-static.git',
@@ -10,7 +10,7 @@ return {
     name = 'Dmitri Voronianski',
     email = 'dmitri.voronianski@gmail.com'
   },
-  homepage = 'https://github.com/luvitrocks/luvit-utopia',
+  homepage = 'https://github.com/luvitrocks/luvit-static',
   licenses = {'MIT'},
   dependencies = {},
   files = {
