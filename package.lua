@@ -1,6 +1,6 @@
 return {
   name = 'voronianski/utopia',
-  version = '1.0.1',
+  version = '1.0.2',
   description = 'High performance middleware framework for Luvit.io',
   repository = {
     url = 'http://github.com/luvitrocks/luvit-utopia.git',
@@ -17,6 +17,7 @@ return {
   },
   files = {
     '**.lua',
-    '!test*'
+    '!test*',
+    '!example*'
   }
 }
