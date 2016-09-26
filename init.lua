@@ -12,9 +12,9 @@ function timeout (ms, opts)
 
     if opts.respond then
       req:on('timeout', function ()
-          local err = {status = 503, code = 'ETIMEDOUT'}
-          err.timeout = ms
-          nxt(err)
+        local err = {status = 503, code = 'ETIMEDOUT'}
+        err.timeout = ms
+        nxt(err)
       end)
     end
 

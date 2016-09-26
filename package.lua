@@ -1,6 +1,6 @@
 return {
   name = 'voronianski/timeout',
-  version = '1.0.0',
+  version = '1.0.1',
   description = 'Luvit.io server timeout middleware',
   repository = {
     url = 'http://github.com/luvitrocks/luvit-timeout.git',
