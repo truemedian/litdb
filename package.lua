@@ -1,6 +1,6 @@
 return {
   name = 'voronianski/static',
-  version = '1.0.3',
+  version = '1.0.4',
   description = 'Serve static files with luvit.io and Utopia',
   repository = {
     url = 'http://github.com/luvitrocks/luvit-static.git',
@@ -12,7 +12,9 @@ return {
   },
   homepage = 'https://github.com/luvitrocks/luvit-static',
   licenses = {'MIT'},
-  dependencies = {},
+  dependencies = {
+    'voronianski/mimes'
+  },
   files = {
     '**.lua',
     '!test*',

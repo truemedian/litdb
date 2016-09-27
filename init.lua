@@ -3,7 +3,7 @@ local fs = require('fs')
 local os = require('os')
 local parseUrl = require('url').parse
 local decodeURI = require('querystring').urldecode
-local mimes = require('./mimes')
+local mimes = require('mimes')
 
 -- static files middleware
 -- root - directory path required
