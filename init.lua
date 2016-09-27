@@ -1,2 +1,2 @@
-exports.httpMethods = require('http-methods')
-exports.mimes = require('mimes')
+exports.httpMethods = require('./lib/http-methods')
+exports.mimes = require('./lib/mimes')
