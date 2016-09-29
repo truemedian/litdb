@@ -1,6 +1,6 @@
 return {
   name = 'voronianski/directory',
-  version = '1.0.1',
+  version = '1.0.2',
   description = 'Serve directory listings with luvit.io and Utopia',
   repository = {
     url = 'http://github.com/luvitrocks/directory.git',

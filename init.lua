@@ -28,8 +28,8 @@ function directory (root, options)
 
   root = path.normalize(root)
 
-  return function (req, res, follow)
-    if req.method ~= 'GET' and req.method ~= 'HEAD' then return follow() end
+  return function (req, res, nxt)
+    if req.method ~= 'GET' and req.method ~= 'HEAD' then return nxt() end
 
     options = options or {}
 
@@ -37,7 +37,7 @@ function directory (root, options)
       fs.stat(route, function (err, stat)
         if err then
           if err.code == 'ENOENT' then
-            return follow()
+            return nxt()
           end
 
           if err.code == 'ENOTDIR' and route:sub(#route) == '/' then
@@ -46,13 +46,17 @@ function directory (root, options)
             return res:finish()
           end
 
-          return follow(err)
+          return nxt(err)
         end
 
-        if not stat.is_directory then return follow() end
+        if stat.type ~= 'directory' then
+          return nxt()
+        end
 
         fs.readdir(route, function (err, files)
-          if err then return follow(err) end
+          if err then
+            return nxt(err)
+          end
 
           if not options.hidden then
             files = _filter(files, function (row, i)
@@ -108,8 +112,9 @@ function directory (root, options)
     local filePath = path.normalize(path.join(root, file))
 
     -- forbidden malicious path
+    p(filePath, filePath:sub(1, #root), root)
     if filePath:sub(1, #root) ~= root then
-      return follow(helpers.throwError(403))
+      return nxt({status = 403, msg = 'Forbidden'})
     end
 
     createDirStream(filePath)
