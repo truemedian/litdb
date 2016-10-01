@@ -6,7 +6,7 @@ server:use(function(req, res, next)
     next()
 end)
 
-server:match("get", "/", function(req, res)
+server:route("get", "/", function(req, res)
   res:render("./views/index.html", {
     title= "Hello world from MoonCake!",
     message = "You are welcome!",
@@ -24,13 +24,9 @@ server:get("/etlua", function(req, res)
   })
 end)
 
-server:route({
-  ["get"] = {
-    ["/users/:id"] = function(q, s)
-      s:send("List User in Databases => " .. q.params.id)
-    end
-  }
-})
+server:route("get", "/users/:id", function(q, s)
+    s:send("List User in Databases => " .. q.params.id)
+end)
 
 server:get("/setCookie", function(req, res)
   res:setCookie("WTF", "Test", {
@@ -78,4 +74,4 @@ server:static("./libs/", {
   maxAge = 31536000 -- one year
 })
 
-server:start(8080)
+server:start(8081)
