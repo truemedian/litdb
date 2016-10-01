@@ -1,6 +1,6 @@
 return {
   name = "voronianski/cookie",
-  version = "1.0.1",
+  version = "1.0.2",
   description = "Basic HTTP cookie parser and serializer for HTTP servers",
   tags = { "lua", "lit", "luvit", "cookies", "parser", "http", "server", "serialize" },
   license = "MIT",

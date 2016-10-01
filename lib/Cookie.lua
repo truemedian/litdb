@@ -5,9 +5,6 @@ local crypto = require('openssl')
 local json = require('json')
 local Object = require('core').Object
 local helpers = require('./helpers')
--- local openssl = require('openssl')
-
--- p(openssl.hmac)
 
 local Cookie = Object:extend()
 
@@ -90,8 +87,6 @@ function Cookie:sign (value, secret)
 
   local signed = value .. '.' .. hmac:final():gsub('%=+$', '')
 
-  p(signed)
-
   return signed
 end
 
@@ -118,23 +113,48 @@ function Cookie:unsign (value, secret)
   return false
 end
 
+-- Parse JSON values in cookie
+-- @param {String} value
+-- return {String}
+
+function Cookie:parseJSONCookie (value)
+  if helpers.indexOf(value, 'j:') == 1 then
+      local parseStatus, result = pcall(json.parse, value:sub(3, #value))
+
+      if parseStatus then
+        return result
+      end
+  end
+end
+
 -- Parse JSON values in cookies
 -- @param {Table} tbl
 -- return {Table}
 
 function Cookie:parseJSONCookies (tbl)
   table.foreach(tbl, function (index, str)
-    if helpers.indexOf(str, 'j:') == 1 then
-      local parseStatus, result = pcall(json.parse, str:sub(3, #str))
+    local cookie = self:parseJSONCookie(str)
 
-      if not parseStatus then return nil end
-
-      tbl[index] = result
+    if cookie then
+      tbl[index] = cookie
     end
   end)
 
   return tbl
 end
+
+
+-- Parse signed cookie.
+-- @param {String} value
+-- @param {String} secret
+-- return {String}
+
+function Cookie:parseSignedCookie (value, secret)
+  if helpers.indexOf(value, 's:') == 1 then
+    return self:unsign(value:sub(3, #value), secret)
+  end
+end
+
 
 -- Parse signed cookies.
 -- Returns a table containing the decoded key/value pairs, while removing the signed key from 'tbl'.
@@ -146,12 +166,11 @@ function Cookie:parseSignedCookies (tbl, secret)
   local result
 
   table.foreach(tbl, function (index, str)
-    if helpers.indexOf(str, 's:') == 1 then
-      local value = self.unsign(str:sub(3, #str), secret)
-      if value then
-        result[index] = value
-        tbl[index] = nil
-      end
+    local value = self:parseSignedCookie(str, secret)
+
+    if value then
+      result[index] = value
+      tbl[index] = nil
     end
   end)
 
