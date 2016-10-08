@@ -41,7 +41,7 @@ function directory (root, options)
           end
 
           if err.code == 'ENOTDIR' and route:sub(#route) == '/' then
-            res:setCode(302)
+            res:writeHead(302)
             res:setHeader('Location', req.url:sub(1, #req.url - 1))
             return res:finish()
           end
