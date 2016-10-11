@@ -1,6 +1,6 @@
 return {
   name = 'voronianski/http-utils',
-  version = '1.0.2',
+  version = '1.0.3',
   description = 'List of basic http helpers for luvit.io servers',
   repository = {
     url = 'http://github.com/luvitrocks/http-utils.git',
