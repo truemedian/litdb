@@ -1,6 +1,6 @@
 --[[lit-meta
   name = 'ryanplusplus/mach'
-  version = '1.0.2'
+  version = '1.0.3'
   description = 'Simple mocking framework for Lua inspired by CppUMock and designed for readability.'
   tags = { 'testing' }
   license = 'MIT'
@@ -9,13 +9,47 @@
 ]]
 do
 local _ENV = _ENV
+package.preload[ "mach/format_call_status" ] = function( ... ) local arg = _G.arg;
+return function(completed_calls, incomplete_calls)
+  local incomplete_call_strings = {}
+  for _, incomplete_call in ipairs(incomplete_calls) do
+    table.insert(incomplete_call_strings, tostring(incomplete_call))
+  end
+
+  local completed_call_strings = {}
+  for _, completed_call in ipairs(completed_calls) do
+    table.insert(completed_call_strings, tostring(completed_call))
+  end
+
+  local message = ''
+
+  if #completed_calls > 0 then
+    message = message ..
+      '\nCompleted calls:' ..
+      '\n\t' .. table.concat(completed_call_strings, '\n\t')
+  end
+
+  if #incomplete_calls > 0 then
+    message = message ..
+      '\nIncomplete calls:' ..
+      '\n\t' .. table.concat(incomplete_call_strings, '\n\t')
+  end
+
+  return message
+end
+
+end
+end
+
+do
+local _ENV = _ENV
 package.preload[ "mach/Expectation" ] = function( ... ) local arg = _G.arg;
-local ExpectedCall = require 'mach.ExpectedCall'
-local CompletedCall = require 'mach.CompletedCall'
-local unexpected_call_error = require 'mach.unexpected_call_error'
-local unexpected_args_error = require 'mach.unexpected_args_error'
-local out_of_order_call_error = require 'mach.out_of_order_call_error'
-local not_all_calls_occurred_error = require 'mach.not_all_calls_occurred_error'
+local ExpectedCall = require 'mach/ExpectedCall'
+local CompletedCall = require 'mach/CompletedCall'
+local unexpected_call_error = require 'mach/unexpected_call_error'
+local unexpected_args_error = require 'mach/unexpected_args_error'
+local out_of_order_call_error = require 'mach/out_of_order_call_error'
+local not_all_calls_occurred_error = require 'mach/not_all_calls_occurred_error'
 
 local expectation = {}
 expectation.__index = expectation
@@ -215,159 +249,6 @@ end
 
 do
 local _ENV = _ENV
-package.preload[ "mach/CompletedCall" ] = function( ... ) local arg = _G.arg;
-local format_arguments = require 'mach.format_arguments'
-
-local completed_call = {}
-completed_call.__index = completed_call
-
-completed_call.__tostring = function(self)
-  return self._name .. format_arguments(self._args)
-end
-
-local function create(name, args)
-  local o = {
-    _name = name,
-    _args = args
-  }
-
-  setmetatable(o, completed_call)
-
-  return o
-end
-
-return create
-
-end
-end
-
-do
-local _ENV = _ENV
-package.preload[ "mach/out_of_order_call_error" ] = function( ... ) local arg = _G.arg;
-local format_call_status = require 'mach.format_call_status'
-local format_arguments = require 'mach.format_arguments'
-
-return function(name, args, completed_calls, incomplete_calls, level)
-  local error_message =
-    'Out of order function call ' .. name .. format_arguments(args) ..
-    format_call_status(completed_calls, incomplete_calls)
-
-  error(error_message, level + 1)
-end
-
-end
-end
-
-do
-local _ENV = _ENV
-package.preload[ "mach/ExpectedCall" ] = function( ... ) local arg = _G.arg;
-local mach_match = require 'mach.match'
-local mach_any = require 'mach.any'
-local format_arguments = require 'mach.format_arguments'
-
-local expected_call = {}
-expected_call.__index = expected_call
-
-expected_call.__tostring = function(self)
-  local s = self._f._name .. format_arguments(self._args)
-
-  if not self._required then
-    s = s .. ' (optional)'
-  end
-
-  return s
-end
-
-local function create(f, config)
-  local o = {
-    _f = f,
-    _ordered = false,
-    _required = config.required,
-    _args = config.args,
-    _ignore_args = config.ignore_args,
-    _return = {}
-  }
-
-  setmetatable(o, expected_call)
-
-  return o
-end
-
-function expected_call:function_matches(f)
-  return f == self._f
-end
-
-function expected_call:args_match(args)
-  if self._ignore_args then return true end
-  if #self._args ~= #args then return false end
-
-  for i = 1, self._args.n do
-    if getmetatable(self._args[i]) == mach_match then
-      if not self._args[i].matcher(self._args[i].value, args[i]) then return false end
-    elseif self._args[i] ~= mach_any and self._args[i] ~= args[i] then
-      return false
-    end
-  end
-
-  return true
-end
-
-function expected_call:set_return_values(...)
-  self._return = table.pack(...)
-end
-
-function expected_call:get_return_values(...)
-  return table.unpack(self._return)
-end
-
-function expected_call:set_error(...)
-  self._error = table.pack(...)
-end
-
-function expected_call:get_error(...)
-  return table.unpack(self._error)
-end
-
-function expected_call:has_error()
-  return self._error ~= nil
-end
-
-function expected_call:fix_order()
-  self._ordered = true
-end
-
-function expected_call:has_fixed_order()
-  return self._ordered
-end
-
-function expected_call:is_required()
-  return self._required
-end
-
-return create
-
-end
-end
-
-do
-local _ENV = _ENV
-package.preload[ "mach/unexpected_args_error" ] = function( ... ) local arg = _G.arg;
-local format_call_status = require 'mach.format_call_status'
-local format_arguments = require 'mach.format_arguments'
-
-return function(name, args, completed_calls, incomplete_calls, level)
-  local error_message =
-    'Unexpected arguments ' .. format_arguments(args) .. ' provided to function ' .. name ..
-    format_call_status(completed_calls, incomplete_calls)
-
-  error(error_message, level + 1)
-end
-
-end
-end
-
-do
-local _ENV = _ENV
 package.preload[ "mach/format_arguments" ] = function( ... ) local arg = _G.arg;
 return function(args)
   local arg_strings = {}
@@ -383,33 +264,10 @@ end
 
 do
 local _ENV = _ENV
-package.preload[ "mach/not_all_calls_occurred_error" ] = function( ... ) local arg = _G.arg;
-local format_call_status = require 'mach.format_call_status'
-
-return function(completed_calls, incomplete_calls, level)
-  local message =
-    'Not all calls occurred' ..
-    format_call_status(completed_calls, incomplete_calls)
-
-  error(message, level + 1)
-end
-
-end
-end
-
-do
-local _ENV = _ENV
-package.preload[ "mach/unexpected_call_error" ] = function( ... ) local arg = _G.arg;
-local format_call_status = require 'mach.format_call_status'
-local format_arguments = require 'mach.format_arguments'
-
-return function(name, args, completed_calls, incomplete_calls, level)
-  local message =
-    'Unexpected function call ' .. name .. format_arguments(args) ..
-    format_call_status(completed_calls, incomplete_calls)
-
-  error(message, level + 1)
-end
+package.preload[ "mach/any" ] = function( ... ) local arg = _G.arg;
+return setmetatable({}, {
+  __tostring = function() return '<mach.any>' end
+})
 
 end
 end
@@ -417,15 +275,15 @@ end
 do
 local _ENV = _ENV
 package.preload[ "mach" ] = function( ... ) local arg = _G.arg;
-local ExpectedCall = require 'mach.ExpectedCall'
-local Expectation = require 'mach.Expectation'
-local unexpected_call_error = require 'mach.unexpected_call_error'
-local default_matcher = require 'mach.deep_compare_matcher'
-local mach_match = require 'mach.match'
+local ExpectedCall = require 'mach/ExpectedCall'
+local Expectation = require 'mach/Expectation'
+local unexpected_call_error = require 'mach/unexpected_call_error'
+local default_matcher = require 'mach/deep_compare_matcher'
+local mach_match = require 'mach/match'
 
 local mach = {}
 
-mach.any = require 'mach.any'
+mach.any = require 'mach/any'
 
 function unexpected_call(m, name, args)
   unexpected_call_error(name, args, {}, {}, 2)
@@ -524,33 +382,16 @@ end
 
 do
 local _ENV = _ENV
-package.preload[ "mach/format_call_status" ] = function( ... ) local arg = _G.arg;
-return function(completed_calls, incomplete_calls)
-  local incomplete_call_strings = {}
-  for _, incomplete_call in ipairs(incomplete_calls) do
-    table.insert(incomplete_call_strings, tostring(incomplete_call))
-  end
+package.preload[ "mach/unexpected_args_error" ] = function( ... ) local arg = _G.arg;
+local format_call_status = require 'mach/format_call_status'
+local format_arguments = require 'mach/format_arguments'
 
-  local completed_call_strings = {}
-  for _, completed_call in ipairs(completed_calls) do
-    table.insert(completed_call_strings, tostring(completed_call))
-  end
+return function(name, args, completed_calls, incomplete_calls, level)
+  local error_message =
+    'Unexpected arguments ' .. format_arguments(args) .. ' provided to function ' .. name ..
+    format_call_status(completed_calls, incomplete_calls)
 
-  local message = ''
-
-  if #completed_calls > 0 then
-    message = message ..
-      '\nCompleted calls:' ..
-      '\n\t' .. table.concat(completed_call_strings, '\n\t')
-  end
-
-  if #incomplete_calls > 0 then
-    message = message ..
-      '\nIncomplete calls:' ..
-      '\n\t' .. table.concat(incomplete_call_strings, '\n\t')
-  end
-
-  return message
+  error(error_message, level + 1)
 end
 
 end
@@ -558,10 +399,153 @@ end
 
 do
 local _ENV = _ENV
-package.preload[ "mach/any" ] = function( ... ) local arg = _G.arg;
-return setmetatable({}, {
-  __tostring = function() return '<mach.any>' end
-})
+package.preload[ "mach/ExpectedCall" ] = function( ... ) local arg = _G.arg;
+local mach_match = require 'mach/match'
+local mach_any = require 'mach/any'
+local format_arguments = require 'mach/format_arguments'
+
+local expected_call = {}
+expected_call.__index = expected_call
+
+expected_call.__tostring = function(self)
+  local s = self._f._name .. format_arguments(self._args)
+
+  if not self._required then
+    s = s .. ' (optional)'
+  end
+
+  return s
+end
+
+local function create(f, config)
+  local o = {
+    _f = f,
+    _ordered = false,
+    _required = config.required,
+    _args = config.args,
+    _ignore_args = config.ignore_args,
+    _return = {}
+  }
+
+  setmetatable(o, expected_call)
+
+  return o
+end
+
+function expected_call:function_matches(f)
+  return f == self._f
+end
+
+function expected_call:args_match(args)
+  if self._ignore_args then return true end
+  if #self._args ~= #args then return false end
+
+  for i = 1, self._args.n do
+    if getmetatable(self._args[i]) == mach_match then
+      if not self._args[i].matcher(self._args[i].value, args[i]) then return false end
+    elseif self._args[i] ~= mach_any and self._args[i] ~= args[i] then
+      return false
+    end
+  end
+
+  return true
+end
+
+function expected_call:set_return_values(...)
+  self._return = table.pack(...)
+end
+
+function expected_call:get_return_values(...)
+  return table.unpack(self._return)
+end
+
+function expected_call:set_error(...)
+  self._error = table.pack(...)
+end
+
+function expected_call:get_error(...)
+  return table.unpack(self._error)
+end
+
+function expected_call:has_error()
+  return self._error ~= nil
+end
+
+function expected_call:fix_order()
+  self._ordered = true
+end
+
+function expected_call:has_fixed_order()
+  return self._ordered
+end
+
+function expected_call:is_required()
+  return self._required
+end
+
+return create
+
+end
+end
+
+do
+local _ENV = _ENV
+package.preload[ "mach/out_of_order_call_error" ] = function( ... ) local arg = _G.arg;
+local format_call_status = require 'mach/format_call_status'
+local format_arguments = require 'mach/format_arguments'
+
+return function(name, args, completed_calls, incomplete_calls, level)
+  local error_message =
+    'Out of order function call ' .. name .. format_arguments(args) ..
+    format_call_status(completed_calls, incomplete_calls)
+
+  error(error_message, level + 1)
+end
+
+end
+end
+
+do
+local _ENV = _ENV
+package.preload[ "mach/unexpected_call_error" ] = function( ... ) local arg = _G.arg;
+local format_call_status = require 'mach/format_call_status'
+local format_arguments = require 'mach/format_arguments'
+
+return function(name, args, completed_calls, incomplete_calls, level)
+  local message =
+    'Unexpected function call ' .. name .. format_arguments(args) ..
+    format_call_status(completed_calls, incomplete_calls)
+
+  error(message, level + 1)
+end
+
+end
+end
+
+do
+local _ENV = _ENV
+package.preload[ "mach/CompletedCall" ] = function( ... ) local arg = _G.arg;
+local format_arguments = require 'mach/format_arguments'
+
+local completed_call = {}
+completed_call.__index = completed_call
+
+completed_call.__tostring = function(self)
+  return self._name .. format_arguments(self._args)
+end
+
+local function create(name, args)
+  local o = {
+    _name = name,
+    _args = args
+  }
+
+  setmetatable(o, completed_call)
+
+  return o
+end
+
+return create
 
 end
 end
@@ -574,6 +558,22 @@ return {
     return '<mach.match(' .. tostring(o.value) .. ')>'
   end
 }
+
+end
+end
+
+do
+local _ENV = _ENV
+package.preload[ "mach/not_all_calls_occurred_error" ] = function( ... ) local arg = _G.arg;
+local format_call_status = require 'mach/format_call_status'
+
+return function(completed_calls, incomplete_calls, level)
+  local message =
+    'Not all calls occurred' ..
+    format_call_status(completed_calls, incomplete_calls)
+
+  error(message, level + 1)
+end
 
 end
 end
@@ -604,4 +604,4 @@ return matches
 end
 end
 
-return require 'mach'
+return require 'mach/
