@@ -1,29 +1,12 @@
 --[[lit-meta
   name = 'ryanplusplus/mach'
-  version = '1.0.0'
+  version = '1.0.1'
   description = 'Simple mocking framework for Lua inspired by CppUMock and designed for readability.'
   tags = { 'testing' }
   license = 'MIT'
   author = { name = 'Ryan Hartlage' }
   homepage = 'https://github.com/ryanplusplus/mach.lua'
 ]]
-do
-local _ENV = _ENV
-package.preload[ "src/mach/unexpected_args_error" ] = function( ... ) local arg = _G.arg;
-local format_call_status = require 'mach.format_call_status'
-local format_arguments = require 'mach.format_arguments'
-
-return function(name, args, completed_calls, incomplete_calls, level)
-  local error_message =
-    'Unexpected arguments ' .. format_arguments(args) .. ' provided to function ' .. name ..
-    format_call_status(completed_calls, incomplete_calls)
-
-  error(error_message, level + 1)
-end
-
-end
-end
-
 do
 local _ENV = _ENV
 package.preload[ "src/mach/format_call_status" ] = function( ... ) local arg = _G.arg;
@@ -54,70 +37,6 @@ return function(completed_calls, incomplete_calls)
 
   return message
 end
-
-end
-end
-
-do
-local _ENV = _ENV
-package.preload[ "src/mach/deep_compare_matcher" ] = function( ... ) local arg = _G.arg;
-local function matches(o1, o2)
-  if o1 == o2 then return true end
-
-  if type(o1) == 'table' and type(o2) == 'table' then
-    for k in pairs(o1) do
-      if not matches(o1[k], o2[k]) then return false end
-    end
-
-    for k in pairs(o2) do
-      if not matches(o1[k], o2[k]) then return false end
-    end
-
-    return true
-  end
-
-  return false
-end
-
-return matches
-
-end
-end
-
-do
-local _ENV = _ENV
-package.preload[ "src/mach/any" ] = function( ... ) local arg = _G.arg;
-return setmetatable({}, {
-  __tostring = function() return '<mach.any>' end
-})
-
-end
-end
-
-do
-local _ENV = _ENV
-package.preload[ "src/mach/CompletedCall" ] = function( ... ) local arg = _G.arg;
-local format_arguments = require 'mach.format_arguments'
-
-local completed_call = {}
-completed_call.__index = completed_call
-
-completed_call.__tostring = function(self)
-  return self._name .. format_arguments(self._args)
-end
-
-local function create(name, args)
-  local o = {
-    _name = name,
-    _args = args
-  }
-
-  setmetatable(o, completed_call)
-
-  return o
-end
-
-return create
 
 end
 end
@@ -729,123 +648,26 @@ end
 
 do
 local _ENV = _ENV
-package.preload[ "src/mach/ExpectedCall" ] = function( ... ) local arg = _G.arg;
-local mach_match = require 'mach.match'
-local mach_any = require 'mach.any'
-local format_arguments = require 'mach.format_arguments'
+package.preload[ "src/mach/deep_compare_matcher" ] = function( ... ) local arg = _G.arg;
+local function matches(o1, o2)
+  if o1 == o2 then return true end
 
-local expected_call = {}
-expected_call.__index = expected_call
-
-expected_call.__tostring = function(self)
-  local s = self._f._name .. format_arguments(self._args)
-
-  if not self._required then
-    s = s .. ' (optional)'
-  end
-
-  return s
-end
-
-local function create(f, config)
-  local o = {
-    _f = f,
-    _ordered = false,
-    _required = config.required,
-    _args = config.args,
-    _ignore_args = config.ignore_args,
-    _return = {}
-  }
-
-  setmetatable(o, expected_call)
-
-  return o
-end
-
-function expected_call:function_matches(f)
-  return f == self._f
-end
-
-function expected_call:args_match(args)
-  if self._ignore_args then return true end
-  if #self._args ~= #args then return false end
-
-  for i = 1, self._args.n do
-    if getmetatable(self._args[i]) == mach_match then
-      if not self._args[i].matcher(self._args[i].value, args[i]) then return false end
-    elseif self._args[i] ~= mach_any and self._args[i] ~= args[i] then
-      return false
+  if type(o1) == 'table' and type(o2) == 'table' then
+    for k in pairs(o1) do
+      if not matches(o1[k], o2[k]) then return false end
     end
+
+    for k in pairs(o2) do
+      if not matches(o1[k], o2[k]) then return false end
+    end
+
+    return true
   end
 
-  return true
+  return false
 end
 
-function expected_call:set_return_values(...)
-  self._return = table.pack(...)
-end
-
-function expected_call:get_return_values(...)
-  return table.unpack(self._return)
-end
-
-function expected_call:set_error(...)
-  self._error = table.pack(...)
-end
-
-function expected_call:get_error(...)
-  return table.unpack(self._error)
-end
-
-function expected_call:has_error()
-  return self._error ~= nil
-end
-
-function expected_call:fix_order()
-  self._ordered = true
-end
-
-function expected_call:has_fixed_order()
-  return self._ordered
-end
-
-function expected_call:is_required()
-  return self._required
-end
-
-return create
-
-end
-end
-
-do
-local _ENV = _ENV
-package.preload[ "src/mach/format_arguments" ] = function( ... ) local arg = _G.arg;
-return function(args)
-  local arg_strings = {}
-  for i = 1, args.n do
-    table.insert(arg_strings, tostring(args[i]))
-  end
-
-  return '(' .. table.concat(arg_strings, ', ') .. ')'
-end
-
-end
-end
-
-do
-local _ENV = _ENV
-package.preload[ "src/mach/out_of_order_call_error" ] = function( ... ) local arg = _G.arg;
-local format_call_status = require 'mach.format_call_status'
-local format_arguments = require 'mach.format_arguments'
-
-return function(name, args, completed_calls, incomplete_calls, level)
-  local error_message =
-    'Out of order function call ' .. name .. format_arguments(args) ..
-    format_call_status(completed_calls, incomplete_calls)
-
-  error(error_message, level + 1)
-end
+return matches
 
 end
 end
@@ -1058,16 +880,125 @@ end
 
 do
 local _ENV = _ENV
-package.preload[ "src/mach/not_all_calls_occurred_error" ] = function( ... ) local arg = _G.arg;
+package.preload[ "src/mach/out_of_order_call_error" ] = function( ... ) local arg = _G.arg;
 local format_call_status = require 'mach.format_call_status'
+local format_arguments = require 'mach.format_arguments'
 
-return function(completed_calls, incomplete_calls, level)
-  local message =
-    'Not all calls occurred' ..
+return function(name, args, completed_calls, incomplete_calls, level)
+  local error_message =
+    'Out of order function call ' .. name .. format_arguments(args) ..
     format_call_status(completed_calls, incomplete_calls)
 
-  error(message, level + 1)
+  error(error_message, level + 1)
 end
+
+end
+end
+
+do
+local _ENV = _ENV
+package.preload[ "src/mach/unexpected_args_error" ] = function( ... ) local arg = _G.arg;
+local format_call_status = require 'mach.format_call_status'
+local format_arguments = require 'mach.format_arguments'
+
+return function(name, args, completed_calls, incomplete_calls, level)
+  local error_message =
+    'Unexpected arguments ' .. format_arguments(args) .. ' provided to function ' .. name ..
+    format_call_status(completed_calls, incomplete_calls)
+
+  error(error_message, level + 1)
+end
+
+end
+end
+
+do
+local _ENV = _ENV
+package.preload[ "src/mach/ExpectedCall" ] = function( ... ) local arg = _G.arg;
+local mach_match = require 'mach.match'
+local mach_any = require 'mach.any'
+local format_arguments = require 'mach.format_arguments'
+
+local expected_call = {}
+expected_call.__index = expected_call
+
+expected_call.__tostring = function(self)
+  local s = self._f._name .. format_arguments(self._args)
+
+  if not self._required then
+    s = s .. ' (optional)'
+  end
+
+  return s
+end
+
+local function create(f, config)
+  local o = {
+    _f = f,
+    _ordered = false,
+    _required = config.required,
+    _args = config.args,
+    _ignore_args = config.ignore_args,
+    _return = {}
+  }
+
+  setmetatable(o, expected_call)
+
+  return o
+end
+
+function expected_call:function_matches(f)
+  return f == self._f
+end
+
+function expected_call:args_match(args)
+  if self._ignore_args then return true end
+  if #self._args ~= #args then return false end
+
+  for i = 1, self._args.n do
+    if getmetatable(self._args[i]) == mach_match then
+      if not self._args[i].matcher(self._args[i].value, args[i]) then return false end
+    elseif self._args[i] ~= mach_any and self._args[i] ~= args[i] then
+      return false
+    end
+  end
+
+  return true
+end
+
+function expected_call:set_return_values(...)
+  self._return = table.pack(...)
+end
+
+function expected_call:get_return_values(...)
+  return table.unpack(self._return)
+end
+
+function expected_call:set_error(...)
+  self._error = table.pack(...)
+end
+
+function expected_call:get_error(...)
+  return table.unpack(self._error)
+end
+
+function expected_call:has_error()
+  return self._error ~= nil
+end
+
+function expected_call:fix_order()
+  self._ordered = true
+end
+
+function expected_call:has_fixed_order()
+  return self._ordered
+end
+
+function expected_call:is_required()
+  return self._required
+end
+
+return create
 
 end
 end
@@ -1199,6 +1130,16 @@ end
 
 do
 local _ENV = _ENV
+package.preload[ "src/mach/any" ] = function( ... ) local arg = _G.arg;
+return setmetatable({}, {
+  __tostring = function() return '<mach.any>' end
+})
+
+end
+end
+
+do
+local _ENV = _ENV
 package.preload[ "src/mach/match" ] = function( ... ) local arg = _G.arg;
 return {
   __tostring = function(o)
@@ -1209,4 +1150,63 @@ return {
 end
 end
 
-return require 'mach'
+do
+local _ENV = _ENV
+package.preload[ "src/mach/format_arguments" ] = function( ... ) local arg = _G.arg;
+return function(args)
+  local arg_strings = {}
+  for i = 1, args.n do
+    table.insert(arg_strings, tostring(args[i]))
+  end
+
+  return '(' .. table.concat(arg_strings, ', ') .. ')'
+end
+
+end
+end
+
+do
+local _ENV = _ENV
+package.preload[ "src/mach/not_all_calls_occurred_error" ] = function( ... ) local arg = _G.arg;
+local format_call_status = require 'mach.format_call_status'
+
+return function(completed_calls, incomplete_calls, level)
+  local message =
+    'Not all calls occurred' ..
+    format_call_status(completed_calls, incomplete_calls)
+
+  error(message, level + 1)
+end
+
+end
+end
+
+do
+local _ENV = _ENV
+package.preload[ "src/mach/CompletedCall" ] = function( ... ) local arg = _G.arg;
+local format_arguments = require 'mach.format_arguments'
+
+local completed_call = {}
+completed_call.__index = completed_call
+
+completed_call.__tostring = function(self)
+  return self._name .. format_arguments(self._args)
+end
+
+local function create(name, args)
+  local o = {
+    _name = name,
+    _args = args
+  }
+
+  setmetatable(o, completed_call)
+
+  return o
+end
+
+return create
+
+end
+end
+
+return require 'src/mach'
