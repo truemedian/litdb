@@ -113,7 +113,7 @@ function fileType (buffer)
 
   if buf(1) == 0x1F and buf(2) == 0x8B and buf(3) == 0x8 then
     return {
-      ext = 0xgz',
+      ext = 'gz',
       mime = 'application/gzip'
     }
   end
@@ -127,7 +127,7 @@ function fileType (buffer)
 
   if buf(1) == 0x37 and buf(2) == 0x7A and buf(3) == 0xBC and buf(4) == 0xAF and buf(5) == 0x27 and buf(6) == 0x1C then
     return {
-      ext = 0x7z',
+      ext = '7z',
       mime = 'application/x-7z-compressed'
     }
   end
