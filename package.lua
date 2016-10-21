@@ -1,6 +1,6 @@
 return {
   name = "voronianski/file-type",
-  version = "1.0.3",
+  version = "1.0.4",
   description = "Detect the file type of a Buffer in Luvit.io",
   tags = { "buffer", "luvit", "file", "file-type", "mime", "extension" },
   license = "MIT",
