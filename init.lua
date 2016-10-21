@@ -268,7 +268,7 @@ function fileType (buffer)
     }
   end
 
-  if (buf[1] == '43' or buf[1] == '46') and buf[2] == '57' and buf[3] == '53' then
+  if buf[1] == '43' or buf[1] == '46' and buf[2] == '57' and buf[3] == '53' then
     return {
       ext = 'swf',
       mime = 'application/x-shockwave-flash'
@@ -296,7 +296,7 @@ function fileType (buffer)
     }
   end
 
-  if buf[35] == '4C' and buf[36] == '50') and ((buf[9] == '00' and buf[10] == '00' and buf[11] == '01') or (buf[9] == '01' and buf[10] == '00' and buf[11] == '02') or (buf[9] == '02' and buf[10] == '00' and buf[11] == '02') then
+  if (buf[35] == '4C' and buf[36] == '50') and ((buf[9] == '00' and buf[10] == '00' and buf[11] == '01') or (buf[9] == '01' and buf[10] == '00' and buf[11] == '02') or (buf[9] == '02' and buf[10] == '00' and buf[11] == '02')) then
     return {
       ext = 'eot',
       mime = 'application/octet-stream'
@@ -366,7 +366,7 @@ function fileType (buffer)
     }
   end
 
-  if buf[1] == '4D' and buf[2] == '53' and buf[3] == '43' and buf[4] == '46') or (buf[1] == '49' and buf[2] == '53' and buf[3] == '63' and buf[4] == '28' then
+  if (buf[1] == '4D' and buf[2] == '53' and buf[3] == '43' and buf[4] == '46') or (buf[1] == '49' and buf[2] == '53' and buf[3] == '63' and buf[4] == '28') then
     return {
       ext = 'cab',
       mime = 'application/vnd.ms-cab-compressed'
@@ -395,7 +395,7 @@ function fileType (buffer)
     }
   end
 
-  if buf[1] == '1F' and buf[2] == 'A0') or (buf[1] == '1F' and buf[2] == '9D' then
+  if (buf[1] == '1F' and buf[2] == 'A0') or (buf[1] == '1F' and buf[2] == '9D') then
     return {
       ext = 'Z',
       mime = 'application/x-compress'
