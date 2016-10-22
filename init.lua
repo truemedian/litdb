@@ -1,5 +1,5 @@
 function fileType (buf)
-  local bufLength = buff and buf.length
+  local bufLength = buf and buf.length
 
   if not bufLength or bufLength < 1 then
     return nil
