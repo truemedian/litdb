@@ -1,7 +1,7 @@
 --[[lit-meta
   name = 'voronianski/response-methods'
   description = 'Patch HTTP ServerResponse with useful response shortcut methods.'
-  version = '1.0.0'
+  version = '1.0.1'
   homepage = 'https://github.com/luvitrocks/http-utils'
   repository = {
     url = 'http://github.com/luvitrocks/http-utils.git'
@@ -10,7 +10,7 @@
   dependencies = {
     'voronianski/mimes',
     'voronianski/file-type'
-  },
+  }
   author = {
     name = 'Dmitri Voronianski',
     email = 'dmitri.voronianski@gmail.com'
