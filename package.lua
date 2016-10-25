@@ -1,6 +1,6 @@
 return {
   name = 'voronianski/http-utils',
-  version = '1.0.3',
+  version = '1.0.4',
   description = 'List of basic http helpers for luvit.io servers',
   repository = {
     url = 'http://github.com/luvitrocks/http-utils.git',
@@ -12,7 +12,9 @@ return {
   },
   homepage = 'https://github.com/luvitrocks/http-utils',
   licenses = {'MIT'},
-  dependencies = {},
+  dependencies = {
+    'voronianski/file-type'
+  },
   files = {
     '**.lua',
     '!test*',
