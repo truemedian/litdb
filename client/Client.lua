@@ -22,6 +22,7 @@ local defaultOptions = {
 	largeThreshold = 100,
 	fetchMembers = false,
 	autoReconnect = true,
+	dateTime = '%c',
 }
 
 local Client, property, method, cache = class('Client', Emitter)
@@ -57,13 +58,13 @@ function Client:__tostring()
 	end
 end
 
-local function log(message, color)
-	return print(colorize(color, format('%s - %s', date(), message)))
+local function log(self, message, color)
+	return print(colorize(color, format('%s - %s', date(self._options.dateTime), message)))
 end
 
 function Client:warning(message)
 	if self._listeners['warning'] then return self:emit('warning', message) end
-	return log(message, 'highlight')
+	return log(self, message, 'highlight')
 end
 
 function Client:error(message)
@@ -144,6 +145,19 @@ function Client:_loadUserData(data)
 	data.mfa_enabled = nil
 end
 
+local function getOwner(self)
+	if self._user and self._user._bot then
+		local user = self._users:get(self._owner_id)
+		if user then return user end
+		local success, data = self._api:getCurrentApplicationInformation()
+		if success then
+			self._owner_id = data.owner.id
+			return self._users:new(data.owner)
+		end
+	end
+	return self._user
+end
+
 local function listVoiceRegions(self)
 	local success, data = self._api:listVoiceRegions()
 	if success then return data end
@@ -209,21 +223,14 @@ local function setGameName(self, gameName)
 	return self._socket:statusUpdate(self._idle_since, self._game_name)
 end
 
-local function acceptInviteByCode(self, code)
+local function acceptInvite(self, code)
 	local success, data = self._api:acceptInvite(code)
 	if success then return Invite(data, self) end
 end
 
-local function getInviteByCode(self, code)
+local function getInvite(self, code)
 	local success, data = self._api:getInvite(code)
 	if success then return Invite(data, self) end
-end
-
-local function getUserById(self, id)
-	local user = self._users:get(id)
-	if user then return user end
-	local success, data = self._api:getUser(id)
-	if success then return self._users:new(data) end
 end
 
 -- cache accessors --
@@ -239,7 +246,10 @@ local function getUsers(self, key, value)
 end
 
 local function getUser(self, key, value)
-	return self._users:get(key, value)
+	local user = self._users:get(key, value)
+	if user or value then return user end
+	local success, data = self._api:getUser(key)
+	if success then return self._users:new(data) end
 end
 
 local function findUser(self, predicate)
@@ -343,7 +353,10 @@ local function getPrivateChannels(self, key, value)
 end
 
 local function getPrivateChannel(self, key, value)
-	return self._private_channels:get(key, value)
+	local channel = self._private_channels:get(key, value)
+	if channel or value then return channel end
+	local success, data = self._api:getChannel(key)
+	if success then return self._private_channels:new(data) end
 end
 
 local function findPrivateChannel(self, predicate)
@@ -712,6 +725,7 @@ end
 ----
 
 property('user', '_user', nil, 'User', "The User object for the client")
+property('owner', getOwner, nil, 'User', "The User object for the account's owner")
 property('email', '_email', nil, 'string', "The client's email address (non-bot only)")
 property('mobile', '_mobile', nil, 'boolean', "Whether the client has used a Discord mobile app (non-bot only)")
 property('verified', '_verified', nil, 'boolean', "Whether the client account is verified by Discord")
@@ -722,9 +736,8 @@ method('stop', stop, 'shouldExit', "Disconnects from the Discord gateway and opt
 
 method('listVoiceRegions', listVoiceRegions, nil, "Returns a table of voice regions.")
 method('createGuild', createGuild, 'name, region', "Creates a guild with the provided name and voice region.")
-method('acceptInviteByCode', acceptInviteByCode, 'code', "Accepts a guild invitation with the raw invite code.")
-method('getInviteByCode', getInviteByCode, 'code', "Returns an Invite object corresponding to a raw invite code, if it exists.")
-method('getUserById', getUserById, 'id', "Returns a user from the client cache or from Discord if it is not cached.")
+method('acceptInvite', acceptInvite, 'code', "Accepts a guild invitation with the raw invite code.")
+method('getInvite', getInvite, 'code', "Returns an Invite object corresponding to a raw invite code, if it exists.")
 
 method('setUsername', setUsername, 'username', "Sets the user's username.")
 method('setNickname', setNick, 'guild, nickname', "Sets the user's nickname for the indicated guild.")

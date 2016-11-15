@@ -1,7 +1,9 @@
 local random = math.random
 local insert, remove, sort = table.insert, table.remove, table.sort
-local format, gmatch = string.format, string.gmatch
-local min, max, floor = math.min, math.max, math.floor
+local gmatch, match = string.gmatch, string.match
+local format, rep = string.format, string.rep
+local min, max = math.min, math.max
+local ceil, floor = math.ceil, math.floor
 
 -- globals --
 
@@ -37,6 +39,14 @@ function table.reverse(tbl)
 	for i = 1, #tbl do
 		insert(tbl, i, remove(tbl))
 	end
+end
+
+function table.reversed(tbl)
+	local ret = {}
+	for i = #tbl, 1, -1 do
+		insert(ret, tbl[i])
+	end
+	return ret
 end
 
 function table.copy(tbl)
@@ -95,26 +105,59 @@ function table.randompair(tbl)
 end
 
 function table.sorted(tbl, fn)
-	sort(tbl, fn)
-	return tbl
+	local ret = {}
+	for i, v in ipairs(tbl) do
+		ret[i] = v
+	end
+	sort(ret, fn)
+	return ret
+end
+
+function table.transposed(tbl)
+	local ret = {}
+	for _, row in ipairs(tbl) do
+		for i, element in ipairs(row) do
+			local column = ret[i] or {}
+			insert(column, element)
+			ret[i] = column
+		end
+	end
+	return ret
 end
 
 -- string --
 
 function string.split(str, delim)
-	local words = {}
-	for word in gmatch(str .. delim, '(.-)' .. delim) do
-		insert(words, word)
+	if delim and delim ~= '' then
+		local words = {}
+		for word in gmatch(str .. delim, '(.-)' .. delim) do
+			insert(words, word)
+		end
+		return words
+	else
+		local chars = {}
+		for char in gmatch(str, '.') do
+			insert(chars, char)
+		end
+		return chars
 	end
-	return words
 end
 
-function string.totable(str)
-	local chars = {}
-	for char in gmatch(str, '.') do
-		insert(chars, char)
-	end
-	return chars
+function string.trim(str)
+	return match(str, '^%s*(.-)%s*$')
+end
+
+function string.padleft(str, len)
+	return rep(' ', len - #str) .. str
+end
+
+function string.padright(str, len)
+	return str .. rep(' ', len - #str)
+end
+
+function string.padcenter(str, len)
+	local pad = 0.5 * (len - #str)
+	return rep(' ', floor(pad)) .. str .. rep(' ', ceil(pad))
 end
 
 -- math --
