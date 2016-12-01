@@ -200,6 +200,13 @@ function EventHandler.GUILD_BAN_REMOVE(data, client)
 	return client:emit('userUnban', user, guild)
 end
 
+function EventHandler.GUILD_EMOJIS_UPDATE(data, client)
+	local guild = client._guilds:get(data.guild_id)
+	if not guild then return warning(client, 'Guild', data.guild_id, 'GUILD_EMOJIS_UPDATE') end
+	guild._emojis:_update(data.emojis)
+	return client:emit('emojisUpdate', guild)
+end
+
 function EventHandler.GUILD_MEMBER_ADD(data, client)
 	local guild = client._guilds:get(data.guild_id)
 	if not guild then return warning(client, 'Guild', data.guild_id, 'GUILD_MEMBER_ADD') end
@@ -313,6 +320,28 @@ function EventHandler.MESSAGE_DELETE_BULK(data, client)
 			client:emit('messageDelete', message)
 		end
 	end
+end
+
+function EventHandler.MESSAGE_REACTION_ADD(data, client)
+	local channel = client:getTextChannel(data.channel_id) -- shortcut required
+	if not channel then return warning(client, 'TextChannel', data.channel_id, 'MESSAGE_REACTION_ADD') end
+	local message = channel._messages:get(data.message_id)
+	if not message then return warning(client, 'Message', data.message_id, 'MESSAGE_REACTION_ADD') end
+	local user = client._users:get(data.user_id)
+	if not user then return warning(client, 'User', data.user_id, 'MESSAGE_REACTION_ADD') end
+	local reaction = message:_addReaction(data, user)
+	return client:emit('reactionAdd', reaction, user)
+end
+
+function EventHandler.MESSAGE_REACTION_REMOVE(data, client)
+	local channel = client:getTextChannel(data.channel_id) -- shortcut required
+	if not channel then return warning(client, 'TextChannel', data.channel_id, 'MESSAGE_REACTION_REMOVE') end
+	local message = channel._messages:get(data.message_id)
+	if not message then return warning(client, 'Message', data.message_id, 'MESSAGE_REACTION_REMOVE') end
+	local user = client._users:get(data.user_id)
+	if not user then return warning(client, 'User', data.user_id, 'MESSAGE_REACTION_REMOVE') end
+	local reaction = message:_removeReaction(data, user)
+	return client:emit('reactionRemove', reaction, user)
 end
 
 function EventHandler.PRESENCE_UPDATE(data, client)
