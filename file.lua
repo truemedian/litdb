@@ -10,17 +10,19 @@
 --------------------------------------------------------------------------------
 --[[lit-meta
   name = "SinisterRectus/sqlite3"
-  version = "1.0.0"
-  homepage = "https://github.com/SinisterRectus/lit-sqlite3"
+  version = "1.0.0-1"
+  homepage = "http://scilua.org/ljsqlite3.html"
   description = "SciLua's sqlite3 bindings repackaged for lit."
   tags = {"database", "sqlite3"}
   license = "MIT"
-  author = "Sinister Rectus"
+  author = "Stefano Peluchetti"
+  contributors = {
+    "Sinister Rectus"
+  }
 ]]
 --------------------------------------------------------------------------------
 
 -- TODO: Refactor according to latest style / coding guidelines.
-
 -- TODO: introduce functionality to get of a defined type to avoid if check?
 -- TODO: Add extended error codes from Sqlite?
 -- TODO: Consider type checks?
