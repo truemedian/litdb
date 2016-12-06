@@ -107,21 +107,21 @@ function ServerResponse:render(tpl, data)
     ServerResponse.flashData[sid] = nil
   end
   local renderData = extend(extend(localData, data or {}), flashData)
-  if viewEngine == "etlua" or path.extname(filePath) == ".elua" then
+  if viewEngine == "etlua" or path.extname(filePath) == ".etlua" then
     local templateString = fs.readFileSync(filePath)
     local include = function(fpath, data)
-      local fpath = path.resolve(filePath, fpath)
+      local fpath = path.resolve(path.dirname(filePath), fpath)
       local tplString = fs.readFileSync(fpath)
       if not tplString then
         p("[Error]: File " .. fpath .. " Not Found.")
-        return ""
+        return "<pre><code>File: `".. fpath .. "` not found.</code></pre>"
       end
       local renderData = extend(extend(localData or {}, {currentPath = fpath, include = include }),data or {})
       local tplResult, err = etlua.render(tplString, renderData)
       if tplResult then
         return tplResult
       else
-        p("[Error Rendering HTML] ", err)
+        p("[Error Rendering HTML](:include) ", err)
         return "<h1>Internal Error</h1> <p style='color: red'>Error while render template :(</p>"
       end
     end
@@ -135,7 +135,7 @@ function ServerResponse:render(tpl, data)
     local result, error = etlua.render(templateString, renderData)
     if not result then
       p("[Error Rendering HTML] ", error)
-      self:fail("Internal Error")
+      self:status(500):render("./template/500.html")
     else
       self:send(result)
     end
