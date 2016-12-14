@@ -6,6 +6,7 @@ local Invite = require('../containers/Invite')
 local User = require('../containers/snowflakes/User')
 local Guild = require('../containers/snowflakes/Guild')
 local PrivateChannel = require('../containers/snowflakes/channels/PrivateChannel')
+local VoiceManager = require('../voice/VoiceManager')
 local pp = require('pretty-print')
 
 local open = io.open
@@ -22,6 +23,7 @@ local defaultOptions = {
 	largeThreshold = 100,
 	fetchMembers = false,
 	autoReconnect = true,
+	bitrate = 64000,
 	dateTime = '%c',
 }
 
@@ -48,6 +50,7 @@ function Client:__init(customOptions)
 	self._users = Cache({}, User, 'id', self)
 	self._guilds = Cache({}, Guild, 'id', self)
 	self._private_channels = Cache({}, PrivateChannel, 'id', self)
+	self._voice = VoiceManager(self)
 end
 
 function Client:__tostring()
@@ -96,7 +99,7 @@ local function run(self, a, b)
 	end)()
 end
 
-local function stop(self, shouldExit)
+local function stop(self, shouldExit) -- should probably rename to disconnect
 	if self._socket then self._socket:disconnect() end
 	if shouldExit then exit() end
 end
@@ -722,9 +725,8 @@ local function findMessages(self, predicate)
 	end)
 end
 
-----
-
 property('user', '_user', nil, 'User', "The User object for the client")
+property('voice', '_voice', nil, 'VoiceManager', "The VoiceManager handle for the main client")
 property('owner', getOwner, nil, 'User', "The User object for the account's owner")
 property('email', '_email', nil, 'string', "The client's email address (non-bot only)")
 property('mobile', '_mobile', nil, 'boolean', "Whether the client has used a Discord mobile app (non-bot only)")

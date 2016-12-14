@@ -25,16 +25,16 @@ local Socket = class('Socket')
 
 function Socket:__init(client)
 	self._client = client
-	self._backoff = 1024
+	self._backoff = 1000
 	self._stopwatch = Stopwatch()
 end
 
 local function incrementReconnectTime(self)
-	self._backoff = min(self._backoff * 2, 65536)
+	self._backoff = min(self._backoff * 2, 64000)
 end
 
 local function decrementReconnectTime(self)
-	self._backoff = max(self._backoff / 2, 1024)
+	self._backoff = max(self._backoff / 2, 1000)
 end
 
 function Socket:connect(gateway)
@@ -58,8 +58,8 @@ function Socket:disconnect()
 	self._res, self._read, self._write = nil, nil, nil
 end
 
-local function handleUnexpectedDisconnect(self, client, token)
-	client:warning(format('Attemping to reconnect after %i ms...', self._backoff))
+local function handleUnexpectedDisconnect(self, token)
+	self._client:warning(format('Attemping to reconnect after %i ms...', self._backoff))
 	sleep(self._backoff)
 	incrementReconnectTime(self)
 	if not pcall(self.reconnect, self, token) then
@@ -93,7 +93,7 @@ function Socket:handlePayloads(token)
 		elseif op == 1 then
 			self:heartbeat()
 		elseif op == 7 then
-			self:reconnect()
+			self:reconnect(token)
 		elseif op == 9 then
 			client:warning('Invalid session, attempting to re-identify...')
 			self:identify(token)
@@ -117,7 +117,7 @@ function Socket:handlePayloads(token)
 		self:stopHeartbeat()
 		client:warning('Disconnected from gateway unexpectedly')
 		if client._options.autoReconnect then
-			return handleUnexpectedDisconnect(self, client, token)
+			return handleUnexpectedDisconnect(self, token)
 		end
 	end
 
@@ -139,76 +139,67 @@ function Socket:stopHeartbeat()
 	self._heartbeatInterval = nil
 end
 
-local function send(self, payload)
-	return self._write({
+local function send(self, op, d)
+	return wrap(self._write)({
 		opcode = 1,
-		payload = encode(payload)
+		payload = encode({op = op, d = d})
 	})
 end
 
 function Socket:heartbeat()
 	self._stopwatch:restart()
-	return send(self, {
-		op = 1,
-		d = self._seq
-	})
+	return send(self, 1, self._seq)
 end
 
 function Socket:identify(token)
-	return send(self, {
-		op = 2,
-		d = {
-			token = token,
-			properties = {
-				['$os'] = jit.os,
-				['$browser'] = 'Discordia',
-				['$device'] = 'Discordia',
-				['$referrer'] = '',
-				['$referring_domain'] = ''
-			},
-			large_threshold = self._client._options.largeThreshold,
-			compress = false,
-		}
+	return send(self, 2, {
+		token = token,
+		properties = {
+			['$os'] = jit.os,
+			['$browser'] = 'Discordia',
+			['$device'] = 'Discordia',
+			['$referrer'] = '',
+			['$referring_domain'] = ''
+		},
+		large_threshold = self._client._options.largeThreshold,
+		compress = false,
 	})
 end
 
 function Socket:statusUpdate(idleSince, gameName)
-	return send(self, {
-		op = 3,
-		d = {
-			idle_since = idleSince or json.null,
-			game = {name = gameName or json.null},
-		}
+	return send(self, 3, {
+		idle_since = idleSince or json.null,
+		game = {name = gameName or json.null},
+	})
+end
+
+function Socket:joinVoiceChannel(guild_id, channel_id, self_mute, self_deaf)
+	return send(self, 4, {
+		guild_id = guild_id or json.null,
+		channel_id = channel_id or json.null,
+		self_mute = self_mute or false,
+		self_deaf = self_deaf or false,
 	})
 end
 
 function Socket:resume(token)
-	return send(self, {
-		op = 6,
-		d = {
-			token = token,
-			session_id = self._session_id,
-			seq = self._seq
-		}
+	return send(self, 6, {
+		token = token,
+		session_id = self._session_id,
+		seq = self._seq
 	})
 end
 
 function Socket:requestGuildMembers(guild_id)
-	return send(self, {
-		op = 8,
-		d = {
-			guild_id = guild_id,
-			query = '',
-			limit = 0
-		}
+	return send(self, 8, {
+		guild_id = guild_id,
+		query = '',
+		limit = 0
 	})
 end
 
 function Socket:syncGuilds(guild_ids)
-	return send(self, {
-		op = 12,
-		d = guild_ids
-	})
+	return send(self, 12, guild_ids)
 end
 
 return Socket

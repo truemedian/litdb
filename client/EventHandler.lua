@@ -8,15 +8,20 @@ local function warning(client, object, id, event)
 	return client:warning(format('Uncached %s (%s) on %s', object, id, event))
 end
 
+local function makeReady(client)
+	client._loading = nil
+	client._stopwatch = nil
+	collectgarbage()
+	return client:emit('ready')
+end
+
 local function checkReady(client)
 	for _, v in pairs(client._loading) do
 		if next(v) then
 			return client._stopwatch:restart()
 		end
 	end
-	client._loading = nil
-	client._stopwatch = nil
-	return client:emit('ready')
+	return makeReady(client)
 end
 
 local EventHandler = {}
@@ -72,10 +77,8 @@ function EventHandler.READY(data, client)
 			local ids = concat(keys(loading.chunks), ', ')
 			client:warning('Client may lack offline member data for guild(s): ' .. ids)
 		end
-		client._loading = nil
-		client._stopwatch = nil
 		timer.clearInterval(interval)
-		return client:emit('ready')
+		return makeReady(client)
 	end)
 
 end
@@ -370,11 +373,11 @@ end
 function EventHandler.VOICE_STATE_UPDATE(data, client)
 	local guild = client._guilds:get(data.guild_id)
 	if not guild then return warning(client, 'Guild', data.guild_id, 'VOICE_STATE_UPDATE') end
-	local member = guild._members:get(data.user_id)
-	if not member then return warning(client, 'Member', data.user_id, 'VOICE_STATE_UPDATE') end
+	local id = data.user_id
+	local member = guild._members:get(id)
+	if not member then return warning(client, 'Member', id, 'VOICE_STATE_UPDATE') end
 	local mute = data.mute or data.self_mute
 	local deaf = data.deaf or data.self_deaf
-	local id = data.session_id
 	local state = guild._voice_states[id]
 	if state then
 		if data.channel_id then
@@ -387,6 +390,9 @@ function EventHandler.VOICE_STATE_UPDATE(data, client)
 				guild._voice_states[id] = data
 				client:emit('voiceChannelLeave', member, old)
 				client:emit('voiceChannelJoin', member, new)
+				if id == client._user._id then
+					client._voice:_resumeJoin(data.guild_id)
+				end
 			end
 		else
 			guild._voice_states[id] = nil
@@ -400,6 +406,15 @@ function EventHandler.VOICE_STATE_UPDATE(data, client)
 		client:emit('voiceConnect', member, mute, deaf)
 		client:emit('voiceChannelJoin', member, new)
 	end
+end
+
+function EventHandler.VOICE_SERVER_UPDATE(data, client)
+	local guild = client._guilds:get(data.guild_id)
+	if not guild then return warning(client, 'Guild', data.guild_id, 'VOICE_SERVER_UPDATE') end
+	local state = guild._voice_states[client._user._id]
+	local channel = guild._voice_channels:get(state.channel_id)
+	if not channel then return warning(client, 'GuildVoiceChannel', state.guild_id, 'VOICE_SERVER_UPDATE') end
+	return client._voice:_createVoiceConnection(data, channel, state)
 end
 
 return EventHandler
