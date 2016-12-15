@@ -14,28 +14,27 @@ local posts = {
 	syntax : optional
 	contents: not optional
 	]]
-		return(
+		return
 			Request(
 				"POST",
 				"https://api.paste.ee/v1/pastes",
 				nil,
 				query.stringify(submitedPaste)
 			)
-		)
 	end,
 	["auth"] = function(username, password)
 	local user = {
 		["username"] = username,
 		["password"] = password
 	} 
-		return(
+		return
 			Request(
 				"POST",
 				"https://api.paste.ee/v1/users/authenticate",
 				nil,
 				query.stringify(user)
 			)
-		)
+		
 	end,
 }
 

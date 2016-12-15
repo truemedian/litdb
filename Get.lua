@@ -1,4 +1,4 @@
-Get = class('Get')
+Get, property, method = class('Get')
 Get.__description = "GET method for Paste.ee API."
 
 local gets = {
@@ -7,43 +7,39 @@ local gets = {
 		["perpage"] = perpage,
 		["page"] = page
 	}
-		return(
+		return
 			Request(
 				"GET",
 				"https://api.paste.ee/v1/pastes",
 				nil,
 				query.stringify(__)
 			)
-		)
 	end,
 	["paste"] = function(id)
-		return(
+		return
 			Request(
 				"GET",
 				"https://api.paste.ee/v1/pastes/",
 				nil,
 				id
 			)
-		)
 	end,
 	["syntaxes"] = function(id)
 	local ____ = id or ""
-		return(
+		return
 			Request(
 				"GET",
-				"https://api.paste.ee/v1/syntaxes"
+				"https://api.paste.ee/v1/syntaxes",
 				nil,
 				____
 			)
-		)
 	end,
 	["key"] = function()
-		return(
+		return
 			Request(
 				"GET",
 				"https://api.paste.ee/v1/users/info"
 			)
-		)
 	end,
 }
 
@@ -54,5 +50,6 @@ function Get:__init(aim, ...)
 		error("Invalid Get aim '"..aim.."'.")
 	end
 end
+
 
 return Get
