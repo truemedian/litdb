@@ -1,20 +1,10 @@
-Delete = class('Delete')
-Delete.__description = "DELETE method for Paste.ee API."
-
 local dels = {
-	["submit"] = function(id)
-	return(
-			Request(
-				"DELETE",
-				"https://api.paste.ee/v1/pastes/",
-				nil,
-				id
-			)
-		)
+	["remove"] = function(id)
+		return Request("DELETE", "https://api.paste.ee/v1/pastes/", nil, id)
 	end
 }
 
-function Delete:__init(aim, ...)
+local function Delete(aim, ...)
 	if dels[aim] then
 		return dels[aim](...)
 	else

@@ -1,6 +1,3 @@
-Error = class('Error')
-Error.__description = "Error handling class for Paste.ee API."
-
 local errors = {
 	["400"] = "Bad Request",
 	["401"] = "Unauthorized – Your Application/User application key is wrong.",
@@ -14,7 +11,7 @@ local errors = {
 
 }
 
-function Error:__init(err)
+function Error(err)
 	return errors[err]()
 end
 
