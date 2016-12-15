@@ -18,7 +18,7 @@ SOFTWARE.]]
 
 return {
 	name = 'PurgePJ/LuaPaste.ee',
-	version = '0.1',
+	version = '1.0',
 	homepage = 'https://github.com/PurgePJ/LuaPaste.ee',
 	dependencies = {
 		'creationix/coro-http@2.1.1',
