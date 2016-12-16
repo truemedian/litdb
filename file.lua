@@ -18,7 +18,7 @@ limitations under the License.
 
 --[[lit-meta
   name = "luvit/repl"
-  version = "2.0.2"
+  version = "2.1.0"
   dependencies = {
     "luvit/utils@2.0.0",
     "luvit/readline@2.0.0",
@@ -75,7 +75,7 @@ return function (stdin, stdout, greeting)
   local buffer = ''
 
   local function evaluateLine(line)
-    if line == "<3" or line == "♥" then
+    if line == "<3" or line == "♥" or line == "❤" then
       stdout:write("I " .. c("err") .. "♥" .. c() .. " you too!\n")
       return '>'
     end
