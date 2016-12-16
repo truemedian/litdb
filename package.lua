@@ -1,8 +1,8 @@
 return {
   name = "luvit/luvit",
-  version = "2.11.5",
+  version = "2.12.0",
   luvi = {
-    version = "2.7.4",
+    version = "2.7.6",
     flavor = "regular",
   },
   license = "Apache 2",
@@ -50,6 +50,7 @@ return {
     "luvit/tls@2.0.0",
     "luvit/utils@2.0.0",
     "luvit/url@2.0.0",
+    "luvit/ustring@2.0.0"
   },
   files = {
     "*.lua",
