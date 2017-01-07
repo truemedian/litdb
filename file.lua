@@ -1,6 +1,6 @@
 --[[lit-meta
 name = "slact/redis-callback-client"
-version = "0.0.8"
+version = "0.0.9"
 description = "A full-featured callback-based Redis client for Luvit"
 tags = {"redis"}
 license = "MIT"
@@ -123,9 +123,6 @@ return function(url)
       multi = true
     end
     
-    --p("callbacks", callbacks)
-    --p("multiCallbacks", multiCallbacks)
-    
     socket:write(redisCodec.encode(arg))
     
     return self
@@ -223,12 +220,9 @@ return function(url)
   
   socket:on('data', function(data)
     -- If error, print and close connection
-    print("data", data)
     while data and #data>0 do
       local d
       d, data = redisCodec.decode(data)
-      p("d, data", d)
-      print(data)
       if type(d)=="table" and d[1]=="message" then
         pubsub[d[2]](d[3])
       else
