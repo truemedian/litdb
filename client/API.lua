@@ -44,6 +44,23 @@ local function attachQuery(endpoint, query)
 	return format('%s?%s', endpoint, concat(buffer, '&'))
 end
 
+local boundary = 'Discordia' .. time()
+local multipart = format('multipart/form-data; boundary=%s', boundary)
+
+local function attachFile(payload, file)
+	return concat {
+		'\r\n--', boundary,
+		'\r\nContent-Disposition: form-data; name="file";', format('filename=%q', file[1]),
+		'\r\nContent-Type: application/octet-stream',
+		'\r\n\r\n', file[2],
+		'\r\n--', boundary,
+		'\r\nContent-Disposition: form-data; name="payload_json"',
+		'\r\nContent-Type: application/json',
+		'\r\n\r\n', payload,
+		'\r\n--', boundary, '--',
+	}
+end
+
 local API = class('API')
 
 function API:__init(client)
@@ -52,27 +69,30 @@ function API:__init(client)
 	self._global_delay = client._options.globalDelay
 	self._global_mutex = Mutex()
 	self._route_mutexes = {}
-	self._headers = {
-		['Content-Type'] = 'application/json',
-		['User-Agent'] = format('DiscordBot (%s, %s)', package.homepage, package.version),
-	}
+	self._user_agent = format('DiscordBot (%s, %s)', package.homepage, package.version)
 end
 
 function API:setToken(token)
-	self._headers['Authorization'] = token
+	self._token = token
 end
 
-function API:request(method, route, endpoint, payload)
+function API:request(method, route, endpoint, payload, file)
 
 	local url = "https://discordapp.com/api" .. endpoint
 
-	local reqHeaders = {}
-	for k, v in pairs(self._headers) do
-		insert(reqHeaders, {k, v})
-	end
+	local reqHeaders = {
+		{'Authorization', self._token},
+		{'User-Agent', self._user_agent},
+	}
 
 	if method:find('P') then
 		payload = payload and encode(payload) or '{}'
+		if file then
+			payload = attachFile(payload, file)
+			insert(reqHeaders, {'Content-Type', multipart})
+		else
+			insert(reqHeaders, {'Content-Type', 'application/json'})
+		end
 		insert(reqHeaders, {'Content-Length', #payload})
 	end
 
@@ -177,9 +197,9 @@ function API:getChannelMessage(channel_id, message_id) -- TextChannel:getMessage
 	return self:request("GET", route, format(route, message_id))
 end
 
-function API:createMessage(channel_id, payload) -- TextChannel:[create|send]Message
+function API:createMessage(channel_id, payload, file) -- TextChannel:sendMessage
 	local route = format("/channels/%s/messages", channel_id)
-	return self:request("POST", route, route, payload)
+	return self:request("POST", route, route, payload, file)
 end
 
 function API:createReaction(channel_id, message_id, emoji) -- Message:addReaction

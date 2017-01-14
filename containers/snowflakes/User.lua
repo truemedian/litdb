@@ -29,9 +29,12 @@ local function getDefaultAvatarUrl(self)
 	return format('https://discordapp.com/assets/%s.png', getDefaultAvatar(self))
 end
 
-local function getAvatarUrl(self)
-	if self._avatar then
-		return format('https://discordapp.com/api/users/%s/avatars/%s.jpg', self._id, self._avatar)
+local function getAvatarUrl(self, size)
+	local avatar = self._avatar
+	if avatar then
+		local ext = avatar:find('a_') == 1 and 'gif' or 'png'
+		local fmt = 'https://cdn.discordapp.com/avatars/%s/%s.%s?size=%i'
+		return format(fmt, self._id, avatar, ext, size or 1024)
 	else
 		return getDefaultAvatarUrl(self)
 	end
@@ -81,7 +84,7 @@ property('bot', '_bot', function(self) return self._bot or false end, 'boolean',
 method('ban', ban, 'guild[, days]', "Bans the user from a guild and optionally deletes their messages from 1-7 days.")
 method('unban', unban, 'guild', "Unbans the user from the provided guild.")
 method('kick', kick, 'guild', "Kicks the user from the provided guild.")
-method('sendMessage', sendMessage, 'content[, mentions, tts, nonce]', "Sends a private message to the user.")
+method('sendMessage', sendMessage, 'content', "Sends a private message to the user.")
 method('getMembership', getMembership, 'guild', "Returns the user's Member object for the provided guild.")
 
 return User

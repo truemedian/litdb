@@ -2,8 +2,16 @@ local Channel = require('../Channel')
 local Message = require('../Message')
 local OrderedCache = require('../../../utils/OrderedCache')
 
+local fs = require('coro-fs')
+local http = require('coro-http')
+local pathjoin = require('pathjoin')
+
 local clamp = math.clamp
-local insert, concat = table.insert, table.concat
+local format = string.format
+local readFile = fs.readFile
+local request = http.request
+local splitPath = pathjoin.splitPath
+local insert, remove, concat = table.insert, table.remove, table.concat
 
 local TextChannel, property, method, cache = class('TextChannel', Channel)
 TextChannel.__description = "Abstract base class for guild and private text channels."
@@ -73,7 +81,7 @@ local function getPinnedMessages(self)
 	return _messageIterator(self, client._api:getPinnedMessages(self._id))
 end
 
-local function sendMessage(self, content, mentions, tts)
+local function parseMentions(content, mentions)
 	if type(mentions) == 'table' then
 		local strings = {}
 		if mentions.getMentionString then
@@ -94,10 +102,44 @@ local function sendMessage(self, content, mentions, tts)
 		insert(strings, content)
 		content = concat(strings, ' ')
 	end
+	return content
+end
+
+local function sendMessage(self, ...) -- content, mentions, tts
 	local client = self._parent._parent or self._parent
-	local success, data = client._api:createMessage(self._id, {
-		content = content, tts = tts
-	})
+	local payload, file
+	if select('#', ...) > 1 then
+		client:warning('Multiple argument usage for TextChannel:sendMessage is deprecated. Use a table instead.')
+		payload = {content = parseMentions(select(1, ...), select(2, ...)), tts = select(3, ...)}
+	else
+		local arg = select(1, ...)
+		local t = type(arg)
+		if t == 'string' then
+			payload = {content = arg}
+		elseif t == 'table' then
+			payload = {
+				content = parseMentions(arg.content, arg.mentions),
+				tts = arg.tts,
+				nonce = arg.nonce,
+				embed = arg.embed,
+			}
+			if arg.file then
+				local data, err
+				if arg.file:find('https?://') == 1 then
+					err, data = request('GET', arg.file)
+					err = err.code > 299 and format('%s / %s / %s', err.code, err.reason, arg.file)
+				else
+					data, err = readFile(arg.file)
+				end
+				if err then
+					client:warning(err)
+				else
+					file = {arg.filename or remove(splitPath(arg.file)), data}
+				end
+			end
+		end
+	end
+	local success, data = client._api:createMessage(self._id, payload, file)
 	if success then return self._messages:new(data) end
 end
 
@@ -136,7 +178,7 @@ property('pinnedMessages', getPinnedMessages, nil, 'function', "Iterator for all
 
 method('broadcastTyping', broadcastTyping, nil, "Causes the 'User is typing...' indicator to show in the channel.")
 method('loadMessages', loadMessages, '[limit]', "Downloads 1 to 100 (default: 50) of the channel's most recent messages into the channel cache.")
-method('sendMessage', sendMessage, 'content[, mentions, tts]', "Sends a message to the channel.")
+method('sendMessage', sendMessage, 'content', "Sends a message to the channel. Content is a string or table.")
 
 method('getMessageHistory', getMessageHistory, '[limit]', 'Returns an iterator for 1 to 100 (default: 50) of the most recent messages in the channel.')
 method('getMessageHistoryBefore', getMessageHistoryBefore, 'message[, limit]', 'Get message history before a specific message.')

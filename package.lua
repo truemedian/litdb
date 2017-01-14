@@ -22,18 +22,17 @@ SOFTWARE.]]
 
 return {
 	name = 'SinisterRectus/discordia',
-	version = '1.2.2',
+	version = '1.3.0',
 	homepage = 'https://github.com/SinisterRectus/Discordia',
 	dependencies = {
 		'creationix/coro-http@2.1.1',
 		'creationix/coro-websocket@1.0.0-1',
 		'creationix/coro-spawn@2.0.0',
+		'creationix/coro-fs@2.2.1',
 		'luvit/secure-socket@1.1.4',
 	},
 	tags = {'discord', 'api'},
 	license = 'MIT',
 	author = 'Sinister Rectus',
-	files = {
-		'**.lua'
-	}
+	files = {'**.lua'},
 }

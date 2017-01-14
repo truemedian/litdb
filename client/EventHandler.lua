@@ -39,7 +39,7 @@ function EventHandler.READY(data, client)
 	client._private_channels:merge(data.private_channels)
 
 	if client._user._bot then -- TODO: maybe move token parsing out of EventHandler
-		client._api._headers['Authorization'] = 'Bot ' .. client._api._headers['Authorization']
+		client._api._token = 'Bot ' .. client._api._token
 		for guild in client._guilds:iter() do
 			client._loading.guilds[guild._id] = true
 		end
@@ -299,6 +299,9 @@ function EventHandler.MESSAGE_UPDATE(data, client)
 	if not channel then return warning(client, 'TextChannel', data.channel_id, 'MESSAGE_UPDATE') end
 	local message = channel._messages:get(data.id)
 	if not message then return client:emit('messageUpdateUncached', channel, data.id) end
+	if message._content ~= data.content then
+		message._old_content = message._content
+	end
 	message:_update(data)
 	return client:emit('messageUpdate', message)
 end
@@ -329,22 +332,28 @@ function EventHandler.MESSAGE_REACTION_ADD(data, client)
 	local channel = client:getTextChannel(data.channel_id) -- shortcut required
 	if not channel then return warning(client, 'TextChannel', data.channel_id, 'MESSAGE_REACTION_ADD') end
 	local message = channel._messages:get(data.message_id)
-	if not message then return warning(client, 'Message', data.message_id, 'MESSAGE_REACTION_ADD') end
-	local user = client._users:get(data.user_id)
-	if not user then return warning(client, 'User', data.user_id, 'MESSAGE_REACTION_ADD') end
-	local reaction = message:_addReaction(data, user)
-	return client:emit('reactionAdd', reaction, user)
+	if message then
+		local user = client._users:get(data.user_id)
+		if not user then return warning(client, 'User', data.user_id, 'MESSAGE_REACTION_ADD') end
+		local reaction = message:_addReaction(data, user)
+		return client:emit('reactionAdd', reaction, user)
+	else
+		return client:emit('reactionAddUncached', data)
+	end
 end
 
 function EventHandler.MESSAGE_REACTION_REMOVE(data, client)
 	local channel = client:getTextChannel(data.channel_id) -- shortcut required
 	if not channel then return warning(client, 'TextChannel', data.channel_id, 'MESSAGE_REACTION_REMOVE') end
 	local message = channel._messages:get(data.message_id)
-	if not message then return warning(client, 'Message', data.message_id, 'MESSAGE_REACTION_REMOVE') end
-	local user = client._users:get(data.user_id)
-	if not user then return warning(client, 'User', data.user_id, 'MESSAGE_REACTION_REMOVE') end
-	local reaction = message:_removeReaction(data, user)
-	return client:emit('reactionRemove', reaction, user)
+	if message then
+		local user = client._users:get(data.user_id)
+		if not user then return warning(client, 'User', data.user_id, 'MESSAGE_REACTION_REMOVE') end
+		local reaction = message:_removeReaction(data, user)
+		return client:emit('reactionRemove', reaction, user)
+	else
+		return client:emit('reactionRemoveUncached', data)
+	end
 end
 
 function EventHandler.PRESENCE_UPDATE(data, client)

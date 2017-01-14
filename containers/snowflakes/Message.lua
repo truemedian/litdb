@@ -34,7 +34,7 @@ function Message:_update(data)
 		end
 		self._mentions = mentions
 	end
-	if data.mention_roles ~= nil then self._mention_roles = data.mention_roles end
+	if data.mention_roles then self._mention_roles = data.mention_roles end
 
 	if data.reactions then
 		local reactions = {}
@@ -46,9 +46,17 @@ function Message:_update(data)
 		self._reactions = reactions
 	end
 
-	self._embeds = data.embeds -- TODO: parse embeds
-	self._attachments = data.attachments -- TODO: parse attachments
+	if data.embeds then self._embeds = data.embeds end -- raw tables
+	if data.attachments then self._attachments = data.attachments end -- raw tables
 
+end
+
+local function getAttachment(self)
+	return self._attachments and self._attachments[1]
+end
+
+local function getEmbed(self)
+	return self._embeds and self._embeds[1]
 end
 
 local httpAdded = {}
@@ -174,8 +182,20 @@ end
 local function setContent(self, content)
 	local channel = self._parent
 	local client = channel._parent._parent or channel._parent
+	local old = self._content
 	local success, data = client._api:editMessage(channel._id, self._id, {content = content})
-	if success then self._content = data.content end
+	if success then
+		self._old_content = old
+		self._content = data.content
+	end
+	return success
+end
+
+local function setEmbed(self, embed)
+	local channel = self._parent
+	local client = channel._parent._parent or channel._parent
+	local success, data = client._api:editMessage(channel._id, self._id, {embed = embed})
+	if success then self._embeds = data.embeds end
 	return success
 end
 
@@ -294,9 +314,11 @@ local function delete(self)
 end
 
 property('content', '_content', setContent, 'string', "The raw message text")
+property('oldContent', '_old_content', nil, 'string', "The raw message text before the most recent edit")
 property('cleanContent', getCleanContent, nil, 'string', "The message text with sanitized mentions")
 property('tts', '_tts', nil, 'boolean', "Whether the message is a TTS one")
 property('pinned', '_pinned', nil, 'boolean', "Whether the message is pinned")
+property('nonce', '_nonce', nil, '*', "User-defined message identifier")
 property('timestamp', '_timestamp', nil, 'string', "Date and time that the message was created")
 property('editedTimestamp', '_edited_timestamp', nil, 'string', "Date and time that the message was edited")
 property('channel', '_parent', nil, 'TextChannel', "The channel in which the message exists (GuildTextChannel or PrivateChannel)")
@@ -307,6 +329,10 @@ property('mentionedUsers', getMentionedUsers, nil, 'function', "An iterator for 
 property('mentionedRoles', getMentionedRoles, nil, 'function', "An iterator for known Roles that are mentioned in the message")
 property('mentionedChannels', getMentionedChannels, nil, 'function', "An iterator for known GuildTextChannels that are mentioned in the message")
 property('reactions', getReactions, nil, 'function', "An iterator for known Reactions that this message has")
+property('attachment', getAttachment, nil, 'table', "A shortcut to the first known attachment that this message has")
+property('attachments', '_attachments', nil, 'table', "Known attachments that this message has")
+property('embed', getEmbed, setEmbed, 'table', "A shortcut to the first known embed that this message has")
+property('embeds', '_embeds', nil, 'table', "Known embeds that this message has")
 
 method('reply', reply, 'content[, mentions, tts, nonce]', "Shortcut for `message.channel:sendMessage`.")
 method('pin', pin, nil, "Adds the message to the channel's pinned messages.")
