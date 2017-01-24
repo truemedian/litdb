@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 --[[lit-meta
   name = "luvit/fs"
-  version = "2.0.1"
+  version = "2.0.2"
   dependencies = {
     "luvit/utils@2.0.0",
     "luvit/path@2.0.0",
@@ -658,18 +658,17 @@ function fs.ReadStream:_read(n)
     end
   end
 
-  fs.read(self.fd, to_read, self.offset, function(err, bytes)
-    if err then return self:destroy(err) end
-    if #bytes > 0 then
-      self.bytesRead = self.bytesRead + #bytes
-      if self.offset then
-        self.offset = self.offset + #bytes
-      end
-      self:push(bytes)
-    else
-      self:push()
+  local bytes,err = fs.readSync(self.fd, to_read, self.offset)
+  if err then return self:destroy(err) end
+  if #bytes > 0 then
+    self.bytesRead = self.bytesRead + #bytes
+    if self.offset then
+      self.offset = self.offset + #bytes
     end
-  end)
+    self:push(bytes)
+  else
+    self:push()
+  end
 end
 function fs.ReadStream:close()
   self:destroy()
