@@ -66,7 +66,7 @@ end
 function Options.parse (arg, options)
 	if Options._demand and #arg == 0 and Options._usage then
 		Options.showUsage (options)
-		process.exit (1)
+		process:exit (1)
 	end
 
 	local ind = 0
@@ -117,7 +117,7 @@ function Options.parse (arg, options)
 							tab[jopt] = arg[k + 1]
 							if not tab[jopt] then
 								print ("Missing argument for "..v)
-								process.exit (1)
+								process:exit (1)
 							end
 						else
 							tab[jopt] = true
@@ -141,13 +141,13 @@ function Options.parse (arg, options)
 		for k,v in pairs (Options._demand) do
 			if not tab[v] then
 				print ("Missing required argument -"..v)
-				process.exit (1)
+				process:exit (1)
 			end
 		end
 	end
 	if Options._check and not Options._check (tab) then
 		print ("luvit-getopt: check condition failed")
-		process.exit (1)
+		process:exit (1)
 	end
 	return Options
 end
