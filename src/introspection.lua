@@ -1,6 +1,5 @@
-local path = (...):gsub('%.[^%.]+$', '')
-local types = require(path .. '.types')
-local util = require(path .. '.util')
+local types = require('./types')
+local util = require('./util')
 
 local __Schema, __Directive, __DirectiveLocation, __Type, __Field, __InputValue,__EnumValue, __TypeKind
 

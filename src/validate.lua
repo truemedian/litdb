@@ -1,8 +1,7 @@
-local path = (...):gsub('%.[^%.]+$', '')
-local rules = require(path .. '.rules')
-local util = require(path .. '.util')
-local introspection = require(path .. '.introspection')
-local schema = require(path .. '.schema')
+local rules = require('./rules')
+local util = require('./util')
+local introspection = require('./introspection')
+local schema = require('./schema')
 
 local function getParentField(context, name, count)
   if introspection.fieldMap[name] then return introspection.fieldMap[name] end
