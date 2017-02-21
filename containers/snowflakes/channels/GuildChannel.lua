@@ -39,7 +39,7 @@ end
 
 local function getPermissionOverwriteFor(self, object)
 	local type = type(object) == 'table' and object.__name:lower()
-	if type ~= 'role' and type ~= 'member' then return end
+	if type ~= 'role' and type ~= 'member' then return nil end
 	local id = object._id
 	return self._permission_overwrites:get(id) or self._permission_overwrites:new({
 		id = id, allow = 0, deny = 0, type = type
@@ -68,7 +68,7 @@ local function createInvite(self, maxAge, maxUses, temporary, unique)
 		temporary = temporary,
 		unique = unique
 	})
-	if success then return Invite(data, client) end
+	return success and Invite(data, client) or nil
 end
 
 -- permission overwrite --

@@ -2,19 +2,24 @@ local API = require('./API')
 local Socket = require('./Socket')
 local Cache = require('../utils/Cache')
 local Emitter = require('../utils/Emitter')
+local Stopwatch = require('../utils/Stopwatch')
 local Invite = require('../containers/Invite')
 local User = require('../containers/snowflakes/User')
 local Guild = require('../containers/snowflakes/Guild')
 local PrivateChannel = require('../containers/snowflakes/channels/PrivateChannel')
 local VoiceManager = require('../voice/VoiceManager')
 local pp = require('pretty-print')
+local timer = require('timer')
+local json = require('json')
 
-local open = io.open
 local format = string.format
 local colorize = pp.colorize
 local traceback = debug.traceback
-local date, time, exit = os.date, os.time, os.exit
+local sleep = timer.sleep
+local date, time, exit, difftime = os.date, os.time, os.exit, os.difftime
 local wrap, yield, running = coroutine.wrap, coroutine.yield, coroutine.running
+local encode, decode = json.encode, json.decode
+local open = io.open
 
 local defaultOptions = {
 	routeDelay = 300,
@@ -23,6 +28,7 @@ local defaultOptions = {
 	largeThreshold = 100,
 	fetchMembers = false,
 	autoReconnect = true,
+	compress = true,
 	bitrate = 64000,
 	dateTime = '%c',
 }
@@ -46,7 +52,7 @@ function Client:__init(customOptions)
 		self._options = defaultOptions
 	end
 	self._api = API(self)
-	self._socket = Socket(self)
+	self._sockets = {}
 	self._users = Cache({}, User, 'id', self)
 	self._guilds = Cache({}, Guild, 'id', self)
 	self._private_channels = Cache({}, PrivateChannel, 'id', self)
@@ -81,66 +87,87 @@ local function getToken(self, email, password)
 	self:warning('Email login is discouraged, use token login instead')
 	local success, data = self._api:getToken({email = email, password = password})
 	if success then
-		if data.token then
-			return data.token
-		elseif data.mfa then
-			self:error('MFA login is not supported')
-		end
+		return data.mfa and self:error('MFA login is not supported') or data.token
 	else
 		self:error(data.email and data.email[1] or data.password and data.password[1])
 	end
 end
 
+-- this will adapt a token with or without a Bot prefix
+-- future versions may require explicit prefixing
+local function parseToken(self, token)
+	local api = self._api
+	token = token:gsub('Bot ', '')
+	local bot = 'Bot ' .. token
+	if api:checkToken(bot) then
+		return bot, true
+	elseif api:checkToken(token) then
+		return token, false
+	end
+end
+
 local function run(self, token, other)
 	return wrap(function()
-		if not other then
-			token = self._api:setToken(token)
-			if not token then
-				return self:error('Invalid token provided')
-			end
+		local isBot
+		if other then
+			token, isBot = getToken(self, token, other)
 		else
-			token = getToken(self, token, other)
+			token, isBot = parseToken(self, token)
 		end
-		return self:_connectToGateway(token)
+		if not token then return self:error('Invalid token provided') end
+		self._api:setToken(token)
+		return self:_connectToGateway(token, isBot)
 	end)()
 end
 
 local function stop(self, shouldExit) -- should probably rename to disconnect
-	if self._socket then self._socket:disconnect() end
+	for _, socket in pairs(self._sockets) do
+		socket:disconnect()
+	end
 	if shouldExit then exit() end
 end
 
-function Client:_connectToGateway(token)
+function Client:_connectToGateway(token, isBot)
 
-	local gateway, connected
-	local filename = 'gateway.cache'
-	local file = open(filename, 'r')
+	local data, success
+	local _, file = pcall(open, 'gateway.json')
 
 	if file then
-		gateway = file:read()
-		connected = self._socket:connect(gateway)
+		data = decode(file:read('*all'))
+		success = difftime(time(), data.timestamp) < 86400 -- 1 day
 		file:close()
 	end
 
-	if not connected then
-		local success1, success2, data = pcall(self._api.getGateway, self._api)
-		if success1 and success2 then
-			gateway = data.url
-			connected = self._socket:connect(gateway)
+	if not success then
+		success, data = self._api:getGateway(isBot)
+		if success then
+			data.timestamp = time()
+			_, file = pcall(open, 'gateway.json', 'w')
+			if file then
+				file:write(encode(data))
+				file:close()
+			end
 		end
-		file = nil
 	end
 
-	if connected then
-		if not file then
-			file = open(filename, 'w')
-			if file then file:write(gateway):close() end
+	if success then
+		self._shard_count = data.shards or 1
+		for id = 0, self._shard_count - 1 do
+			self._sockets[id] = Socket(id, data.url, self)
 		end
-		return self._socket:handlePayloads(token)
+		self._stopwatch = Stopwatch()
+		for _, socket in pairs(self._sockets) do
+			socket:connect()
+			self._stopwatch:restart()
+			wrap(socket.handlePayloads)(socket, token)
+			while self._stopwatch.milliseconds < 5000 do
+				sleep(1000)
+			end
+		end
 	else
-		self:error('Cannot connect to gateway: ' .. (gateway and gateway or 'nil'))
+		self:error(format('Cannot get gateway URL: %s', data.message))
 	end
-
+	
 end
 
 function Client:_loadUserData(data)
@@ -169,7 +196,7 @@ end
 
 local function listVoiceRegions(self)
 	local success, data = self._api:listVoiceRegions()
-	if success then return data end
+	return success and data or nil
 end
 
 local function createGuild(self, name, region) -- limited use
@@ -207,7 +234,9 @@ local function setStatusIdle(self)
 		local me = guild._members:get(id)
 		if me then me._status = 'idle' end
 	end
-	return self._socket:statusUpdate(self._idle_since, self._game_name)
+	for _, socket in pairs(self._sockets) do
+		socket:statusUpdate(self._idle_since, self._game_name)
+	end
 end
 
 local function setStatusOnline(self)
@@ -217,7 +246,9 @@ local function setStatusOnline(self)
 		local me = guild._members:get(id)
 		if me then me._status = 'online' end
 	end
-	return self._socket:statusUpdate(self._idle_since, self._game_name)
+	for _, socket in pairs(self._sockets) do
+		socket:statusUpdate(self._idle_since, self._game_name)
+	end
 end
 
 local function setGameName(self, gameName)
@@ -227,17 +258,19 @@ local function setGameName(self, gameName)
 		local me = guild._members:get(id)
 		if me then me._game = gameName and {name = gameName} end
 	end
-	return self._socket:statusUpdate(self._idle_since, self._game_name)
+	for _, socket in pairs(self._sockets) do
+		socket:statusUpdate(self._idle_since, self._game_name)
+	end
 end
 
 local function acceptInvite(self, code)
 	local success, data = self._api:acceptInvite(code)
-	if success then return Invite(data, self) end
+	return success and Invite(data, self) or nil
 end
 
 local function getInvite(self, code)
 	local success, data = self._api:getInvite(code)
-	if success then return Invite(data, self) end
+	return success and Invite(data, self) or nil
 end
 
 function Client:_getTextChannelShortcut(id)
@@ -261,7 +294,7 @@ local function getUser(self, key, value)
 	local user = self._users:get(key, value)
 	if user or value then return user end
 	local success, data = self._api:getUser(key)
-	if success then return self._users:new(data) end
+	return success and self._users:new(data) or nil
 end
 
 local function findUser(self, predicate)
@@ -327,6 +360,7 @@ local function getChannel(self, key, value)
 		channel = guild._text_channels:get(key, value) or guild._voice_channels:get(key, value)
 		if channel then return channel end
 	end
+	return nil
 end
 
 local function findChannel(self, predicate)
@@ -336,6 +370,7 @@ local function findChannel(self, predicate)
 		channel = guild._text_channels:find(predicate) or guild._voice_channels:find(predicate)
 		if channel then return channel end
 	end
+	return nil
 end
 
 local function findChannels(self, predicate)
@@ -368,7 +403,7 @@ local function getPrivateChannel(self, key, value)
 	local channel = self._private_channels:get(key, value)
 	if channel or value then return channel end
 	local success, data = self._api:getChannel(key)
-	if success then return self._private_channels:new(data) end
+	return success and self._private_channels:new(data) or nil
 end
 
 local function findPrivateChannel(self, predicate)
@@ -461,6 +496,7 @@ local function getGuildChannel(self, key, value)
 		local channel = guild._text_channels:get(key, value) or guild._voice_channels:get(key, value)
 		if channel then return channel end
 	end
+	return nil
 end
 
 local function findGuildChannel(self, predicate)
@@ -468,6 +504,7 @@ local function findGuildChannel(self, predicate)
 		local channel = guild._text_channels:find(predicate) or guild._voice_channels:find(predicate)
 		if channel then return channel end
 	end
+	return nil
 end
 
 local function findGuildChannels(self, predicate)
@@ -508,6 +545,7 @@ local function getGuildTextChannel(self, key, value)
 		local channel = guild._text_channels:get(key, value)
 		if channel then return channel end
 	end
+	return nil
 end
 
 local function findGuildTextChannel(self, predicate)
@@ -515,6 +553,7 @@ local function findGuildTextChannel(self, predicate)
 		local channel = guild._text_channels:find(predicate)
 		if channel then return channel end
 	end
+	return nil
 end
 
 local function findGuildTextChannels(self, predicate)
@@ -552,6 +591,7 @@ local function getGuildVoiceChannel(self, key, value)
 		local channel = guild._voice_channels:get(key, value)
 		if channel then return channel end
 	end
+	return nil
 end
 
 local function findGuildVoiceChannel(self, predicate)
@@ -559,6 +599,7 @@ local function findGuildVoiceChannel(self, predicate)
 		local channel = guild._voice_channels:find(predicate)
 		if channel then return channel end
 	end
+	return nil
 end
 
 local function findGuildVoiceChannels(self, predicate)
@@ -596,6 +637,7 @@ local function getRole(self, key, value)
 		local role = guild._roles:get(key, value)
 		if role then return role end
 	end
+	return nil
 end
 
 local function findRole(self, predicate)
@@ -603,6 +645,7 @@ local function findRole(self, predicate)
 		local role = guild._roles:find(predicate)
 		if role then return role end
 	end
+	return nil
 end
 
 local function findRoles(self, predicate)
@@ -640,6 +683,7 @@ local function getMember(self, key, value)
 		local member = guild._members:get(key, value)
 		if member then return member end
 	end
+	return nil
 end
 
 local function findMember(self, predicate)
@@ -647,6 +691,7 @@ local function findMember(self, predicate)
 		local member = guild._members:find(predicate)
 		if member then return member end
 	end
+	return nil
 end
 
 local function findMembers(self, predicate)
@@ -702,6 +747,7 @@ local function getMessage(self, key, value)
 			if message then return message end
 		end
 	end
+	return nil
 end
 
 local function findMessage(self, predicate)
@@ -715,6 +761,7 @@ local function findMessage(self, predicate)
 			if message then return message end
 		end
 	end
+	return nil
 end
 
 local function findMessages(self, predicate)
@@ -741,6 +788,7 @@ property('email', '_email', nil, 'string', "The client's email address (non-bot 
 property('mobile', '_mobile', nil, 'boolean', "Whether the client has used a Discord mobile app (non-bot only)")
 property('verified', '_verified', nil, 'boolean', "Whether the client account is verified by Discord")
 property('mfaEnabled', '_mfa_enabled', nil, 'boolean', "Whether the client has MFA enabled")
+property('shardCount', '_shard_count', nil, 'number', "The number of gateway shards on which the client is operating")
 
 method('run', run, 'token', "Connects to a Discord gateway using a valid Discord token and starts the main program loop(s).")
 method('stop', stop, 'shouldExit', "Disconnects from the Discord gateway and optionally exits the process.")

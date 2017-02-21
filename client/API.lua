@@ -27,12 +27,7 @@ local function parseDate(str)
 	}
 	local clientDate = date('!*t')
 	clientDate.isdst = date('*t').isdst
-	local serverTime = difftime(time(serverDate), time(clientDate)) + time()
-	local calculated = date('!%a, %d %b %Y %H:%M:%S GMT', serverTime)
-	if calculated ~= str then -- hopefully this never happens
-		error(format('Incorrectly parsed date header: %s / %s', str, calculated))
-	end
-	return serverTime
+	return difftime(time(serverDate), time(clientDate)) + time()
 end
 
 local function attachQuery(endpoint, query)
@@ -45,17 +40,17 @@ local function attachQuery(endpoint, query)
 end
 
 local boundary = 'Discordia' .. time()
-local multipart = format('multipart/form-data; boundary=%s', boundary)
+local multipart = format('multipart/form-data;boundary=%s', boundary)
 
 local function attachFile(payload, file)
 	return concat {
 		'\r\n--', boundary,
-		'\r\nContent-Disposition: form-data; name="file";', format('filename=%q', file[1]),
-		'\r\nContent-Type: application/octet-stream',
+		'\r\nContent-Disposition:form-data;name="file";', format('filename=%q', file[1]),
+		'\r\nContent-Type:application/octet-stream',
 		'\r\n\r\n', file[2],
 		'\r\n--', boundary,
-		'\r\nContent-Disposition: form-data; name="payload_json"',
-		'\r\nContent-Type: application/json',
+		'\r\nContent-Disposition:form-data;name="payload_json"',
+		'\r\nContent-Type:application/json',
 		'\r\n\r\n', payload,
 		'\r\n--', boundary, '--',
 	}
@@ -72,21 +67,16 @@ function API:__init(client)
 	self._user_agent = format('DiscordBot (%s, %s)', package.homepage, package.version)
 end
 
-local function checkToken(self, token)
+function API:checkToken(token)
 	local res = request('GET', "https://discordapp.com/api/users/@me", {
 		{'Authorization', token},
 		{'User-Agent', self._user_agent},
 	})
-	return res.code == 200 and token or nil
+	return res.code == 200
 end
 
--- this will adapt a token with or without a Bot prefix
--- future versions may require explicit prefixing
 function API:setToken(token)
-	local usr = token:gsub('Bot ', '')
-	local bot = 'Bot ' .. usr
-	self._token = checkToken(self, bot) or checkToken(self, usr)
-	return self._token
+	self._token = token
 end
 
 function API:request(method, route, endpoint, payload, file)
@@ -136,10 +126,10 @@ function API:commit(method, url, reqHeaders, payload, routeMutex, attempts)
 		res[i] = nil
 	end
 
-	local reset = tonumber(resHeaders['X-RateLimit-Reset'])
-	local remaining = tonumber(resHeaders['X-RateLimit-Remaining'])
+	local reset = resHeaders['X-RateLimit-Reset']
+	local remaining = resHeaders['X-RateLimit-Remaining']
 
-	if reset and remaining == 0 then
+	if reset and remaining == '0' then
 		local dt = difftime(reset, parseDate(resHeaders['Date']))
 		routeDelay = max(1000 * dt, routeDelay)
 	end
@@ -247,7 +237,7 @@ end
 
 function API:deleteMessage(channel_id, message_id) -- Message:delete
 	local route = format("/channels/%s/messages/%%s", channel_id)
-	return self:request("DELETE", route, format(route, message_id))
+	return self:request("DELETE", "DELETE" .. route, format(route, message_id)) -- special case
 end
 
 function API:bulkDeleteMessages(channel_id, payload) -- TextChannel:bulkDelete[Before|After|Around]
@@ -358,6 +348,16 @@ end
 function API:modifyGuildMember(guild_id, user_id, payload) -- various member methods
 	local route = format("/guilds/%s/members/%%s", guild_id)
 	return self:request("PATCH", route, format(route, user_id), payload)
+end
+
+function API:addGuildMemberRole(guild_id, user_id, role_id) -- Member:addRole
+	local route =  format("/guilds/%s/members/%%s/roles/%%s", guild_id)
+	return self:request("PUT", route, format(route, user_id, role_id))
+end
+
+function API:deleteGuildMemberRole(guild_id, user_id, role_id) -- Member:removeRole
+	local route =  format("/guilds/%s/members/%%s/roles/%%s", guild_id)
+	return self:request("DELETE", route, format(route, user_id, role_id))
 end
 
 function API:removeGuildMember(guild_id, user_id) -- Guild:kickUser, User:kick, Member:kick
@@ -585,13 +585,8 @@ function API:executeGitHubCompatibleWebhook(webhook_id, webhook_token, payload) 
 	return self:request("POST", route, format(route, webhook_id, webhook_token), payload)
 end
 
-function API:getGateway() -- Client:_connectToGateway (cached)
-	local route = "/gateway"
-	return self:request("GET", route, route)
-end
-
-function API:getGatewayBot() -- not exposed, maybe in the future
-	local route = "/gateway/bot"
+function API:getGateway(isBot) -- Client:_connectToGateway
+	local route = isBot and "/gateway/bot" or "/gateway"
 	return self:request("GET", route, route)
 end
 

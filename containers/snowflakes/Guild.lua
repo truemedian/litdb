@@ -8,8 +8,8 @@ local Invite = require('../Invite')
 local Cache = require('../../utils/Cache')
 
 local hash = table.hash
-local clamp = math.clamp
 local format = string.format
+local floor, clamp = math.floor, math.clamp
 local wrap, yield = coroutine.wrap, coroutine.yield
 
 local Guild, property, method, cache = class('Guild', Snowflake)
@@ -70,10 +70,11 @@ function Guild:_makeAvailable(data)
 end
 
 function Guild:_requestMembers()
-	self._parent._socket:requestGuildMembers(self._id)
-	if self._parent._loading then
-		self._parent._loading.chunks[self._id] = true
+	local socket = self._parent._sockets[self.shardId]
+	if socket._loading then
+		socket._loading.chunks[self._id] = true
 	end
+	socket:requestGuildMembers(self._id)
 end
 
 function Guild:_loadMemberPresences(data)
@@ -135,6 +136,10 @@ local function getIconUrl(self)
 	return format('https://cdn.discordapp.com/icons/%s/%s.png', self._id, self._icon)
 end
 
+local function getShardId(self)
+	return floor(self._id / 2^22) % self._parent._shard_count
+end
+
 local function getMe(self)
 	return self._members:get(self._parent._user._id)
 end
@@ -157,7 +162,7 @@ end
 
 local function listVoiceRegions(self)
 	local success, data = self._parent._api:getGuildVoiceRegions(self._id)
-	if success then return data end
+	return success and data or nil
 end
 
 local function leave(self)
@@ -212,28 +217,28 @@ end
 local function getPruneCount(self, days)
 	local query = days and {days = clamp(days, 1, 30)} or nil
 	local success, data = self._parent._api:getGuildPruneCount(self._id, query)
-	if success then return data.pruned end
+	return success and data.pruned or nil
 end
 
 local function pruneMembers(self, days)
 	local query = days and {days = clamp(days, 1, 30)} or nil
 	local success, data = self._parent._api:getGuildPruneCount(self._id, query)
-	if success then return data.pruned end
+	return success and data.pruned or nil
 end
 
 local function createTextChannel(self, name)
 	local success, data = self._parent._api:createGuildChannel(self._id, {name = name, type = 'text'})
-	if success then return self._text_channels:new(data) end
+	return success and self._text_channels:new(data) or nil
 end
 
 local function createVoiceChannel(self, name)
 	local success, data = self._parent._api:createGuildChannel(self._id, {name = name, type = 'voice'})
-	if success then return self._voice_channels:new(data) end
+	return success and self._voice_channels:new(data) or nil
 end
 
 local function createRole(self)
 	local success, data = self._parent._api:createGuildRole(self._id)
-	if success then return self._roles:new(data) end
+	return success and self._roles:new(data) or nil
 end
 
 -- channels --
@@ -374,7 +379,7 @@ local function getMember(self, key, value)
 	local member = self._members:get(key, value)
 	if member or value then return member end
 	local success, data = self._parent._api:getGuildMember(self._id, key)
-	if success then return self._members:new(data) end
+	return success and self._members:new(data) or nil
 end
 
 local function findMember(self, predicate)
@@ -410,6 +415,7 @@ local function getMessage(self, key, value)
 		local message = channel._messages:get(key, value)
 		if message then return message end
 	end
+	return nil
 end
 
 local function findMessage(self, predicate)
@@ -417,6 +423,7 @@ local function findMessage(self, predicate)
 		local message = channel._messages:find(predicate)
 		if message then return message end
 	end
+	return nil
 end
 
 local function findMessages(self, predicate)
@@ -443,6 +450,7 @@ property('unavailable', '_unavailable', nil, 'boolean', "Whether the guild data 
 property('totalMemberCount', '_member_count', nil, 'number', "How many members exist in the guild (can be different from cached memberCount)")
 property('verificationLevel', '_verification_level', nil, 'number', "Guild verification level")
 property('notificationsSetting', '_default_message_notifications', nil, 'number', "Default message notifications setting for members")
+property('shardId', getShardId, nil, 'number', "The ID of the shard on which this guild's events will be transmitted")
 property('me', getMe, nil, 'Member', "The client's member object for this guild")
 property('owner', getOwner, setOwner, 'Member', "The member that owns the server")
 property('afkChannel', getAfkChannel, setAfkChannel, 'GuildVoiceChannel', "Voice channel to where members are moved when they are AFK")

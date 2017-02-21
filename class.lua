@@ -27,44 +27,35 @@ local class = setmetatable({__classes = classes}, {__call = function(_, name, ..
 	local getters, setters = {}, {} -- for property metatables
 	local properties, methods, caches = {}, {}, {} -- for documentation
 
+	local info = {
+		getters = getters, setters = setters,
+		properties = properties, methods = methods, caches = caches,
+	}
+
 	local bases = {Base, ...}
 	for _, base in ipairs(bases) do
 		for k, v in pairs(base) do
 			class[k] = v
 		end
-		for k, v in pairs(base.__getters) do
-			getters[k] = v
-		end
-		for k, v in pairs(base.__setters) do
-			setters[k] = v
-		end
-		for k, v in pairs(base.__caches) do
-			caches[k] = v
-		end
-		for k, v in pairs(base.__methods) do
-			methods[k] = v
-		end
-		for k, v in pairs(base.__properties) do
-			properties[k] = v
+		for k1, v1 in pairs(base.__info) do
+			for k2, v2 in pairs(v1) do
+				info[k1][k2] = v2
+			end
 		end
 	end
 
+	class.__info = info
 	class.__name = name
+	class.__class = class
 	class.__bases = bases
-	class.__caches = caches
-	class.__setters = setters
-	class.__getters = getters
-	class.__methods = methods
-	class.__properties = properties
 	class.__description = nil
+
+	local pool = {}
+	local n = 1
 
 	function class:__index(k)
 		local getter = getters[k]
-		if getter then
-			return getter(self)
-		else
-			return class[k]
-		end
+		return getter and getter(self) or rawget(self, pool[k]) or class[k]
 	end
 
 	function class:__newindex(k, v)
@@ -74,7 +65,11 @@ local class = setmetatable({__classes = classes}, {__call = function(_, name, ..
 		elseif class[k] or properties[k] then
 			return error(f('Cannot overwrite protected property: %s.%s', name, k))
 		else
-			return rawset(self, k, v)
+			if not pool[k] then
+				pool[k] = n
+				n = n + 1
+			end
+			return rawset(self, pool[k], v)
 		end
 	end
 
@@ -155,7 +150,7 @@ end
 function Base:isInstanceOf(name)
 	local other = classes[name]
 	if not other then return error(f('Class %q is undefined', name)) end
-	if self.__name == other.__name then return true, true end
+	if self.__class == other.__class then return true, true end
 	return isSub(self, other), false
 end
 
@@ -167,10 +162,10 @@ function Base:help()
 
 	printf('\n-- %s --\n%s\n', self.__name, self.__description)
 
-	if next(self.__properties) then
+	if next(self.__info.properties) then
 		local properties = {}
 		local n, m = 0, 0
-		for k, v in pairs(self.__properties) do
+		for k, v in pairs(self.__info.properties) do
 			insert(properties, {k, v[1], v[2]})
 			n = max(n, #k)
 			m = max(m, #v[1])
@@ -182,10 +177,10 @@ function Base:help()
 		print()
 	end
 
-	if next(self.__methods) then
+	if next(self.__info.methods) then
 		local methods = {}
 		local n, m = 0, 0
-		for k, v in pairs(self.__methods) do
+		for k, v in pairs(self.__info.methods) do
 			insert(methods, {k, v[1], v[2]})
 			n = max(n, #k + #v[1] + 2)
 			m = max(m, #v[2])

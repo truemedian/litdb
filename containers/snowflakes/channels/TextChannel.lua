@@ -105,14 +105,14 @@ local function parseMentions(content, mentions)
 	return content
 end
 
-local function sendMessage(self, ...) -- content, mentions, tts
+local function sendMessage(self, content, ...) -- mentions, tts
 	local client = self._parent._parent or self._parent
 	local payload, file
-	if select('#', ...) > 1 then
+	if select('#', ...) > 0 then
 		client:warning('Multiple argument usage for TextChannel:sendMessage is deprecated. Use a table instead.')
-		payload = {content = parseMentions(select(1, ...), select(2, ...)), tts = select(3, ...)}
+		payload = {content = parseMentions(content, select(1, ...)), tts = select(2, ...)}
 	else
-		local arg = select(1, ...)
+		local arg = content
 		local t = type(arg)
 		if t == 'string' then
 			payload = {content = arg}
@@ -140,7 +140,7 @@ local function sendMessage(self, ...) -- content, mentions, tts
 		end
 	end
 	local success, data = client._api:createMessage(self._id, payload, file)
-	if success then return self._messages:new(data) end
+	return success and self._messages:new(data) or nil
 end
 
 local function broadcastTyping(self)
@@ -163,7 +163,7 @@ local function getMessage(self, key, value)
 	if message or value then return message end
 	local client = self._parent._parent or self._parent
 	local success, data = client._api:getChannelMessage(self.id, key)
-	if success then return Message(data, self) end
+	return success and Message(data, self) or nil
 end
 
 local function findMessage(self, predicate)

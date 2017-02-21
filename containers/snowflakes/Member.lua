@@ -1,7 +1,8 @@
 local Snowflake = require('../Snowflake')
+local Color = require('../../utils/Color')
 
-local insert = table.insert
 local format = string.format
+local insert, remove, sort = table.insert, table.remove, table.sort
 local wrap, yield = coroutine.wrap, coroutine.yield
 
 local Member, property, method, cache = class('Member', Snowflake)
@@ -89,7 +90,24 @@ local function getVoiceChannel(self)
 	return state and guild._voice_channels:get(state.channel_id)
 end
 
--- User-compatability methods --
+local function sorter(a, b)
+	if a._position == b._position then -- TODO: needs testing
+		return tonumber(a._id) < tonumber(b._id)
+	else
+		return a._position > b._position
+	end
+end
+
+local function getColor(self)
+	local roles = {}
+	for role in self.roles do
+		if role.color.value ~= 0 then
+			insert(roles, role)
+		end
+	end
+	sort(roles, sorter)
+	return roles[1] and roles[1].color or Color()
+end
 
 local function getMembership(self, guild)
 	return self._user:getMembership(guild or self._parent)
@@ -121,6 +139,25 @@ local function _applyRoles(self, roles)
 	return success
 end
 
+local function addRole(self, role)
+	local id = role._id
+	local guild = self._parent
+	local success = guild._parent._api:addGuildMemberRole(guild._id, self._user._id, id)
+	if success then
+		local found
+		for _, v in ipairs(self._roles) do
+			if v == id then
+				found = true
+				break
+			end
+		end
+		if not found then
+			insert(self._roles, id)
+		end
+	end
+	return success
+end
+
 local function addRoles(self, ...)
 	local role_ids = self._roles
 	local guild_id = self._parent._id
@@ -132,6 +169,21 @@ local function addRoles(self, ...)
 		end
 	end
 	return _applyRoles(self, role_ids)
+end
+
+local function removeRole(self, role)
+	local id = role._id
+	local guild = self._parent
+	local success = guild._parent._api:deleteGuildMemberRole(guild._id, self._user._id, id)
+	if success then
+		for i, v in ipairs(self._roles) do
+			if v == id then
+				remove(self._roles, i)
+				break
+			end
+		end
+	end
+	return success
 end
 
 local function removeRoles(self, ...)
@@ -147,6 +199,30 @@ local function removeRoles(self, ...)
 		end
 	end
 	return _applyRoles(self, role_ids)
+end
+
+local function hasRole(self, role)
+	local id1 = role._id
+	for _, id2 in ipairs(self._roles) do
+		if id1 == id2 then
+			return true
+		end
+	end
+	return false
+end
+
+local function hasRoles(self, ...)
+	local role_ids = {[self._parent._id] = true}
+	for _, id in ipairs(self._roles) do
+		role_ids[id] = true
+	end
+	for i = 1, select('#', ...) do
+		local role = select(i, ...)
+		if not role_ids[role._id] then
+			return false
+		end
+	end
+	return true
 end
 
 local function getRoleCount(self)
@@ -167,7 +243,7 @@ end
 
 local function getRole(self, key, value)
 	local roles = self._parent._roles
-	if key == nil and value == nil then return end
+	if key == nil and value == nil then return nil end
 	if value == nil then
 		value = key
 		key = roles._key
@@ -214,16 +290,21 @@ property('user', '_user', nil, 'User', "The base user associated with this membe
 property('guild', '_parent', nil, 'Guild', "The guild in which this member exists")
 property('joinedAt', '_joined_at', nil, 'string', "Date and time when the member joined the guild")
 property('voiceChannel', getVoiceChannel, setVoiceChannel, 'GuildVoiceChannel', "If connected, this is the member's voice channel.")
+property('color', getColor, nil, 'Color', "The member's displayed name color")
 
 method('setMute', setMute, '[boolean]', "Mutes or unmutes the member guild-wide (default: false).")
 method('setDeaf', setDeaf, '[boolean]', "Deafens or undeafens the member guild-wide (default: false).")
 method('getMembership', getMembership, '[guild]', "Shortcut for `member.user:getMembership`")
-method('sendMessage', sendMessage, 'content[, mentions, tts, nonce]', "Shortcut for `member.user:sendMessage`")
+method('sendMessage', sendMessage, 'content', "Shortcut for `member.user:sendMessage`")
 method('ban', ban, '[guild][, days]', "Shortcut for `member.user:ban`. The member's guild is used if none is provided.")
 method('unban', unban, '[guild]', "Shortcut for `member.user:unban`. The member's guild is used if none is provided.")
 method('kick', kick, '[guild]', "Shortcut for `member.user:kick`. The member's guild is used if none is provided.")
+method('addRole', addRole, 'role', "Adds a role to the member.")
 method('addRoles', addRoles, 'roles[, ...]', "Adds a role or roles to the member.")
+method('removeRole', removeRole, 'role', "Removes a role from the member.")
 method('removeRoles', removeRoles, 'roles[, ...]', "Removes a role or roles from the member.")
+method('hasRole', hasRole, 'roles', "Returns whether the member has a role.")
+method('hasRoles', hasRoles, 'roles[, ...]', "Returns whether the member has a role or roles.")
 
 cache('Role', getRoleCount, getRole, getRoles, findRole, findRoles)
 
