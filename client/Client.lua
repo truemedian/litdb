@@ -36,8 +36,7 @@ local defaultOptions = {
 local Client, property, method, cache = class('Client', Emitter)
 Client.__description = "The main point of entry into a Discordia application."
 
-function Client:__init(customOptions)
-	Emitter.__init(self)
+local function parseOptions(self, customOptions)
 	if customOptions then
 		local options = {}
 		for k, v in pairs(defaultOptions) do
@@ -48,9 +47,21 @@ function Client:__init(customOptions)
 			end
 		end
 		self._options = options
+		for k, v in pairs(customOptions) do
+			local a = type(v)
+			local b = type(defaultOptions[k])
+			if a ~= b then
+				return self:error(format('Invalid client option type for %q: got %q, expected %q', k, a, b))
+			end
+		end
 	else
 		self._options = defaultOptions
 	end
+end
+
+function Client:__init(customOptions)
+	Emitter.__init(self)
+	parseOptions(self, customOptions)
 	self._api = API(self)
 	self._sockets = {}
 	self._users = Cache({}, User, 'id', self)
@@ -95,7 +106,7 @@ end
 
 -- this will adapt a token with or without a Bot prefix
 -- future versions may require explicit prefixing
-local function parseToken(self, token)
+function Client:_parseToken(token)
 	local api = self._api
 	token = token:gsub('Bot ', '')
 	local bot = 'Bot ' .. token
@@ -103,6 +114,8 @@ local function parseToken(self, token)
 		return bot, true
 	elseif api:checkToken(token) then
 		return token, false
+	else
+		return self:error('Invalid token provided')
 	end
 end
 
@@ -112,9 +125,8 @@ local function run(self, token, other)
 		if other then
 			token, isBot = getToken(self, token, other)
 		else
-			token, isBot = parseToken(self, token)
+			token, isBot = self:_parseToken(token)
 		end
-		if not token then return self:error('Invalid token provided') end
 		self._api:setToken(token)
 		return self:_connectToGateway(token, isBot)
 	end)()
@@ -167,7 +179,7 @@ function Client:_connectToGateway(token, isBot)
 	else
 		self:error(format('Cannot get gateway URL: %s', data.message))
 	end
-	
+
 end
 
 function Client:_loadUserData(data)
@@ -211,7 +223,7 @@ local function setUsername(self, username)
 	return success
 end
 
-local function setNick(self, guild, nick)
+local function setNickname(self, guild, nick)
 	local success, data = self._api:modifyCurrentUserNickname(guild._id, {
 		nick = nick or ''
 	})
@@ -784,8 +796,8 @@ end
 property('user', '_user', nil, 'User', "The User object for the client")
 property('voice', '_voice', nil, 'VoiceManager', "The VoiceManager handle for the main client")
 property('owner', getOwner, nil, 'User', "The User object for the account's owner")
-property('email', '_email', nil, 'string', "The client's email address (non-bot only)")
-property('mobile', '_mobile', nil, 'boolean', "Whether the client has used a Discord mobile app (non-bot only)")
+property('email', '_email', nil, 'string?', "The client's email address (non-bot only)")
+property('mobile', '_mobile', nil, 'boolean?', "Whether the client has used a Discord mobile app (non-bot only)")
 property('verified', '_verified', nil, 'boolean', "Whether the client account is verified by Discord")
 property('mfaEnabled', '_mfa_enabled', nil, 'boolean', "Whether the client has MFA enabled")
 property('shardCount', '_shard_count', nil, 'number', "The number of gateway shards on which the client is operating")
@@ -799,7 +811,7 @@ method('acceptInvite', acceptInvite, 'code', "Accepts a guild invitation with th
 method('getInvite', getInvite, 'code', "Returns an Invite object corresponding to a raw invite code, if it exists.")
 
 method('setUsername', setUsername, 'username', "Sets the user's username.")
-method('setNickname', setNick, 'guild, nickname', "Sets the user's nickname for the indicated guild.")
+method('setNickname', setNickname, 'guild, nickname', "Sets the user's nickname for the indicated guild.")
 method('setAvatar', setAvatar, 'avatar', "Sets the user's avatar. Must be a base64-encoded JPEG.")
 method('setStatusIdle', setStatusIdle, nil, "Sets the user status to idle. Warning: This can silently fail!")
 method('setStatusOnline', setStatusOnline, nil, "Sets the user status to idle. Warning: This can silently fail!")
