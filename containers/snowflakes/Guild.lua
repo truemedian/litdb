@@ -2,6 +2,7 @@ local Snowflake = require('../Snowflake')
 local Role = require('./Role')
 local Emoji = require('./Emoji')
 local Member = require('./Member')
+local Webhook = require('./Webhook')
 local GuildTextChannel = require('./channels/GuildTextChannel')
 local GuildVoiceChannel = require('./channels/GuildVoiceChannel')
 local Invite = require('../Invite')
@@ -114,7 +115,7 @@ local function setIcon(self, icon)
 end
 
 local function setOwner(self, member)
-	local success, data = self._parent._api:modifyGuild(self._user._id, {owner_id = member._id})
+	local success, data = self._parent._api:modifyGuild(self._id, {owner_id = member._id})
 	if success then self._owner_id = data.owner_id end
 	return success
 end
@@ -197,6 +198,20 @@ local function getInvites(self)
 		if v then
 			i = i + 1
 			return Invite(v, parent)
+		end
+	end
+end
+
+local function getWebhooks(self)
+	local success, data = self._parent._api:getGuildWebhooks(self._id)
+	local parent = self._parent
+	if not success then return function() end end
+	local i = 1
+	return function()
+		local v = data[i]
+		if v then
+			i = i + 1
+			return Webhook(v, parent)
 		end
 	end
 end
@@ -458,19 +473,20 @@ property('defaultRole', getDefaultRole, nil, 'Role', "The guild's '@everyone' ro
 property('defaultChannel', getDefaultChannel, nil, 'GuildTextChannel', "The guild's default text channel")
 property('bannedUsers', getBannedUsers, nil, 'function', "Iterator for the banned users in the guild")
 property('invites', getInvites, nil, 'function', "Iterator for the guild's invites (not cached)")
+property('webhooks', getWebhooks, nil, 'function', "Iterator for the guild's webhooks (not cached)")
 property('connection', '_connection', nil, 'VoiceConnection?', "The handle for this guild's voice connection, if one exists")
 
-method('leave', leave, nil, "Leaves the guild.")
-method('delete', delete, nil, "Deletes the guild.")
-method('listVoiceRegions', listVoiceRegions, nil, "Returns a table of guild voice regions.")
-method('banUser', banUser, 'user[, days]', "Bans a user from the guild and optionally deletes their messages from 1-7 days.")
-method('unbanUser', unbanUser, 'user', "Unbans a user from the guild.")
-method('kickUser', kickUser, 'user', "Kicks a user from the guild")
-method('getPruneCount', getPruneCount, '[days]', "Returns how many members would be removed if 1-30 day prune were performed (default: 1 day).")
-method('pruneMembers', pruneMembers, '[days]', "Removes members who have not been seen in 1-30 days (default: 1 day). Returns the number of pruned members.")
-method('createTextChannel', createTextChannel, 'name', "Creates a new text channel in the guild.")
-method('createVoiceChannel', createVoiceChannel, 'name', "Creates a new voice channel in the guild.")
-method('createRole', createRole, nil, "Creates a new role in the guild.")
+method('leave', leave, nil, "Leaves the guild.", 'HTTP')
+method('delete', delete, nil, "Deletes the guild.", 'HTTP')
+method('listVoiceRegions', listVoiceRegions, nil, "Returns a table of guild voice regions.", 'HTTP')
+method('banUser', banUser, 'user[, days]', "Bans a user from the guild and optionally deletes their messages from 1-7 days.", 'HTTP')
+method('unbanUser', unbanUser, 'user', "Unbans a user from the guild.", 'HTTP')
+method('kickUser', kickUser, 'user', "Kicks a user from the guild", 'HTTP')
+method('getPruneCount', getPruneCount, '[days]', "Returns how many members would be removed if 1-30 day prune were performed (default: 1 day).", 'HTTP')
+method('pruneMembers', pruneMembers, '[days]', "Removes members who have not been seen in 1-30 days (default: 1 day). Returns the number of pruned members.", 'HTTP')
+method('createTextChannel', createTextChannel, 'name', "Creates a new text channel in the guild.", 'HTTP')
+method('createVoiceChannel', createVoiceChannel, 'name', "Creates a new voice channel in the guild.", 'HTTP')
+method('createRole', createRole, nil, "Creates a new role in the guild.", 'HTTP')
 
 cache('Channel', getChannelCount, getChannel, getChannels, findChannel, findChannels)
 cache('TextChannel', getTextChannelCount, getTextChannel, getTextChannels, findTextChannel, findTextChannels)

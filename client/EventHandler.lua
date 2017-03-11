@@ -38,15 +38,15 @@ function EventHandler.READY(data, client, socket)
 			socket._loading.guilds[guild.id] = true
 		end
 	else
-		local guild_ids = {}
-		for _, guild in ipairs(data.guilds) do
-			if not guild.unavailable then
-				local id = guild.id
-				socket._loading.syncs[id] = true
-				insert(guild_ids, id)
-			end
-		end
-		socket:syncGuilds(guild_ids)
+		-- local guild_ids = {}
+		-- for _, guild in ipairs(data.guilds) do
+		-- 	if not guild.unavailable then
+		-- 		local id = guild.id
+		-- 		socket._loading.syncs[id] = true
+		-- 		insert(guild_ids, id)
+		-- 	end
+		-- end
+		-- socket:syncGuilds(guild_ids)
 	end
 
 	return checkReady(socket)

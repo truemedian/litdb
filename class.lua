@@ -55,7 +55,11 @@ local class = setmetatable({__classes = classes}, {__call = function(_, name, ..
 
 	function class:__index(k)
 		local getter = getters[k]
-		return getter and getter(self) or rawget(self, pool[k]) or class[k]
+		if getter then -- don't use ternary operator
+			return getter(self)
+		else
+			return rawget(self, pool[k]) or class[k]
+		end
 	end
 
 	function class:__newindex(k, v)
@@ -103,12 +107,12 @@ local class = setmetatable({__classes = classes}, {__call = function(_, name, ..
 
 	end
 
-	local function method(k, fn, params, desc)
+	local function method(k, fn, params, desc, interface)
 		assert(type(k) == 'string')
 		assert(type(fn) == 'function')
 		assert(type(desc) == 'string' and #desc < 120)
 		class[k] = fn
-		methods[k] = {params or '', desc}
+		methods[k] = {params or '', desc, interface or 'Local'}
 	end
 
 	local function cache(k, count, get, getAll, find, findAll)
