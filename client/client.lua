@@ -60,7 +60,7 @@ function AgentClient:initialize(options, connectionStream, types)
   self._sent_heartbeat_count = 0
   self._got_pong_count = 0
   self._latency = nil
-  self._tls_options = options.tls or {rejectUnauthorized = true, ca = options.ca}
+  self._tls_options = options.tls or {rejectUnauthorized = false, ca = options.ca}
   self._log = loggingUtil.makeLogger(fmt('%s:%s (hostname=%s connID=%d)',
                                      self._ip,
                                      self._port,
