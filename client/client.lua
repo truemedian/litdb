@@ -173,8 +173,8 @@ function AgentClient:connect()
     self:emit('error', err)
   end
 
-  self._log(logging.DEBUG, 'Connecting...')
-  self._log(logging.DEBUG, fmt('  Using timeout %sms', self._timeout))
+  self._log(logging.INFO, 'Connecting...')
+  self._log(logging.INFO, fmt('  Using timeout %sms', self._timeout))
   self._connection = Connection:new({}, options)
   self._connection:connect(onSuccess, onError)
   self._connection:setTimeout(self._timeout, function()
