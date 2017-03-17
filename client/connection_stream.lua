@@ -352,7 +352,9 @@ function ConnectionStream:createConnection(options, callback)
     opts.host = host
     opts.port = port
 
+    logging.errorf('abc')
     local client = self:_createConnection(opts)
+    logging.errorf('edf')
     client:connect()
     callback()
   end)
