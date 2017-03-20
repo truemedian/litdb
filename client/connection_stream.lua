@@ -210,7 +210,7 @@ function ConnectionStream:reconnect(options)
 
   if self._shutdown then return end
 
-  logging.infof('%s -> RRRRRRRRRRRRRRRRRRRRetrying connection in %dms',
+  logging.infof('%s -> Retrying connection in %dms',
                 datacenter, delay)
 
   local function onTimer()
@@ -353,9 +353,7 @@ function ConnectionStream:createConnection(options, callback)
     opts.port = port
 
     local client = self:_createConnection(opts)
-    logging.errorf('abc')
     client:connect()
-    logging.errorf('edf')
     callback()
   end)
 end
