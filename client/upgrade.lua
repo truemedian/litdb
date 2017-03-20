@@ -252,11 +252,12 @@ local function attempt(options, callback)
     end,
     function(callback)
       log(logging.INFO, fmt('check version of potential upgrade: %s', potential))
-      getVersion(potential, function(err, version)
-        if not err then other_version = version
-        end
-        callback(err)
-      end)
+      other_version = "1.2.3.4"
+--      getVersion(potential, function(err, version)
+--        if not err then other_version = version
+--        end
+--        callback(err)
+--      end)
     end,
     function(callback)
       log(logging.INFO, fmt('comparing versions (%s, %s)', my_version, other_version))
