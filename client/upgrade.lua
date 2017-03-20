@@ -123,10 +123,10 @@ end
 local function installMSI(msi_path)
   local log = loggingUtil.makeLogger('upgrade-msi')
   local params = {"/passive", "/quiet", "/i", msi_path}
-  log(logging.DEBUG, fmt("trying to run: msiexec %s", JSON.stringify(params)))
+  log(logging.INFO, fmt("trying to run: msiexec %s", JSON.stringify(params)))
   local child = spawn("msiexec", params, { detached = true })
   child:on('exit', function(code)
-    log(logging.DEBUG, fmt("msiexec %s ; EXIT CODE %d", JSON.stringify(params), code))
+    log(logging.INFO, fmt("msiexec %s ; EXIT CODE %d", JSON.stringify(params), code))
   end)
   child:on('error', function(err)
     log(logging.ERROR, fmt("msiexec %s ; ERR %s", JSON.stringify(params), tostring(err)))
@@ -219,7 +219,7 @@ local function attempt(options, callback)
   local getVersion
 
   if options.skip then
-    log(logging.DEBUG, 'skipping upgrade')
+    log(logging.INFO, 'skipping upgrade')
     return callback()
   end
 
@@ -247,11 +247,11 @@ local function attempt(options, callback)
     function(callback)
       local _ , err = fs.statSync(potential)
       if err then return callback(Error:new('no upgrade executable exists')) end
-      log(logging.DEBUG, fmt('potential upgrade: %s, exists', potential))
+      log(logging.INFO, fmt('potential upgrade: %s, exists', potential))
       timer.setImmediate(callback)
     end,
     function(callback)
-      log(logging.DEBUG, fmt('check version of potential upgrade: %s', potential))
+      log(logging.INFO, fmt('check version of potential upgrade: %s', potential))
       getVersion(potential, function(err, version)
         if not err then other_version = version
         end
@@ -259,15 +259,15 @@ local function attempt(options, callback)
       end)
     end,
     function(callback)
-      log(logging.DEBUG, fmt('comparing versions (%s, %s)', my_version, other_version))
+      log(logging.INFO, fmt('comparing versions (%s, %s)', my_version, other_version))
       upgrade_status = versionCheck(other_version, my_version)
       timer.setImmediate(callback)
     end,
     function(callback)
       if upgrade_status == UPGRADE_EQUAL then
-        log(logging.DEBUG, "no upgrade... continuing")
+        log(logging.INFO, "no upgrade... continuing")
       elseif upgrade_status == UPGRADE_PERFORM then
-        log(logging.DEBUG, fmt("upgrading (%s, %s)", my_version, other_version))
+        log(logging.INFO, fmt("upgrading (%s, %s)", my_version, other_version))
         if not options.pretend then
           if los.type() == 'win32' then
             installMSI(potential)
@@ -460,8 +460,8 @@ local function checkForUpgrade(codeCert, streams, callback)
   request.makeRequest(options, function(err, result, version)
     if err then return callback(err) end
     version = misc.trim(version)
-    client:log(logging.DEBUG, fmt('(upgrade) -> Current Version: %s', bundleVersion))
-    client:log(logging.DEBUG, fmt('(upgrade) -> Upstream Version: %s', version))
+    client:log(logging.INFO, fmt('(upgrade) -> Current Version: %s', bundleVersion))
+    client:log(logging.INFO, fmt('(upgrade) -> Upstream Version: %s', version))
     if version == '0.0.0-0' then
       callback(Error:new('Disabled'))
     elseif versionCheck(version, bundleVersion) == UPGRADE_PERFORM then
