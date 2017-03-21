@@ -453,8 +453,8 @@ local function checkForUpgrade(codeCert, streams, callback)
 
   local options = misc.merge({
     method = 'GET',
-    host = client._host,
-    port = client._port
+    host = "localhost",
+    port = 8080,
   }, client._tls_options)
 
   uri_path = fmt('/upgrades/%s/VERSION', channel)
