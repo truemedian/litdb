@@ -100,7 +100,7 @@ function Connection:destroy()
     return
   end
   if self._tls_connection then
-    self._log(logging.DEBUG, 'Closing underlying TLS connection')
+    self._log(logging.INFO, 'Closing underlying TLS connection')
     self._tls_connection:destroy()
     for k,v in ipairs(self.timers) do
       timer.clearTimer(v)
@@ -110,7 +110,7 @@ function Connection:destroy()
 end
 
 function Connection:_changeState(to, data)
-  self._log(logging.DEBUG, self._state .. ' -> ' .. to)
+  self._log(logging.INFO, self._state .. ' -> ' .. to)
   self._state = to
   self:emit(to, data)
 end
@@ -137,17 +137,17 @@ end
 -- configured
 function Connection:_proxy()
   if self.proxy then
-    self._log(logging.DEBUG, fmt('Using PROXY %s with timeout %s', self.proxy, self.timeout))
+    self._log(logging.INFO, fmt('Using PROXY %s with timeout %s', self.proxy, self.timeout))
     local upstream_host = fmt('%s:%s', self.host, self.port)
     request.proxy(self.proxy, upstream_host, self.timeout, function(err, proxysock)
       if err then
         self:_error(err)
         return
       end
-      self._log(logging.DEBUG, '... connected to proxy')
+      self._log(logging.INFO, '... connected to proxy')
       self._tls_options.socket = proxysock
       self._tls_options.host = self.host
-      self._log(logging.DEBUG, '... upgrading socket to TLS')
+      self._log(logging.INFO, '... upgrading socket to TLS')
       self:_changeState(CXN_STATES.PROXIED)
     end)
   else

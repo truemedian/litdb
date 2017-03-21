@@ -31,7 +31,7 @@ function ConnectionMessages:onHandshake(client, data)
   if data.entity_id then
     self:fetchManifest(client)
   else
-    client:log(logging.DEBUG, 'Not retrieving check manifest, because ' ..
+    client:log(logging.INFO, 'Not retrieving check manifest, because ' ..
                               'agent is not bound to an entity')
   end
 end
@@ -39,7 +39,7 @@ end
 function ConnectionMessages:fetchManifest(client)
   local function run()
     if client then
-      client:log(logging.DEBUG, 'Retrieving check manifest...')
+      client:log(logging.INFO, 'Retrieving check manifest...')
 
       client.protocol:request('check_schedule.get', function(err, resp)
         if err then
@@ -70,7 +70,7 @@ function ConnectionMessages:onMessage(client, msg)
     return
   end
 
-  client:log(logging.DEBUG, fmt('received %s %s', method, json.stringify(msg)))
+  client:log(logging.INFO, fmt('received %s %s', method, json.stringify(msg)))
 
   local callback = function(err, msg)
     if (err) then
@@ -80,7 +80,7 @@ function ConnectionMessages:onMessage(client, msg)
 
     if method == 'check_schedule.changed' then
       self._lastFetchTime =   0
-      client:log(logging.DEBUG, 'fetching manifest')
+      client:log(logging.INFO, 'fetching manifest')
       self:fetchManifest(client)
       return
     end
@@ -90,7 +90,7 @@ function ConnectionMessages:onMessage(client, msg)
       return
     end
 
-    client:log(logging.DEBUG, fmt('No handler for method: %s', method))
+    client:log(logging.INFO, fmt('No handler for method: %s', method))
   end
 
   client.protocol:respond(method, msg, callback)

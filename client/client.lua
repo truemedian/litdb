@@ -160,7 +160,7 @@ function AgentClient:connect()
     end
 
     local socket_timeout = self:_socketTimeout()
-    self._log(logging.DEBUG, fmt('Using timeout %sms', socket_timeout))
+    self._log(logging.INFO, fmt('Using timeout %sms', socket_timeout))
     self._connection:setTimeout(socket_timeout, function()
       self:emit('timeout')
     end)
@@ -205,7 +205,7 @@ function AgentClient:startHeartbeatInterval()
       return
     end
 
-    this._log(logging.DEBUG, fmt('Starting heartbeat interval, interval=%dms', this._heartbeat_interval))
+    this._log(logging.INFO, fmt('Starting heartbeat interval, interval=%dms', this._heartbeat_interval))
 
     local function timerCb()
       local send_timestamp = vutils.gmtRaw()
@@ -223,7 +223,7 @@ function AgentClient:startHeartbeatInterval()
 
         if err then
           this:emit('error', err)
-          this._log(logging.DEBUG, 'Got an error while sending heartbeat: ' .. tostring(err))
+          this._log(logging.INFO, 'Got an error while sending heartbeat: ' .. tostring(err))
           return
         end
 
@@ -240,16 +240,16 @@ function AgentClient:startHeartbeatInterval()
 
         if msg.result.timestamp then
           this._got_pong_count = this._got_pong_count + 1
-          this._log(logging.DEBUG, fmt('Got pong (latency=%f,sent_heartbeat_count=%d,got_pong_count=%d)',
+          this._log(logging.INFO, fmt('Got pong (latency=%f,sent_heartbeat_count=%d,got_pong_count=%d)',
                                        this._latency, this._sent_heartbeat_count, this._got_pong_count))
         else
-          this._log(logging.DEBUG, 'Got invalid pong response')
+          this._log(logging.INFO, 'Got invalid pong response')
         end
 
         startInterval(this)
       end
 
-      this._log(logging.DEBUG, fmt('Sending heartbeat (timestamp=%d,sent_heartbeat_count=%d,got_pong_count=%d)',
+      this._log(logging.INFO, fmt('Sending heartbeat (timestamp=%d,sent_heartbeat_count=%d,got_pong_count=%d)',
                                send_timestamp, this._sent_heartbeat_count, this._got_pong_count))
       this._sent_heartbeat_count = this._sent_heartbeat_count + 1
       this.protocol:request('heartbeat.post', send_timestamp, onHeartBeatResponse)
@@ -263,7 +263,7 @@ end
 
 function AgentClient:clearHeartbeatInterval()
   if self._heartbeatTimeout then
-    self._log(logging.DEBUG, 'Clearing heartbeat interval')
+    self._log(logging.INFO, 'Clearing heartbeat interval')
     timer.clearTimer(self._heartbeatTimeout)
     self._heartbeatTimeout = nil
   end

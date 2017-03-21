@@ -129,14 +129,14 @@ function ConnectionStream:_createConnection(options)
     err.port = options.port
     err.datacenter = options.datacenter
     err.message = errorMessage
-    client:log(logging.DEBUG, fmt('client error: %s', err.message))
+    client:log(logging.INFO, fmt('client error: %s', err.message))
     client:destroy(err)
   end)
 
   client:once('respawn', function()
     if self._shutdown then return end
     client:getMachine():react(client, 'connect')
-    client:log(logging.DEBUG, 'Respawning client')
+    client:log(logging.INFO, 'Respawning client')
     timer.setImmediate(function()
       self:_restart(client, options)
     end)
@@ -144,7 +144,7 @@ function ConnectionStream:_createConnection(options)
 
   client:on('timeout', function()
     self:emit('timeout')
-    client:log(logging.DEBUG, 'Client Timeout')
+    client:log(logging.INFO, 'Client Timeout')
     client:destroy()
   end)
 
@@ -154,13 +154,13 @@ function ConnectionStream:_createConnection(options)
 
   client:on('close', function()
     self:emit('client_end', client)
-    client:log(logging.DEBUG, 'Remote endpoint closed the connection')
+    client:log(logging.INFO, 'Remote endpoint closed the connection')
     client:destroy()
   end)
 
   client:on('end', function()
     self:emit('client_end', client)
-    client:log(logging.DEBUG, 'Remote endpoint closed the connection')
+    client:log(logging.INFO, 'Remote endpoint closed the connection')
     client:destroy()
   end)
 

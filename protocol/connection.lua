@@ -216,7 +216,7 @@ function AgentProtocolConnection:_send(msg, callback, timeout)
     end
   end
 
-  self._log(logging.DEBUG, fmt('SENDING: (%s) => %s', key, JSON.stringify(msg)))
+  self._log(logging.INFO, fmt('SENDING: (%s) => %s', key, JSON.stringify(msg)))
   self._conn:write(msg)
   self._msgid = self._msgid + 1
 end
@@ -252,7 +252,7 @@ function AgentProtocolConnection:startHandshake(callback)
       return callback(err, msg)
     end
     self:setState(STATES.RUNNING)
-    self._log(logging.DEBUG, fmt('handshake successful (heartbeat_interval=%dms)', msg.result.heartbeat_interval))
+    self._log(logging.INFO, fmt('handshake successful (heartbeat_interval=%dms)', msg.result.heartbeat_interval))
     callback(nil, msg)
   end
   self:setState(STATES.HANDSHAKE)
