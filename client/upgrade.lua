@@ -308,10 +308,14 @@ local function downloadUpgradeUnix(codeCert, streams, version, callback)
       local oldpath = exepath .. '.old'
       async.parallel({
         function(callback)
+          client:log(logging.INFO, 'b4 rename #1')
           uv.fs_rename(exepath, oldpath, callback)
+          client:log(logging.INFO, 'af rename #1')
         end,
         function(callback)
+          client:log(logging.INFO, 'b4 rename #2')
           uv.fs_rename(filename, exepath, callback)
+          client:log(logging.INFO, 'af rename #2')
         end,
         function(callback)
           uv.fs_unlink(oldpath, callback)
