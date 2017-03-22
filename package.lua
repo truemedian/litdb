@@ -1,8 +1,8 @@
 return {
   name = "codewhale/virgo",
-  version = "2.1.17",
+  version = "2.1.18",
   luvi = {
-    version = "2.7.2-sigar",
+    version = "2.7.6-2-sigar",
     flavor = "sigar",
     url = "https://github.com/virgo-agent-toolkit/luvi/releases/download/v%s-sigar/luvi-%s-%s"
   },
