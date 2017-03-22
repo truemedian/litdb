@@ -15,6 +15,7 @@ limitations under the License.
 --]]
 
 local https = require('https')
+local http = require('http')
 local fs = require('fs')
 
 local logging = require('logging')
@@ -92,7 +93,7 @@ function Request:request()
 
     logging.debugf('sending request to %s:%s%s', options.host, options.port, options.path)
 
-    local req = https.request(options, function(res)
+    local req = http.request(options, function(res)
       self:_handle_response(res)
     end)
 

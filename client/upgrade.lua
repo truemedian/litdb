@@ -455,7 +455,6 @@ local function checkForUpgrade(codeCert, streams, callback)
     method = 'GET',
     host = "localhost",
     port = 8080,
-    rejectUnauthorized = false,
   }, client._tls_options)
 
   uri_path = fmt('/upgrades/%s/VERSION', channel)
