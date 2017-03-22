@@ -330,13 +330,6 @@ local function downloadUpgradeUnix(codeCert, streams, version, callback)
         }, options)
         request.makeRequest(opts, callback)
       end,
-      signature = function(callback)
-        local opts = misc.merge({
-          path = fmt('/upgrades/%s/%s', channel, item.signature),
-          download = path.join(unverified_binary_dir, item.signature)
-        }, options)
-        request.makeRequest(opts, callback)
-      end
     }, function(err)
       if err then return callback(err) end
       --utilUpgrade.verify(filename, filename_sig, codeCert, onVerify)
