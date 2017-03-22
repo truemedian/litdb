@@ -380,9 +380,7 @@ local function downloadUpgradeUnix(codeCert, streams, version, callback)
   local binary_name = fmt('%s-%s-%s-%s-%s', s.vendor, s.vendor_version, s.arch, virgo.pkg_name, version):lower()
   local binary_name_sig = fmt('%s.sig', binary_name)
 
-  client:log(logging.INFO, 'b4 mkdir')
   fs.mkdirpSync(unverified_binary_dir)
-  client:log(logging.INFO, 'b4 mkdir')
 
   async.waterfall({
     function(callback)
@@ -392,9 +390,7 @@ local function downloadUpgradeUnix(codeCert, streams, version, callback)
         path = virgo_paths.get(virgo_paths.VIRGO_PATH_EXE_DIR),
         permissions = tonumber('755', 8)
       }
-      client:log(logging.INFO, 'b4 download')
       download_iter(files, callback)
-      client:log(logging.INFO, 'b4 download')
     end
   }, function(err)
     if err then
@@ -420,8 +416,8 @@ local function downloadUpgradeWin(codeCert, streams, version, callback)
     local options, opts
     options = misc.merge({
       method = 'GET',
-      host = client._host,
-      port = client._port
+      host = 'localhost',
+      port = 8080,
     }, client._tls_options)
     opts = misc.merge({
       path = fmt('/upgrades/%s/%s', channel, item.payload),
