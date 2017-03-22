@@ -1,6 +1,6 @@
 return {
   name = "codewhale/virgo",
-  version = "2.1.19",
+  version = "2.1.20",
   luvi = {
     version = "2.7.6-2-sigar",
     flavor = "sigar",

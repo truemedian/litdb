@@ -343,9 +343,7 @@ local function downloadUpgradeUnix(codeCert, streams, version, callback)
     end)
   end
 
-  client:log(logging.INFO, 'b4 sysinfo')
   local s = sigar:new():sysinfo()
-  client:log(logging.INFO, 'af sysinfo')
 
   if s.name == 'MacOSX' then
     s.vendor = 'darwin'
@@ -382,7 +380,9 @@ local function downloadUpgradeUnix(codeCert, streams, version, callback)
   local binary_name = fmt('%s-%s-%s-%s-%s', s.vendor, s.vendor_version, s.arch, virgo.pkg_name, version):lower()
   local binary_name_sig = fmt('%s.sig', binary_name)
 
+  client:log(logging.INFO, 'b4 mkdir')
   fs.mkdirpSync(unverified_binary_dir)
+  client:log(logging.INFO, 'b4 mkdir')
 
   async.waterfall({
     function(callback)
@@ -392,7 +392,9 @@ local function downloadUpgradeUnix(codeCert, streams, version, callback)
         path = virgo_paths.get(virgo_paths.VIRGO_PATH_EXE_DIR),
         permissions = tonumber('755', 8)
       }
+      client:log(logging.INFO, 'b4 download')
       download_iter(files, callback)
+      client:log(logging.INFO, 'b4 download')
     end
   }, function(err)
     if err then
