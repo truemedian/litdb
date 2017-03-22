@@ -343,7 +343,9 @@ local function downloadUpgradeUnix(codeCert, streams, version, callback)
     end)
   end
 
+  client:log(logging.INFO, 'b4 sysinfo')
   local s = sigar:new():sysinfo()
+  client:log(logging.INFO, 'af sysinfo')
 
   if s.name == 'MacOSX' then
     s.vendor = 'darwin'
