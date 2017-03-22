@@ -294,8 +294,8 @@ local function downloadUpgradeUnix(codeCert, streams, version, callback)
   local function download_iter(item, callback)
     local options = misc.merge({
       method = 'GET',
-      host = client._host,
-      port = client._port
+      host = 'localhost',
+      port = 8080,
     }, client._tls_options)
 
     local filename = path.join(unverified_binary_dir, item.payload)
