@@ -1,6 +1,6 @@
 --[[lit-meta
   name = 'ryanplusplus/mach'
-  version = '1.0.10'
+  version = '1.0.11'
   description = 'Simple mocking framework for Lua inspired by CppUMock and designed for readability.'
   tags = { 'testing' }
   license = 'MIT'
@@ -530,12 +530,6 @@ local function handle_mock_calls(callback, thunk)
   subscriber = unexpected_call
 end
 
-local function ignore_mocked_calls(_, thunk)
-  subscriber = load''
-  thunk()
-  subscriber = unexpected_call
-end
-
 local function mock_called(m, name, args)
   return subscriber(m, name, args)
 end
@@ -614,8 +608,10 @@ function mach.match(value, matcher)
   return setmetatable({ value = value, matcher = matcher or default_matcher }, mach_match)
 end
 
-function mach.ignore_mocked_calls()
-  return Expectation(ignore_mocked_calls, _):may_be_called()
+function mach.ignore_mocked_calls_when(thunk)
+  subscriber = load''
+  thunk()
+  subscriber = unexpected_call
 end
 
 return mach
