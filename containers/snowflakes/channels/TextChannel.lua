@@ -11,6 +11,7 @@ local format = string.format
 local readFile = fs.readFile
 local request = http.request
 local splitPath = pathjoin.splitPath
+local wrap, yield = coroutine.wrap, coroutine.yield
 local insert, remove, concat = table.insert, table.remove, table.concat
 
 local TextChannel, property, method, cache = class('TextChannel', Channel)
@@ -27,16 +28,17 @@ function TextChannel:_update(data)
 	Channel._update(self, data)
 end
 
-local function _messageIterator(self, success, data)
+local function _messageIterator(self, success, data, predicate)
 	if not success then return function() end end
-	local i = 1
-	return function()
-		local v = data[i]
-		if v then
-			i = i + 1
-			return Message(v, self)
+	predicate = type(predicate) == 'function' and predicate
+	return wrap(function()
+		for _, v in ipairs(data) do
+			local m = Message(v, self)
+			if not predicate or predicate(m) then
+				yield(m)
+			end
 		end
-	end
+	end)
 end
 
 local function loadMessages(self, limit)
@@ -51,35 +53,54 @@ local function loadMessages(self, limit)
 	return success
 end
 
-local function _getMessageHistory(self, query)
+local function _getMessageHistory(self, query, predicate)
 	local client = self._parent._parent or self._parent
-	return _messageIterator(self, client._api:getChannelMessages(self._id, query))
+	local success, data = client._api:getChannelMessages(self._id, query)
+	return _messageIterator(self, success, data, predicate)
 end
 
-local function getMessageHistory(self, limit)
+local function getMessageHistory(self, limit, predicate)
 	local query = limit and {limit = clamp(limit, 1, 100)}
-	return _getMessageHistory(self, query)
+	return _getMessageHistory(self, query, predicate)
 end
 
-local function getMessageHistoryBefore(self, message, limit)
-	local query = {before = message._id, limit = limit and clamp(limit, 1, 100) or nil}
-	return _getMessageHistory(self, query)
+local function getMessageHistoryBefore(self, message, limit, predicate)
+	local t = type(message)
+	local id = t == 'table' and message._id or t == 'string' and message or nil
+	local query = {before = id, limit = limit and clamp(limit, 1, 100) or nil}
+	return _getMessageHistory(self, query, predicate)
 end
 
-local function getMessageHistoryAfter(self, message, limit)
-	local query = {after = message._id, limit = limit and clamp(limit, 1, 100) or nil}
-	return _getMessageHistory(self, query)
+local function getMessageHistoryAfter(self, message, limit, predicate)
+	local t = type(message)
+	local id = t == 'table' and message._id or t == 'string' and message or nil
+	local query = {after = id, limit = limit and clamp(limit, 1, 100) or nil}
+	return _getMessageHistory(self, query, predicate)
 end
 
-local function getMessageHistoryAround(self, message, limit)
-	local query = {around = message._id, limit = limit and clamp(limit, 2, 100) or nil}
-	return _getMessageHistory(self, query)
+local function getMessageHistoryAround(self, message, limit, predicate)
+	local t = type(message)
+	local id = t == 'table' and message._id or t == 'string' and message or nil
+	local query = {around = id, limit = limit and clamp(limit, 2, 100) or nil}
+	return _getMessageHistory(self, query, predicate)
 end
 
 local function getPinnedMessages(self)
 	local client = self._parent._parent or self._parent
 	return _messageIterator(self, client._api:getPinnedMessages(self._id))
 end
+
+local function getFirstMessage(self)
+	return _getMessageHistory(self, {after = '0', limit = 1})() or nil
+end
+
+local function getLastMessage(self)
+	return _getMessageHistory(self, {limit = 1})() or nil
+end
+
+-- begin send message --
+
+-- overhaul planned for 2.0
 
 local function parseMentions(content, mentions)
 	if type(mentions) == 'table' then
@@ -105,9 +126,41 @@ local function parseMentions(content, mentions)
 	return content
 end
 
+local function parseFile(filename, file, client)
+	if type(file) == 'string' then
+		local data, err
+		if file:find('https?://') == 1 then
+			err, data = request('GET', file)
+			err = err.code > 299 and format('%s / %s / %s', err.code, err.reason, file)
+		else
+			data, err = readFile(file)
+		end
+		if err then
+			client:warning(err)
+		else
+			return {type(filename) == 'string' and filename or remove(splitPath(file)), data}
+		end
+	elseif type(file) == 'table' and type(file[1]) == 'string' and type(file[2]) == 'string' then
+		return file
+	end
+end
+
+local function parseFiles(filename, file, files, client)
+	local f1 = parseFile(filename, file, client)
+	local ret = f1 and {f1} or nil
+	if type(files) == 'table' then
+		ret = ret or {}
+		for _, v in ipairs(files) do
+			local f = parseFile(nil, v, client)
+			if f then insert(ret, f) end
+		end
+	end
+	return ret
+end
+
 local function sendMessage(self, content, ...) -- mentions, tts
 	local client = self._parent._parent or self._parent
-	local payload, file
+	local payload, files
 	if select('#', ...) > 0 then
 		client:warning('Multiple argument usage for TextChannel:sendMessage is deprecated. Use a table instead.')
 		payload = {content = parseMentions(content, select(1, ...)), tts = select(2, ...)}
@@ -123,25 +176,14 @@ local function sendMessage(self, content, ...) -- mentions, tts
 				nonce = arg.nonce,
 				embed = arg.embed,
 			}
-			if arg.file then
-				local data, err
-				if arg.file:find('https?://') == 1 then
-					err, data = request('GET', arg.file)
-					err = err.code > 299 and format('%s / %s / %s', err.code, err.reason, arg.file)
-				else
-					data, err = readFile(arg.file)
-				end
-				if err then
-					client:warning(err)
-				else
-					file = {arg.filename or remove(splitPath(arg.file)), data}
-				end
-			end
+			files = parseFiles(arg.filename, arg.file, arg.files, client)
 		end
 	end
-	local success, data = client._api:createMessage(self._id, payload, file)
+	local success, data = client._api:createMessage(self._id, payload, files)
 	return success and self._messages:new(data) or nil
 end
+
+-- end send message --
 
 local function broadcastTyping(self)
 	local client = self._parent._parent or self._parent
@@ -175,15 +217,17 @@ local function findMessages(self, predicate)
 end
 
 property('pinnedMessages', getPinnedMessages, nil, 'function', "Iterator for all of the pinned messages in the channel")
+property('firstMessage', getFirstMessage, nil, 'Message', "The first message found in the channel via HTTP (not cached).")
+property('lastMessage', getLastMessage, nil, 'Message', "The last message found in the channel via HTTP (not cached).")
 
 method('broadcastTyping', broadcastTyping, nil, "Causes the 'User is typing...' indicator to show in the channel.", 'HTTP')
 method('loadMessages', loadMessages, '[limit]', "Downloads 1 to 100 (default: 50) of the channel's most recent messages into the channel cache.", 'HTTP')
 method('sendMessage', sendMessage, 'content', "Sends a message to the channel. Content is a string or table.", 'HTTP')
 
-method('getMessageHistory', getMessageHistory, '[limit]', 'Returns an iterator for 1 to 100 (default: 50) of the most recent messages in the channel.', 'HTTP')
-method('getMessageHistoryBefore', getMessageHistoryBefore, 'message[, limit]', 'Get message history before a specific message.', 'HTTP')
-method('getMessageHistoryAfter', getMessageHistoryAfter, 'message[, limit]', 'Get message history after a specific message.', 'HTTP')
-method('getMessageHistoryAround', getMessageHistoryAround, 'message[, limit]', 'Get message history around a specific message.', 'HTTP')
+method('getMessageHistory', getMessageHistory, '[limit[, predicate]', 'Returns an iterator for up to 1 to 100 (default: 50) of the most recent messages in the channel.', 'HTTP')
+method('getMessageHistoryBefore', getMessageHistoryBefore, 'message[, limit[, predicate]]', 'Get message history before a specific message or ID.', 'HTTP')
+method('getMessageHistoryAfter', getMessageHistoryAfter, 'message[, limit[, predicate]]', 'Get message history after a specific message or ID.', 'HTTP')
+method('getMessageHistoryAround', getMessageHistoryAround, 'message[, limit[, predicate]]', 'Get message history around a specific message or ID.', 'HTTP')
 
 cache('Message', getMessageCount, getMessage, getMessages, findMessage, findMessages)
 

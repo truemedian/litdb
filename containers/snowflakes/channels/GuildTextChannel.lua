@@ -22,18 +22,6 @@ function GuildTextChannel:_update(data)
 	TextChannel._update(self, data)
 end
 
-local function _messageIterator(self, success, data)
-	if not success then return function() end end
-	local i = 1
-	return function()
-		local v = data[i]
-		if v then
-			i = i + 1
-			return Message(v, self)
-		end
-	end
-end
-
 local function getMentionString(self)
 	return format('<#%s>', self._id)
 end
@@ -44,42 +32,59 @@ local function setTopic(self, topic)
 	return success
 end
 
-local function _bulkDelete(self, query)
+local function _bulkDelete(self, query, predicate)
 	local client = self._parent._parent or self._parent
 	local success, data = client._api:getChannelMessages(self._id, query)
+	local ret = {}
 	if success then
-		if #data == 1 then
-			success = client._api:deleteMessage(self._id, data[1].id)
-			return _messageIterator(self, success, data)
-		else
-			local messages = {}
-			for _, message_data in ipairs(data) do
-				insert(messages, message_data.id)
+		predicate = type(predicate) == 'function' and predicate
+		local ids = {}
+		for _, v in ipairs(data) do
+			local m = Message(v, self)
+			if not predicate or predicate(m) then
+				insert(ids, v.id)
+				insert(ret, m)
 			end
-			success = client._api:bulkDeleteMessages(self._id, {messages = messages})
-			return _messageIterator(self, success, data)
 		end
+		local n = #ids
+		if n == 1 then
+			success = client._api:deleteMessage(self._id, ids[1])
+		elseif n > 1 then
+			success = client._api:bulkDeleteMessages(self._id, {messages = ids})
+		end
+		if not success then return function() end end
+	end
+	local i = 0
+	return function()
+		i = i + 1
+		return ret[i]
 	end
 end
 
-local function bulkDelete(self, limit)
+local function bulkDelete(self, limit, predicate)
 	local query = limit and {limit = clamp(limit, 1, 100)}
-	return _bulkDelete(self, query)
+	return _bulkDelete(self, query, predicate)
 end
 
-local function bulkDeleteAfter(self, message, limit)
-	local query = {after = message._id, limit = limit and clamp(limit, 1, 100) or nil}
-	return _bulkDelete(self, query)
+local function bulkDeleteAfter(self, message, limit, predicate)
+	local t = type(message)
+	local id = t == 'table' and message._id or t == 'string' and message or nil
+	local query = {after = id, limit = limit and clamp(limit, 1, 100) or nil}
+	return _bulkDelete(self, query, predicate)
 end
 
-local function bulkDeleteBefore(self, message, limit)
-	local query = {before = message._id, limit = limit and clamp(limit, 1, 100) or nil}
-	return _bulkDelete(self, query)
+local function bulkDeleteBefore(self, message, limit, predicate)
+	local t = type(message)
+	local id = t == 'table' and message._id or t == 'string' and message or nil
+	local query = {before = id, limit = limit and clamp(limit, 1, 100) or nil}
+	return _bulkDelete(self, query, predicate)
 end
 
-local function bulkDeleteAround(self, message, limit)
-	local query = {around = message._id, limit = limit and clamp(limit, 2, 100) or nil}
-	return _bulkDelete(self, query)
+local function bulkDeleteAround(self, message, limit, predicate)
+	local t = type(message)
+	local id = t == 'table' and message._id or t == 'string' and message or nil
+	local query = {around = id, limit = limit and clamp(limit, 2, 100) or nil}
+	return _bulkDelete(self, query, predicate)
 end
 
 local function createWebhook(self, name)
@@ -104,13 +109,12 @@ end
 
 property('mentionString', getMentionString, nil, 'string', "Raw string that is parsed by Discord into a user mention")
 property('topic', '_topic', setTopic, 'string', "The channel topic (at the top of the channel in the Discord client)")
-property('webhooks', getWebhooks, nil, 'function', "Returns an iterator for the channel's Webhooks (not cached)")
+property('webhooks', getWebhooks, nil, 'function', "Returns an iterator for the channel's webhooks (not cached)")
 
-method('bulkDelete', bulkDelete, '[limit]', 'Deletes 1 to 100 (default: 50) of the most recent messages from the channel and returns an iterator for them.', 'HTTP')
-method('bulkDeleteAfter', bulkDeleteAfter, 'message[, limit]', 'Bulk delete after a specific message.', 'HTTP')
-method('bulkDeleteBefore', bulkDeleteBefore, 'message[, limit]', 'Bulk delete before a specific message.', 'HTTP')
-method('bulkDeleteAround', bulkDeleteAround, 'message[, limit]', 'Bulk delete around a specific message.', 'HTTP')
-method('createWebhook', createWebhook, 'name', 'Creates a new Webhook for the channel.', 'HTTP')
-
+method('bulkDelete', bulkDelete, '[limit[, predicate]]', 'Deletes 1 to 100 (default: 50) of the most recent messages from the channel and returns an iterator for them.', 'HTTP')
+method('bulkDeleteAfter', bulkDeleteAfter, 'message[, limit[, predicate]]', 'Bulk delete after a specific message or ID.', 'HTTP')
+method('bulkDeleteBefore', bulkDeleteBefore, 'message[, limit[, predicate]]', 'Bulk delete before a specific message or ID.', 'HTTP')
+method('bulkDeleteAround', bulkDeleteAround, 'message[, limit[, predicate]]', 'Bulk delete around a specific message or ID.', 'HTTP')
+method('createWebhook', createWebhook, 'name', 'Creates a new webhook for the channel.', 'HTTP')
 
 return GuildTextChannel

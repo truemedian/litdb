@@ -23,7 +23,7 @@ local function getAvatarUrl(self, size)
 		local fmt = 'https://cdn.discordapp.com/avatars/%s/%s.%s?size=%i'
 		return format(fmt, self._id, avatar, ext, size or 1024)
 	else
-		return format('https://discordapp.com/assets/6debd47ed13483642cf09e832ed0bc1b.png')
+		return 'https://discordapp.com/assets/6debd47ed13483642cf09e832ed0bc1b.png'
 	end
 end
 
@@ -43,13 +43,13 @@ local function delete(self)
 	return (self._parent._api:deleteWebhook(self._id))
 end
 
-property('guildId', '_guild_id', nil, 'string', "Snowflake ID of the guild for which the invite exists")
-property('channelId', '_channel_id', nil, 'string', "Snowflake ID of the channel for which the invite exists")
-property('user', '_user', nil, 'User?', 'The user that created the Webhook, if known')
-property('token', '_token', nil, 'string', 'The token used to execute Webhook requests')
-property('name', '_name', setName, 'string', 'The name of the Webhook')
-property('avatar', '_avatar', setAvatar, 'string?', "Hash representing the Webhook's custom avatar")
-property('avatarUrl', getAvatarUrl, nil, 'string', "URL that points to the Webhook's custom avatar")
+property('guildId', '_guild_id', nil, 'string', "Snowflake ID of the guild in which the webhook exists")
+property('channelId', '_channel_id', nil, 'string', "Snowflake ID of the channel in which the webhook exists")
+property('user', '_user', nil, 'User?', 'The user that created the webhook, if known')
+property('token', '_token', nil, 'string', 'The token used to make certain webhook requests')
+property('name', '_name', setName, 'string', 'The name of the webhook')
+property('avatar', '_avatar', setAvatar, 'string?', "Hash representing the webhook's custom avatar")
+property('avatarUrl', getAvatarUrl, nil, 'string', "URL that points to the webhook's avatar")
 
 method('delete', delete, nil, "Permanently deletes the Webhook.", 'HTTP')
 

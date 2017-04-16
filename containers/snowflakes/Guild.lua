@@ -81,19 +81,10 @@ end
 function Guild:_loadMemberPresences(data)
 	for _, presence in ipairs(data) do
 		local member = self._members:get(presence.user.id)
-		member:_createPresence(presence)
+		if member then
+			member:_createPresence(presence)
+		end
 	end
-end
-
-function Guild:_updateMemberPresence(data)
-	local member = self._members:get(data.user.id)
-	if member then
-		member:_updatePresence(data)
-	else
-		member = self._members:new(data)
-		member:_createPresence(data)
-	end
-	return member
 end
 
 local function setName(self, name)
@@ -251,8 +242,8 @@ local function createVoiceChannel(self, name)
 	return success and self._voice_channels:new(data) or nil
 end
 
-local function createRole(self)
-	local success, data = self._parent._api:createGuildRole(self._id)
+local function createRole(self, name)
+	local success, data = self._parent._api:createGuildRole(self._id, {name = name})
 	return success and self._roles:new(data) or nil
 end
 
@@ -486,7 +477,7 @@ method('getPruneCount', getPruneCount, '[days]', "Returns how many members would
 method('pruneMembers', pruneMembers, '[days]', "Removes members who have not been seen in 1-30 days (default: 1 day). Returns the number of pruned members.", 'HTTP')
 method('createTextChannel', createTextChannel, 'name', "Creates a new text channel in the guild.", 'HTTP')
 method('createVoiceChannel', createVoiceChannel, 'name', "Creates a new voice channel in the guild.", 'HTTP')
-method('createRole', createRole, nil, "Creates a new role in the guild.", 'HTTP')
+method('createRole', createRole, 'name', "Creates a new role in the guild.", 'HTTP')
 
 cache('Channel', getChannelCount, getChannel, getChannels, findChannel, findChannels)
 cache('TextChannel', getTextChannelCount, getTextChannel, getTextChannels, findTextChannel, findTextChannels)

@@ -38,15 +38,15 @@ function EventHandler.READY(data, client, socket)
 			socket._loading.guilds[guild.id] = true
 		end
 	else
-		-- local guild_ids = {}
-		-- for _, guild in ipairs(data.guilds) do
-		-- 	if not guild.unavailable then
-		-- 		local id = guild.id
-		-- 		socket._loading.syncs[id] = true
-		-- 		insert(guild_ids, id)
-		-- 	end
-		-- end
-		-- socket:syncGuilds(guild_ids)
+		local guild_ids = {}
+		for _, guild in ipairs(data.guilds) do
+			if not guild.unavailable then
+				local id = guild.id
+				socket._loading.syncs[id] = true
+				insert(guild_ids, id)
+			end
+		end
+		socket:syncGuilds(guild_ids)
 	end
 
 	return checkReady(socket)
@@ -320,16 +320,20 @@ function EventHandler.PRESENCE_UPDATE(data, client)
 	if not data.guild_id then return end -- friend update
 	local guild = client._guilds:get(data.guild_id)
 	if not guild then return warning(client, 'Guild', data.guild_id, 'PRESENCE_UPDATE') end
-	local member = guild:_updateMemberPresence(data)
+	local member = guild._members:get(data.user.id)
+	if not member then return end
+	member:_updatePresence(data)
 	return client:emit('presenceUpdate', member)
 end
 
 function EventHandler.TYPING_START(data, client)
 	local channel = client:_getTextChannelShortcut(data.channel_id)
-	if not channel then return warning(client, 'TextChannel', data.channel_id, 'TYPING_START') end
 	local user = client._users:get(data.user_id)
-	if not user then return warning(client, 'User', data.user_id, 'TYPING_START') end
-	return client:emit('typingStart', user, channel, data.timestamp)
+	if channel and user then
+		return client:emit('typingStart', user, channel, data.timestamp)
+	else 
+		return client:emit('typingStartUncached', data)
+	end
 end
 
 function EventHandler.USER_UPDATE(data, client)
