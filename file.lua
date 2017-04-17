@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 --[[lit-meta
   name = "luvit/require"
-  version = "2.1.0"
+  version = "2.2.0"
   homepage = "https://github.com/luvit/luvit/blob/master/deps/require.lua"
   description = "Luvit's custom require system with relative requires and sane search paths."
   tags = {"luvit", "require"}
@@ -179,9 +179,16 @@ local function moduleRequire(base, name)
       end
     end
 
-    -- Stop at filesystem or prefix root (58 is ":")
-    if base == "/" or base:byte(-1) == 58 then break end
-    base = pathJoin(base, "..")
+    if base == "/" then
+      -- If we reach filesystem root, look in root on bundle
+      base = "bundle:"
+    elseif base:byte(-1) == 58 then
+      -- If we reach root of bundle, it doesn't exist
+      break
+    else
+      -- Otherwise, keep going higher
+      base = pathJoin(base, "..")
+    end
   end
 end
 
