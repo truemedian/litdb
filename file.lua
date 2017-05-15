@@ -18,7 +18,7 @@ limitations under the License.
 
 --[[lit-meta
   name = "luvit/http-codec"
-  version = "3.0.1"
+  version = "3.0.2"
   homepage = "https://github.com/luvit/luvit/blob/master/deps/http-codec.lua"
   description = "A simple pair of functions for converting between hex and raw strings."
   tags = {"codec", "http"}
@@ -71,22 +71,26 @@ local STATUS_CODES = {
   [415] = 'Unsupported Media Type',
   [416] = 'Requested Range Not Satisfiable',
   [417] = 'Expectation Failed',
-  [418] = "I'm a teapot",               -- RFC 2324
-  [422] = 'Unprocessable Entity',       -- RFC 4918
-  [423] = 'Locked',                     -- RFC 4918
-  [424] = 'Failed Dependency',          -- RFC 4918
-  [425] = 'Unordered Collection',       -- RFC 4918
-  [426] = 'Upgrade Required',           -- RFC 2817
+  [418] = "I'm a teapot",                       -- RFC 2324
+  [422] = 'Unprocessable Entity',               -- RFC 4918
+  [423] = 'Locked',                             -- RFC 4918
+  [424] = 'Failed Dependency',                  -- RFC 4918
+  [425] = 'Unordered Collection',               -- RFC 4918
+  [426] = 'Upgrade Required',                   -- RFC 2817
+  [428] = 'Precondition Required',              -- RFC 6585
+  [429] = 'Too Many Requests',                  -- RFC 6585
+  [431] = 'Request Header Fields Too Large',    -- RFC 6585
   [500] = 'Internal Server Error',
   [501] = 'Not Implemented',
   [502] = 'Bad Gateway',
   [503] = 'Service Unavailable',
   [504] = 'Gateway Time-out',
   [505] = 'HTTP Version not supported',
-  [506] = 'Variant Also Negotiates',    -- RFC 2295
-  [507] = 'Insufficient Storage',       -- RFC 4918
+  [506] = 'Variant Also Negotiates',            -- RFC 2295
+  [507] = 'Insufficient Storage',               -- RFC 4918
   [509] = 'Bandwidth Limit Exceeded',
-  [510] = 'Not Extended'                -- RFC 2774
+  [510] = 'Not Extended',                       -- RFC 2774
+  [511] = 'Network Authentication Required'     -- RFC 6585
 }
 
 local function encoder()
@@ -164,12 +168,12 @@ local function decoder()
 
   -- This state is for decoding the status line and headers.
   function decodeHead(chunk, index)
-    if not chunk then return end
+    if not chunk or index > #chunk then return end
 
     local _, last = find(chunk, "\r?\n\r?\n", index)
     -- First make sure we have all the head before continuing
     if not last then
-      if #chunk < 8 * 1024 then return end
+      if (#chunk - index) <= 8 * 1024 then return end
       -- But protect against evil clients by refusing heads over 8K long.
       error("entity too large")
     end
