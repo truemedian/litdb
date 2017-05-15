@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 --[[lit-meta
   name = "luvit/url"
-  version = "2.1.0"
+  version = "2.1.1"
   dependencies = {
     "luvit/querystring@2.0.0",
   }
@@ -70,7 +70,7 @@ local function parse(url, parseQueryString)
   url = url:sub((chunk and #chunk or 0) + 1)
 
   local auth
-  chunk, auth = url:match('(([0-9a-zA-Z]+:?[0-9a-zA-Z]+)@)')
+  chunk, auth = url:match('(([%w%p]+:?[%w%p]+)@)')
   url = url:sub((chunk and #chunk or 0) + 1)
 
   local host
