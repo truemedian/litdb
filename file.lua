@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 --[[lit-meta
   name = "luvit/ustring"
-  version = "2.0.1"
+  version = "2.0.2"
   homepage = "https://github.com/luvit/luvit/blob/master/deps/ustring.lua"
   description = "A light-weight UTF-8 module in pure lua(jit)."
   tags = {"ustring", "utf8", "utf-8", "unicode"}
@@ -30,7 +30,6 @@ local _meta = {}
 
 local strsub = string.sub
 local strbyte = string.byte
-local band = bit.band
 local rshift = bit.rshift
 
 local function chlen(byte)
@@ -51,7 +50,7 @@ end
 ustring.chlen = chlen
 
 function ustring.new(str,allowInvaild)
-    local str = str and tostring(str) or ""
+    str = str and tostring(str) or ""
     local ustr = {}
     local index = 1;
     local append = 0;
@@ -125,6 +124,7 @@ function ustring.uindex2index(ustr,uindex,initrawindex,inituindex)
     -- convert the index of a UIF-8 char into a raw index
     -- return `nil` if rawindex is invaild
     -- the last 2 arguments are optional and used for better performance (only if uindex isn't negative)
+    uindex = uindex or 1
     local ulen = #ustr
     if uindex < 0 then
         local index = 0
@@ -133,7 +133,7 @@ function ustring.uindex2index(ustr,uindex,initrawindex,inituindex)
         end
         return -index
     else
-        local index = (initindex or 1)
+        local index = (inituindex or 1)
         inituindex = inituindex or 1
         for i = inituindex,uindex - 1 do
             index = index + #ustr[i]
