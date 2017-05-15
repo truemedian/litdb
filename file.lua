@@ -20,7 +20,7 @@ limitations under the License.
 -- https://github.com/openresty/lua-resty-dns/blob/master/lib/resty/dns/resolver.lua
 --[[lit-meta
   name = "luvit/dns"
-  version = "2.0.3"
+  version = "2.0.4"
   dependencies = {
     "luvit/dgram@2.0.0",
     "luvit/fs@2.0.0",
@@ -60,7 +60,10 @@ local insert = table.insert
 local concat = table.concat
 local ipapi
 
-if ffi.os=='Windows' then
+
+if _G._luvit_dns_load then
+  ipapi = _G._luvit_dns_load
+elseif ffi.os=='Windows' then
   ffi.cdef[[
     typedef uint32_t DWORD; //Integer
     typedef uint32_t ULONG; //Alias
@@ -102,6 +105,7 @@ if ffi.os=='Windows' then
   ]]
 
   ipapi = ffi.load('Iphlpapi.dll')
+  _G._luvit_dns_load = ipapi
 end
 
 local DEFAULT_SERVERS = {
