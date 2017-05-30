@@ -1,6 +1,6 @@
 return {
   name = "creationix/simple-http-server",
-  version = "0.0.7",
+  version = "0.0.8",
   description = "A simple luvi app that creates a local http server using weblit",
   tags = {"weblit","http-server","app","static"},
   homepage = "https://github.com/creationix/simple-http-server",
