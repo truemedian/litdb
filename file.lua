@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/coro-wrapper"
-  version = "3.0.1"
+  version = "3.1.0"
   homepage = "https://github.com/luvit/lit/blob/master/deps/coro-wrapper.lua"
   description = "An adapter for applying decoders to coro-streams."
   tags = {"coro", "decoder", "adapter"}
@@ -97,6 +97,11 @@ local function decoder(read, decode)
             index = nil
           end
         end
+      end
+
+      -- Return nil if the buffer is empty
+      if buffer == '' or buffer == nil then
+          return nil
       end
 
       -- If we have data, lets try to decode it
