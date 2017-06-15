@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/coro-net"
-  version = "3.1.0"
+  version = "3.2.0"
   dependencies = {
     "creationix/coro-channel@3.0.0",
     "creationix/coro-wrapper@3.0.0",
@@ -55,14 +55,6 @@ local function normalize(options, server)
   elseif t ~= "table" then
     assert("Net options must be table, string, or number")
   end
-  if options.tls == true then
-    options.tls = {}
-  end
-  if server and options.tls then
-    options.tls.server = true
-    assert(options.tls.cert, "TLS servers require a certificate")
-    assert(options.tls.key, "TLS servers require a key")
-  end
   if options.port or options.host then
     options.isTcp = true
     options.host = options.host or "127.0.0.1"
@@ -71,6 +63,19 @@ local function normalize(options, server)
     options.isTcp = false
   else
     error("Must set either options.path or options.port")
+  end
+  if options.tls == true then
+    options.tls = {}
+  end
+  if options.tls then
+    if server then
+      options.tls.server = true
+      assert(options.tls.cert, "TLS servers require a certificate")
+      assert(options.tls.key, "TLS servers require a key")
+    else
+      options.tls.server = false
+      options.tls.servername = options.host
+    end
   end
   return options
 end
