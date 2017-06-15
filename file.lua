@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/coro-websocket"
-  version = "3.0.0"
+  version = "3.1.0"
   dependencies = {
     "luvit/http-codec@3.0.0",
     "creationix/websocket-codec@3.0.0",
@@ -95,6 +95,7 @@ local function wrapIo(rawRead, rawWrite, options)
             payload = message.payload
           }
         end
+        return message
       end
     end
   end
