@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 --[[lit-meta
   name = "luvit/url"
-  version = "2.1.1"
+  version = "2.1.2"
   dependencies = {
     "luvit/querystring@2.0.0",
   }
@@ -169,7 +169,7 @@ local function format(parsed)
 
   -- urlencode # and ? characters only
   pathname = string.gsub(pathname, '([?#])', function(c)
-    return string.format('%%%02X', byte(c))
+    return string.format('%%%02X', string.byte(c))
   end)
 
   -- add slashes
