@@ -1,6 +1,6 @@
 return {
   name = "creationix/wscat",
-  version = "0.2.3",
+  version = "0.2.4",
   description = "A netcat like client for websockets",
   luvi = {
     version = "2.6.1",
