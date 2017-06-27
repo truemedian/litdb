@@ -1,4 +1,5 @@
 local names = {
+  ["OSX-x64"] = "luatweetnacl.so",
   ["Linux-x64"] = "luatweetnacl.so",
 }
 local ffi = require 'ffi'
