@@ -1,6 +1,6 @@
 return {
   name = "creationix/tweetnacl",
-  version = "0.0.2",
+  version = "0.0.3",
   homepage = "https://github.com/creationix/littweetnacl",
   description = "luatweetnacl bindings packaged for lit applications.",
   tags = {"nacl","crypto"},
