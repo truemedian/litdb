@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/weblit-force-https"
-  version = "2.0.0"
+  version = "2.0.1"
   description = "Redirects http request to https."
   tags = {"weblit", "middleware", "https"}
   license = "MIT"
@@ -9,7 +9,7 @@
 ]]
 
 return function (req, res, go)
-  if req.tls then return go() end
+  if req.socket.tls then return go() end
   res.code = 301
   res.headers["Location"] = "https://" .. req.headers.Host .. req.path
   res.body = "Redirecting to HTTPS...\n"
