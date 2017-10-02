@@ -10,12 +10,12 @@ local Reaction, get = require('class')('Reaction', Container)
 
 function Reaction:__init(data, parent)
 	Container.__init(self, data, parent)
-	self._emoji_id = data.emoji.id
+	self._emoji_id = data.emoji.id ~= null and data.emoji.id or nil
 	self._emoji_name = data.emoji.name
 end
 
 function Reaction:__hash()
-	return self._emoji_id ~= null and self._emoji_id or self._emoji_name
+	return self._emoji_id or self._emoji_name
 end
 
 function Reaction:getUsers()
@@ -40,6 +40,14 @@ end
 
 function get.emojiName(self)
 	return self._emoji_name
+end
+
+function get.emojiHash(self)
+	if self._emoji_id then
+		return self._emoji_name .. ':' .. self._emoji_id
+	else
+		return self._emoji_name
+	end
 end
 
 function get.emojiURL(self)

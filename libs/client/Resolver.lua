@@ -1,10 +1,10 @@
 local fs = require('fs')
-local base64 = require('base64')
+local ssl = require('openssl')
 local class = require('class')
 local enums = require('enums')
 
 local permission = enums.permission
-local encode = base64.encode
+local base64 = ssl.base64
 local readFileSync = fs.readFileSync
 local classes = class.classes
 local isInstance = class.isInstance
@@ -95,13 +95,9 @@ end
 
 function Resolver.emoji(obj)
 	if isInstance(obj, classes.Emoji) then
-		return obj.name .. ':' .. obj.id
+		return obj.hash
 	elseif isInstance(obj, classes.Reaction) then
-		if obj.emojiId then
-			return obj.emojiName .. ':' .. obj.emojiId
-		else
-			return obj.emojiName
-		end
+		return obj.emojiHash
 	end
 	return tostring(obj)
 end
@@ -140,7 +136,7 @@ function Resolver.base64(obj)
 		if not data then
 			return nil, err
 		end
-		return 'data:;base64,' .. encode(data)
+		return 'data:;base64,' .. base64(data)
 	end
 	return nil
 end
