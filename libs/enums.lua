@@ -106,6 +106,35 @@ enums.permission = enum {
 	manageEmojis        = 0x40000000,
 }
 
+enums.actionType = enum {
+	guildUpdate            = 1,
+	channelCreate          = 10,
+	channelUpdate          = 11,
+	channelDelete          = 12,
+	channelOverwriteCreate = 13,
+	channelOverwriteUpdate = 14,
+	channelOverwriteDelete = 15,
+	memberKick             = 20,
+	memberPrune            = 21,
+	memberBanAdd           = 22,
+	memberBanRemove        = 23,
+	memberUpdate           = 24,
+	memberRoleUpdate       = 25,
+	roleCreate             = 30,
+	roleUpdate             = 31,
+	roleDelete             = 32,
+	inviteCreate           = 40,
+	inviteUpdate           = 41,
+	inviteDelete           = 42,
+	webhookCreate          = 50,
+	webhookUpdate          = 51,
+	webhookDelete          = 52,
+	emojiCreate            = 60,
+	emojiUpdate            = 61,
+	emojiDelete            = 62,
+	messageDelete          = 72,
+}
+
 enums.logLevel = enum {
 	none    = 0,
 	error   = 1,

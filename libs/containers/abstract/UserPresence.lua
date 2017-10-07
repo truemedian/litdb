@@ -13,11 +13,11 @@ function UserPresence:__hash()
 end
 
 function UserPresence:_loadPresence(presence)
-	local game = presence.game
-	self._game_name = game and game.name
-	self._game_type = game and game.type
-	self._game_url = game and game.url
-	self._status = presence.status
+	-- local game = presence.game
+	-- self._game_name = game and game.name
+	-- self._game_type = game and game.type
+	-- self._game_url = game and game.url
+	-- self._status = presence.status
 end
 
 function get.gameName(self)

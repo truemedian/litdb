@@ -244,9 +244,9 @@ end
 
 -- start of auto-generated methods --
 
-function API:getGuildAuditLog(guild_id)
-	local endpoint = f(endpoints.GUILD_AUDIT_LOG, guild_id)
-	return self:request("GET", endpoint)
+function API:getGuildAuditLog(guild_id, query)
+	local endpoint = f(endpoints.GUILD_AUDIT_LOGS, guild_id)
+	return self:request("GET", endpoint, nil, query)
 end
 
 function API:getChannel(channel_id) -- not exposed, use cache
@@ -366,6 +366,31 @@ end
 
 function API:groupDMRemoveRecipient(channel_id, user_id) -- GroupChannel:removeRecipient
 	local endpoint = f(endpoints.CHANNEL_RECIPIENT, channel_id, user_id)
+	return self:request("DELETE", endpoint)
+end
+
+function API:listGuildEmojis(guild_id) -- not exposed, use cache
+	local endpoint = f(endpoints.GUILD_EMOJIS, guild_id)
+	return self:request("GET", endpoint)
+end
+
+function API:getGuildEmoji(guild_id, emoji_id) -- not exposed, use cache
+	local endpoint = f(endpoints.GUILD_EMOJI, guild_id, emoji_id)
+	return self:request("GET", endpoint)
+end
+
+function API:createGuildEmoji(guild_id, payload) -- Guild:createEmoji
+	local endpoint = f(endpoints.GUILD_EMOJIS, guild_id)
+	return self:request("POST", endpoint, payload)
+end
+
+function API:modifyGuildEmoji(guild_id, emoji_id, payload) -- Emoji:_modify
+	local endpoint = f(endpoints.GUILD_EMOJI, guild_id, emoji_id)
+	return self:request("PATCH", endpoint, payload)
+end
+
+function API:deleteGuildEmoji(guild_id, emoji_id) -- Emoji:delete
+	local endpoint = f(endpoints.GUILD_EMOJI, guild_id, emoji_id)
 	return self:request("DELETE", endpoint)
 end
 

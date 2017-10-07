@@ -4,6 +4,7 @@ local class = require('class')
 local enums = require('enums')
 
 local permission = enums.permission
+local actionType = enums.actionType
 local base64 = ssl.base64
 local readFileSync = fs.readFileSync
 local classes = class.classes
@@ -33,6 +34,8 @@ local function int(obj)
 		end
 	elseif t == 'number' then
 		return format('%i', obj)
+	elseif isInstance(obj, classes.Date) then
+		return obj:toSnowflake()
 	end
 end
 
@@ -74,6 +77,13 @@ end
 
 function Resolver.guildId(obj)
 	if isInstance(obj, classes.Guild) then
+		return obj.id
+	end
+	return int(obj)
+end
+
+function Resolver.entryId(obj)
+	if isInstance(obj, classes.AuditLogEntry) then
 		return obj.id
 	end
 	return int(obj)
@@ -123,6 +133,17 @@ function Resolver.permission(obj)
 		n = permission[obj]
 	elseif t == 'number' then
 		n = permission(obj) and obj
+	end
+	return n
+end
+
+function Resolver.actionType(obj)
+	local t = type(obj)
+	local n = nil
+	if t == 'string' then
+		n = actionType[obj]
+	elseif t == 'number' then
+		n = actionType(obj) and obj
 	end
 	return n
 end
