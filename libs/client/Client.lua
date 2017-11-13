@@ -18,6 +18,7 @@ local Webhook = require('containers/Webhook')
 local Relationship = require('containers/Relationship')
 
 local Cache = require('iterables/Cache')
+local WeakCache = require('iterables/WeakCache')
 local Emitter = require('utils/Emitter')
 local Logger = require('utils/Logger')
 local Mutex = require('utils/Mutex')
@@ -94,6 +95,7 @@ function Client:__init(options)
 	self._group_channels = Cache({}, GroupChannel, self)
 	self._private_channels = Cache({}, PrivateChannel, self)
 	self._relationships = Cache({}, Relationship, self)
+	self._webhooks = WeakCache({}, Webhook, self) -- used for audit logs
 	self._logger = Logger(options.logLevel, options.dateTime, options.logFile)
 	self._channel_map = {}
 end
@@ -335,14 +337,13 @@ function Client:getConnections()
 end
 
 local function updateStatus(self)
-	local shards = self._shards
 	local presence = self._presence
 	presence.afk = presence.afk or null
 	presence.game = presence.game or null
 	presence.since = presence.since or null
 	presence.status = presence.status or null
-	for i = 0, self._shard_count - 1 do
-		shards[i]:updateStatus(presence)
+	for _, shard in pairs(self._shards) do
+		shard:updateStatus(presence)
 	end
 end
 

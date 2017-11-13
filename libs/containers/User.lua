@@ -59,6 +59,15 @@ function User:send(content)
 	end
 end
 
+function User:sendf(content, ...)
+	local channel, err = self:getPrivateChannel()
+	if channel then
+		return channel:sendf(content, ...)
+	else
+		return nil, err
+	end
+end
+
 function get.bot(self)
 	return self._bot or false
 end
@@ -102,7 +111,9 @@ end
 function get.mutualGuilds(self)
 	if not self._mutual_guilds then
 		local id = self._id
-		self._mutual_guilds = FilteredIterable(self.client._guilds, function(g) return g._members:get(id) end)
+		self._mutual_guilds = FilteredIterable(self.client._guilds, function(g)
+			return g._members:get(id)
+		end)
 	end
 	return self._mutual_guilds
 end

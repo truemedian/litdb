@@ -6,6 +6,7 @@ local Webhook = require('containers/Webhook')
 local Ban = require('containers/Ban')
 local Member = require('containers/Member')
 local Resolver = require('client/Resolver')
+local AuditLogEntry = require('containers/AuditLogEntry')
 local GuildTextChannel = require('containers/GuildTextChannel')
 local GuildVoiceChannel = require('containers/GuildVoiceChannel')
 local GuildCategoryChannel = require('containers/GuildCategoryChannel')
@@ -28,6 +29,7 @@ function Guild:__init(data, parent)
 	self._text_channels = Cache({}, GuildTextChannel, self)
 	self._voice_channels = Cache({}, GuildVoiceChannel, self)
 	self._categories = Cache({}, GuildCategoryChannel, self)
+	self._voice_states = {}
 	if not data.unavailable then
 		return self:_makeAvailable(data)
 	end
@@ -38,12 +40,12 @@ function Guild:_makeAvailable(data)
 	self._roles:_load(data.roles)
 	self._emojis:_load(data.emojis)
 
-	local voice_states = data.voice_states
-	for i, state in ipairs(voice_states) do
-		voice_states[state.user_id] = state
-		voice_states[i] = nil
+	if data.voice_states then
+		local states = self._voice_states
+		for _, state in ipairs(data.voice_states) do
+			states[state.user_id] = state
+		end
 	end
-	self._voice_states = voice_states
 
 	local text_channels = self._text_channels
 	local voice_channels = self._voice_channels
@@ -130,6 +132,11 @@ end
 function Guild:getRole(id)
 	id = Resolver.roleId(id)
 	return self._roles:get(id)
+end
+
+function Guild:getEmoji(id)
+	id = Resolver.emojiId(id)
+	return self._emojis:get(id)
 end
 
 function Guild:getChannel(id)
@@ -268,6 +275,25 @@ function Guild:getInvites()
 	end
 end
 
+function Guild:getAuditLogs(query)
+	if type(query) == 'table' then
+		query = {
+			limit = query.limit,
+			user_id = Resolver.userId(query.user),
+			before = Resolver.entryId(query.before),
+			action_type = Resolver.actionType(query.type),
+		}
+	end
+	local data, err = self.client._api:getGuildAuditLog(self._id, query)
+	if data then
+		self.client._users:_load(data.users)
+		self.client._webhooks:_load(data.webhooks)
+		return Cache(data.audit_log_entries, AuditLogEntry, self)
+	else
+		return nil, err
+	end
+end
+
 function Guild:getWebhooks()
 	local data, err = self.client._api:getGuildWebhooks(self._id)
 	if data then
@@ -278,7 +304,7 @@ function Guild:getWebhooks()
 end
 
 function Guild:listVoiceRegions()
-	return self.client._api:getGuildVoiceRegions()
+	return self.client._api:getGuildVoiceRegions(self._id)
 end
 
 function Guild:leave()
@@ -293,6 +319,10 @@ end
 function Guild:delete()
 	local data, err = self.client._api:deleteGuild(self._id)
 	if data then
+		local cache = self._parent._guilds
+		if cache then
+			cache:_delete(self._id)
+		end
 		return true
 	else
 		return false, err
