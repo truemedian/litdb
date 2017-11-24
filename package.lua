@@ -1,6 +1,6 @@
   return {
     name = "ryanplusplus/mach",
-    version = "1.0.12",
+    version = "1.0.14",
     description = "Simple mocking framework for Lua inspired by CppUMock and designed for readability",
     tags = { "testing" },
     license = "MIT",
@@ -9,6 +9,6 @@
     dependencies = {},
     files = {
       "**.lua",
-      "!test*"
+      "!spec*"
     }
   }
