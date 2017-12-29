@@ -13,7 +13,7 @@ local queries = {
 
 local functions = {
 	function(n,_,data)
-		return fmt('[%s, ["%s"]]',term[n],f1)
+		return fmt('[%s, ["%s"]]',term[n],data)
 	end,
 	function(n,data,f1)
 		return fmt('[%s, [%s, "%s"]]',term[n],data,f1)
@@ -24,12 +24,16 @@ local functions = {
 	function(n,data)
 		return fmt('[%s, [%s]]',term[n],data)
 	end,
+	function(n,_,data)
+		return fmt('[%s, [%s]]',term[n],data)
+	end,
 }
 
 local index = {
 	'table',
 	'get',
 	'insert',
+	'config',
 	'update',
 	'replace',
 	'filter',
@@ -62,10 +66,15 @@ local references = {
 		f = functions[2],
 		t = term.get
 	},
+	config = {
+		f = functions[4],
+		t = term.config,
+	},
 	insert = {
 		f = functions[3],
 		t = term.insert,
-		jsDatum = true
+		jsDatum = true,
+		json = true,
 	},
 	update = {
 		f = functions[3],
@@ -85,7 +94,7 @@ local references = {
 		json = true
 	},
 	changes = {
-		f = functions[1],
+		f = functions[4],
 		t = term.changes
 	},
 	js = {
@@ -155,12 +164,12 @@ local function encode(reql)
 		str = str .. fmt('[%s, ["%s"]]', term.db, db)
 	end
 	local js
-	for i=1,#index do
-		local v=index[i]
-		local dat=reql._data[v]
+	for i = 1, #index do
+		local v = index[i]
+		local dat = reql._data[v]
 		if dat then
 			local ref = references[v]
-			if ref then	
+			if ref then
 				if ref.json == true then
 					if ref.jsDatum == true then
 						js = json.encode({term.datum, dat})
@@ -170,11 +179,11 @@ local function encode(reql)
 				else
 					js = dat
 				end
-				str = ref.f(v,str,js)
+				str = ref.f(v, str, js)
 			end
 		end
 	end
-	str = '[1,' .. str .. ',{}]'
+	str = '[1, ' .. str .. ', {}]'
 	return str
 end
 return encode
