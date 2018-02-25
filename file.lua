@@ -1,8 +1,8 @@
 --[[lit-meta
 name = 'Kogiku/cleverbot'
-version = '1.0.0'
+version = '1.0.1'
 homepage = 'https://github.com/Kogiku/cleverbot_luvit'
-description = 'Simple implementation of the CleverBot API for luvit.'
+description = 'Simple implementation of the CleverBot API for Luvit.'
 dependencies = {
 	'creationix/coro-http',
 	'luvit/querystring',
@@ -53,10 +53,10 @@ function cleverbot.talk(text, apiKey, cStateBool)
 		else CS:setCState(json.cs) end
 		return json.output
 	elseif head.code ~= nil then
-		errcode = '!! CleverBot error: '..head.code
+		local errcode = '!! CleverBot error: '..head.code
 		return errcode
 	else
-		nilerr = '!! CleverBot error: unknown'
+		local nilerr = '!! CleverBot error: unknown'
 		return nilerr
 	end
 end
