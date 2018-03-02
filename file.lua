@@ -1,6 +1,6 @@
 --[[lit-meta
 name = 'Kogiku/cleverbot'
-version = '1.0.2'
+version = '1.0.3'
 homepage = 'https://github.com/Kogiku/cleverbot_luvit'
 description = 'Simple CleverBot API Wrapper for Luvit.'
 dependencies = {
@@ -49,10 +49,10 @@ function cleverbot.buildURL(text, apiKey)
 end
 
 function cleverbot.talk(text, apiKey, cStateBool)
-	local head,body = http.request('GET', cleverbot.buildURL(text, apiKey))
+	local head, body = http.request('GET', cleverbot.buildURL(text, apiKey))
+	local json = JSON.parse(body)
+	local CS = cState
 	if head.code == 200 then
-		local json = JSON.parse(body)
-		local CS = cState
 		if cStateBool == false then
 			CS:setCState('')
 		else CS:setCState(json.cs) end
@@ -67,11 +67,9 @@ function cleverbot.talk(text, apiKey, cStateBool)
 		return errors.err..head.code..errors['502']
 	elseif head.code == 503 then
 		return errors.err..head.code..errors['503']
-	elseif head.code ~= nil then
+	elseif head.code then
 		return errors.err..head.code
-	else
-		return errors.err..' : unknown'	
-	end
+	else return errors.err..' : unknown' end
 end
 
 return cleverbot
