@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/coro-spawn"
-  version = "3.0.0"
+  version = "3.0.1"
   dependencies = {
     "creationix/coro-channel@3.0.0"
   }
@@ -53,6 +53,10 @@ return function (path, options)
   end
 
   local handle, pid = uv.spawn(path, options, onExit)
+
+  if not handle then
+    return nil, pid
+  end
 
   -- If the process has exited already, return the cached result.
   -- Otherwise, wait for it to exit and return the result.
