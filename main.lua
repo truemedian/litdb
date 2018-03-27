@@ -4,15 +4,14 @@ local stdout = require('pretty-print').stdout
 local stderr = require('pretty-print').stderr
 local stdin = require('pretty-print').stdin
 local cbor = require 'cbor'
+local getenv = require('os').getenv
 
 -- default lua strings to utf8 strings in cbor encoding
 cbor.type_encoders.string = cbor.type_encoders.utf8string
 
-local concat = table.concat
-local bit = require 'bit'
-local rshift = bit.rshift
-local band = bit.band
-local char = string.char
+local port = getenv 'PORT'
+if port then port = tonumber(port) end
+if not port then port = 6000 end
 
 local handle = uv.new_udp()
 handle:bind('127.0.0.1', 0)
@@ -20,13 +19,7 @@ handle:bind('127.0.0.1', 0)
 
 local function send(message)
   local data = cbor.encode(message)
-  local dest = 6000
-  -- p("Sending", {dest=dest,len=#data})
-  handle:send(concat {
-    char(rshift(dest, 8)),
-    char(band(dest, 0xff)),
-    data
-  }, '127.0.0.1', 5000)
+  handle:send(data, '127.0.0.1', port)
 end
 
 
