@@ -78,7 +78,7 @@ send {
     detached = true
   }
 }
-local cols, rows = stdin:get_winsize()
-send { 's-resize', cols, rows }
+-- local cols, rows = stdin:get_winsize()
+-- send { 's-resize', cols, rows }
 
 uv.run()
