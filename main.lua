@@ -69,6 +69,7 @@ end
 function handlers.list(processes)
   print '\x1b[2J\x1b[;HChoose an option:'
   print 'Press enter to start a new bash shell.'
+  print 'Press Control-D to exit'
   print 'Or enter session ID to take over an existing session.'
   for k, v in pairs(processes) do
     p(k, v)
