@@ -1,10 +1,31 @@
+--[[
+Copyright (C) 2018 Kubos Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+]]
+
+-- Message format: See README for more details
 -- { channel, message, ...args }
 
 local uv = require 'uv'
+local getenv = require('os').getenv
+local port = getenv 'PORT'
+port = port and tonumber(port) or 6000
 
 local ffi = require('ffi')
 -- Define the bits of the system API we need.
 ffi.cdef[[
+  char *strerror(int errnum);
   int open(const char *pathname, int flags);
   static const int O_RDWR = 2;
   char *ptsname(int fd);
@@ -24,14 +45,26 @@ ffi.cdef[[
 
 local C = ffi.C
 
+local function cassert(val, message)
+  if val then return val end
+  error(message .. ': ' .. ffi.string(C.strerror(ffi.errno())))
+end
+
+local function cwarn(val, message)
+  if not val then
+    print(message .. ': ' .. ffi.string(C.strerror(ffi.errno())))
+  end
+  return val
+end
+
 local function openpty()
   local master = C.open('/dev/ptmx', C.O_RDWR)
-  assert(master > 0, 'Problem opening master for pty')
-  assert(C.grantpt(master) == 0, 'Problem granting slave pts')
-  assert(C.unlockpt(master) == 0, 'Problem unlocking slave pts')
+  cassert(master > 0, 'Problem opening master for pty')
+  cassert(C.grantpt(master) == 0, 'Problem granting slave pts')
+  cassert(C.unlockpt(master) == 0, 'Problem unlocking slave pts')
   local slave_path = ffi.string(C.ptsname(master))
   local slave = C.open(slave_path, C.O_RDWR)
-  assert(slave > 0, 'Problem opening slave for pty')
+  cassert(slave > 0, 'Problem opening slave for pty')
   return master, slave
 end
 
@@ -50,11 +83,12 @@ function Process:list()
   self:send('list', processes)
 end
 
--- Takes in path and options, outputs pid
+-- Takes in path and options, outputs pid,
 -- emits exit, stdout, and stderr events
 function Process:spawn(path, options)
-
+  assert(type(path) == 'string', 'Path must be a string')
   if not options then options = {} end
+  assert(type(options) == 'table', 'Options must be a table')
 
   local handle, pid, on_stdout, on_stderr, on_exit
 
@@ -80,6 +114,7 @@ function Process:spawn(path, options)
   local stdin, stdout, stderr, master, slave
 
   if options.pty then
+    assert(type(options.pty) == 'boolean', 'options.pty must be a boolean')
     master, slave = openpty()
     local pipe = uv.new_pipe(false)
     pipe:open(master)
@@ -129,16 +164,15 @@ function Process:kill(signal)
   self.handle:kill(signal or 15)
 end
 
+local winp = ffi.new('struct winsize')
 function Process:resize(cols, rows)
-  local winp = ffi.new('struct winsize')
   winp.ws_row = rows
   winp.ws_col = cols
-  if C.ioctl(self.master, C.TIOCSWINSZ, winp) ~= 0 then
-    print 'Error setting window size'
-  end
+  cwarn(C.ioctl(self.master, C.TIOCSWINSZ, winp) == 0,
+    'Problem setting window size')
   self.handle:kill(C.SIGWINCH)
 end
 
-require('channel-service')(Process, 6000)
+require('channel-service')(Process, port)
 
 uv.run()
