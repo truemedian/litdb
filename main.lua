@@ -1,3 +1,19 @@
+--[[
+Copyright (C) 2018 Kubos Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+]]
+
 local uv = require 'uv'
 local ffi = require 'ffi'
 local stdout = require('pretty-print').stdout
@@ -7,7 +23,7 @@ local cbor = require 'cbor'
 local getenv = require('os').getenv
 local readLine = require('readline').readLine
 
--- default lua strings to utf8 strings in cbor encoding
+-- Default lua strings to utf8 strings in cbor encoding.
 cbor.type_encoders.string = cbor.type_encoders.utf8string
 
 local port = getenv 'PORT'
@@ -37,9 +53,8 @@ local function on_raw(err, data)
 end
 
 function handlers.pid(pid)
-  p('Remote bash process:', {pid=pid})
+  p('Remote sh process:', {pid=pid})
   send { 'stdin', '\f' }
-  -- stdout:write '\x1b[2J\x1b[;H'
   stdin:set_mode(1)
   stdin:read_start(on_raw)
 end
@@ -55,7 +70,7 @@ end
 function handlers.exit(code, signal)
   stdin:set_mode(0)
   print()
-  p('Remote bash process exited:', {code=code,signal=signal})
+  p('Remote sh process exited:', {code=code,signal=signal})
   send { 'list' }
 end
 
@@ -68,7 +83,7 @@ end
 
 function handlers.list(processes)
   print '\x1b[2J\x1b[;HChoose an option:'
-  print 'Press enter to start a new bash shell.'
+  print 'Press enter to start a new sh shell.'
   print 'Press Control-D to exit'
   print 'Or enter session ID to take over an existing session.'
   for k, v in pairs(processes) do
@@ -81,10 +96,10 @@ function handlers.list(processes)
       return ffi.C.exit(0)
     end
     if out == '' then
-      print 'Starting new remote bash shell...'
+      print 'Starting new remote sh shell...'
       send {
         'spawn',
-        'bash',
+        'sh',
         {
           args = { '-l' },
           pty = true,
@@ -124,6 +139,7 @@ end)
 
 send { 'list' }
 
+-- TODO: uncomment when resize works better in shell service.
 -- local cols, rows = stdin:get_winsize()
 -- send { 'resize', cols, rows }
 
