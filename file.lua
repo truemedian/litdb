@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/cbor"
-  version = "1.0.1"
+  version = "1.0.2"
   homepage = "https://github.com/creationix/luajit-cbor"
   description = "Pure luajit implementation of a subset of cbor."
   tags = {"hash", "cbor", "ffi", "luajit"}
@@ -138,6 +138,7 @@ end
 
 local decoders = {}
 local function decode(chunk, index)
+  index = index or 1
   local first = byte(chunk, index)
   local major = rshift(first, 5)
   local minor = band(first, 0x1f)
