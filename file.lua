@@ -1,7 +1,7 @@
 --[[lit-meta
   name = "creationix/defer"
-  version = "1.0.0"
-  homepage = "https://github.com/creationix/luajit-cbor"
+  version = "1.0.1"
+  homepage = "https://github.com/creationix/luv-defer"
   description = "Simple defer function using the libuv event loop in lua."
   tags = {"luv", "uv", "defer"}
   license = "MIT"
