@@ -13,7 +13,7 @@ limitations under the License.
 
 --[[lit-meta
   name = "kubos/file-protocol"
-  version = "0.0.1"
+  version = "0.0.2"
   description = "Core protocol used by file-service and file-client."
   tags = { "kubos", "udp", "file"}
   author = { name = "Tim Caswell", email = "tim@kubos.co" }
@@ -27,6 +27,17 @@ limitations under the License.
   }
   license = "Apache 2.0"
 ]]
+
+-- Protocol Messages
+-- { hash }, -- syn
+-- { hash, num_chunks }, -- syn
+-- { hash, chunk_index, data }, -- send chunk no reply needed
+-- { hash, true, num_chunks }, -- ack
+-- { hash, false, 1, 4, 6, 7 }, -- nak
+-- { channel_id, "export", hash, path, mode } -- mode is optional
+-- { channel_id, "import", path }, --> returns file hash, num_chunks
+-- { channel_id, true, value },
+-- { channel_id, false, error_message},
 
 local ffi = require 'ffi'
 local os = require 'os'
@@ -143,7 +154,6 @@ return function (send, storage_path)
       if list then
         waiting[hash] = nil
         for i = 1, #list do
-          print('resuming coroutine')
           coroutine.resume(list[i], num_chunks)
         end
       end
@@ -226,7 +236,6 @@ return function (send, storage_path)
     end
     local synced, num_chunks = local_sync(hash)
     if not synced then
-      print("Export is waiting...")
       local list = waiting[hash]
       if not list then
         list = {}
@@ -234,7 +243,6 @@ return function (send, storage_path)
       end
       list[#list + 1] = coroutine.running()
       num_chunks = coroutine.yield()
-      print("Export is resuming...")
     end
     local output = assert(fs.open(path, 'w', mode))
     local h = Blake2s.new(16)
@@ -400,7 +408,7 @@ return function (send, storage_path)
   coroutine.wrap(function ()
     local next_hash
     while true do
-      local success, message = xpcall(function ()
+      local success, result = xpcall(function ()
         while true do
           local hash = next(downloads, next_hash)
           if not (hash or next_hash) then break end
@@ -425,13 +433,11 @@ return function (send, storage_path)
             return
           end
         end
-        print "Pausing..."
         paused = coroutine.running()
         coroutine.yield()
-        print "Unpausing..."
       end, debug.traceback)
       if not success then
-        print(message)
+        print(result)
       end
     end
   end)()
