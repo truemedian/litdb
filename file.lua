@@ -13,7 +13,7 @@ limitations under the License.
 
 --[[lit-meta
   name = "kubos/cbor-message-protocol"
-  version = "0.0.2"
+  version = "1.0.0"
   description = "Simple protocol for streaming CBOR messages with backpressure over UDP"
   tags = { "kubos", "udp", "cbor", "backpressure"}
   author = { name = "Tim Caswell", email = "tim@kubos.co" }
@@ -24,6 +24,32 @@ limitations under the License.
   }
   license = "Apache 2.0"
 ]]
+
+local function makeCallback()
+  local thread = coroutine.running()
+  return function (err, value, ...)
+    if err then
+      assert(coroutine.resume(thread, nil, err))
+    else
+      assert(coroutine.resume(thread, value == nil and true or value, ...))
+    end
+  end
+end
+
+local function wrapper(fn)
+  return function (...)
+    local nargs = select('#', ...)
+    local args = { ... }
+    return coroutine.wrap(function()
+      local success, result = xpcall(function ()
+        return fn(unpack(args, 1, nargs))
+      end, debug.traceback)
+      if not success then
+        print(result)
+      end
+    end)()
+  end
+end
 
 local cbor = require 'cbor'
 local defer = require 'defer'
@@ -47,27 +73,30 @@ return function (handle, on_message, log_messages)
     end
   end
 
-  local function send_message(message, ...)
+  local function send_message(message, host, port)
     if paused then
-      write_queue[write_queue + 1] = coroutine.running()
+      write_queue[#write_queue + 1] = coroutine.running()
       coroutine.yield()
     end
     if log_messages then p('->', message) end
-    return handle:send('\x00' .. cbor.encode(message), ...)
+    handle:send('\x00' .. cbor.encode(message), host, port, makeCallback())
+    return coroutine.yield()
   end
 
-  local function send_pause(...)
+  local function send_pause(host, port)
     if log_messages then p '-> pause' end
-    return handle:send('\x01', ...)
+    handle:send('\x01', host, port, makeCallback())
+    return coroutine.yield()
   end
 
-  local function send_resume(...)
+  local function send_resume(host, port)
     if log_messages then p '-> resume' end
-    return handle:send('\x02', ...)
+    handle:send('\x02', host, port, makeCallback())
+    return coroutine.yield()
   end
 
-  handle:recv_start(function (err, data, addr)
-    if err then return print(err) end
+  handle:recv_start(wrapper(function (err, data, addr)
+    assert(not err, err)
     if not data then return end
     local control = byte(data, 1)
     if control == 1 then
@@ -83,7 +112,7 @@ return function (handle, on_message, log_messages)
     local message = cbor.decode(data, 2)
     if log_messages then p('<-', message) end
     return on_message(message, addr)
-  end)
+  end))
 
   return send_message, send_pause, send_resume
 end
