@@ -29,7 +29,7 @@
 --]]
 -- Lit metadata:
 exports.name = "Samur3i/direct-loader"
-exports.version = "1.0.0"
+exports.version = "1.1.0"
 exports.license = "MIT"
 exports.homepage = "https://github.com/Samur3i/direct-loader"
 exports.dependencies = {
@@ -64,7 +64,7 @@ function module.load(path, conflictBehavior)
     end
 
     conflictBehavior = conflictBehavior or "merge"
-    if conflictBehavior ~= "merge" and conflictBehavior ~= "replace" and conflictBehavior ~= "ignore" then
+    if conflictBehavior ~= "merge" and conflictBehavior ~= "replace" and conflictBehavior ~= "ignore" and conflictBehavior ~= "rename" then
         return nil, "Unexpected value \""..conflictBehavior.."\" to argument #2"
     end
     --[[ 
@@ -116,6 +116,10 @@ function module.load(path, conflictBehavior)
         -- Iterates through the provided table, looking for nested tables.
         -- Upon finding a nested table, iterates through it, adding everything in that table to the new, combined table.
         if type(module) == "table" then
+            -- Check if metakey has a dash, and replace it with an underscore.
+            if string.find(metakey, "%-") then
+                metakey = metakey:gsub("%-", "_")
+            end
             for key, value in pairs(module) do
                 if conflictBehavior == "rename" then
                     -- Renames ALL keys as <metakey>_<key> to avoid conflicts.
