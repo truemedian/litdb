@@ -29,7 +29,7 @@
 --]]
 -- Lit metadata:
 exports.name = "Samur3i/direct-loader"
-exports.version = "1.1.0"
+exports.version = "1.2.0"
 exports.license = "MIT"
 exports.homepage = "https://github.com/Samur3i/direct-loader"
 exports.dependencies = {
@@ -116,9 +116,11 @@ function module.load(path, conflictBehavior)
         -- Iterates through the provided table, looking for nested tables.
         -- Upon finding a nested table, iterates through it, adding everything in that table to the new, combined table.
         if type(module) == "table" then
-            -- Check if metakey has a dash, and replace it with an underscore.
-            if string.find(metakey, "%-") then
+            -- Check if metakey has a dash or space, and replace it with an underscore.
+            if metakey:find("%-") then
                 metakey = metakey:gsub("%-", "_")
+            elseif metakey:find("%s+") then
+                metakey = metakey:gsub("%s+", "_")
             end
             for key, value in pairs(module) do
                 if conflictBehavior == "rename" then
