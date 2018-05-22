@@ -29,7 +29,7 @@
 --]]
 -- Lit metadata:
 exports.name = "Samur3i/direct-loader"
-exports.version = "1.2.0"
+exports.version = "1.2.1"
 exports.license = "MIT"
 exports.homepage = "https://github.com/Samur3i/direct-loader"
 exports.dependencies = {
@@ -118,10 +118,12 @@ function module.load(path, conflictBehavior)
         if type(module) == "table" then
             -- Check if metakey has a dash or space, and replace it with an underscore.
             if metakey:find("%-") then
-                metakey = metakey:gsub("%-", "_")
-            elseif metakey:find("%s+") then
-                metakey = metakey:gsub("%s+", "_")
+                metakey = metakey:gsub("%-+", "_") -- Match consecutive dashes as one pattern.
             end
+            if metakey:find("%s+") then
+                metakey = metakey:gsub("%s+", "_") -- Match consecutive spaces as one pattern.
+            end
+
             for key, value in pairs(module) do
                 if conflictBehavior == "rename" then
                     -- Renames ALL keys as <metakey>_<key> to avoid conflicts.
