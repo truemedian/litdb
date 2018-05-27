@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/postgres-codec"
-  version = "0.2.0-1"
+  version = "0.3.0"
   homepage = "https://github.com/creationix/lua-postgres/blob/master/postgres-codec.lua"
   description = "A pure lua implementation of the postgresql wire protocol.."
   tags = {"psql", "postgres", "codec", "db", "database"}
@@ -334,7 +334,9 @@ local parsers = {
   end
 }
 
-local function decode (string)
+local function decode (buffer, index)
+  -- Temporary fix to work with latest coro-wrapper
+  local string = buffer:sub(index)
   if #string < 5 then return end
   -- read bytes 2-5 decode as an integer and that will tell us the length
   local len, index = readUint32(string, 2)
