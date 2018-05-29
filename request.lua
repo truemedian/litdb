@@ -2,19 +2,23 @@ local htt = {}
 local json = require("./json")
 local http = require("coro-http")
 
-function htt:getJson(link)
-	coroutine.wrap(function()
-		local res, jsonToDecode = http.request("GET", link)
-		local id = json.decode(jsonToDecode)
 
-		return id
-	end)	
-end
 
 function htt:get(link)
-	coroutine.wrap(function()
+	return coroutine.wrap(function()
+		local res, id = http.request("GET", link)
+		print(id)
+		return id
+	end)()
+end
+
+function htt:getJson(link)
+	return coroutine.wrap(function()
 		local res, id = http.request("GET", link)
 
+		id = json.decode(id)
 		return id
-	end)	
+	end)()
 end
+
+return htt

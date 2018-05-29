@@ -1,6 +1,6 @@
 return {
 	name = "oliverhensworth/roblox.lua",
-	version = "0.0.1",
+	version = "0.0.2",
 	homepage = 'https://github.com/OliverHensworth/roblox.lua',
 
 	dependencies = {
