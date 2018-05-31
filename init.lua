@@ -1,1 +1,3 @@
-return require("./main.lua")
+return {
+  
+}
