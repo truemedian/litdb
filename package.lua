@@ -22,7 +22,7 @@ SOFTWARE.]]
 
 return {
 	name = 'OliverHensworth/roblox.lua',
-	version = '0.0.0',
+	version = '2.0.1',
 	homepage = 'https://github.com/oliverhensworth/roblox.lua',
 	dependencies = {
 		'creationix/coro-http',
@@ -32,5 +32,4 @@ return {
 	},
 	license = 'MIT',
 	author = 'Andrew H. Baker',
-	files = {'*.lua'},
 }
