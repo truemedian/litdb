@@ -13,7 +13,7 @@ return function(id, callback)
     coroutine.wrap(function()
         local _,body = request("GET", format(endpoints.groupInfo, id))
         local info = decode(body)
-
+	
         callback(info)
     end)()
 end
