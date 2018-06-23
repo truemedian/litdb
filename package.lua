@@ -22,7 +22,7 @@ SOFTWARE.]]
 
 return {
 	name = 'OliverHensworth/roblox.lua',
-	version = '2.0.1',
+	version = '2.0.6',
 	homepage = 'https://github.com/oliverhensworth/roblox.lua',
 	dependencies = {
 		'creationix/coro-http',
