@@ -1,3 +1,10 @@
+--[=[
+@c ArrayIterable x Iterable
+@d Iterable class that contains objects in a constant, ordered fashion, although
+the order may change if the internal array is modified. Some versions may use a
+map function to shape the objects before they are accessed.
+]=]
+
 local wrap, yield = coroutine.wrap, coroutine.yield
 
 local Iterable = require('iterables/Iterable')
@@ -22,6 +29,7 @@ function ArrayIterable:__len()
 	end
 end
 
+--[=[@p first * The first object in the array]=]
 function get.first(self)
 	local array = self._array
 	if not array or #array == 0 then
@@ -41,6 +49,7 @@ function get.first(self)
 	end
 end
 
+--[=[@p last * The last object in the array]=]
 function get.last(self)
 	local array = self._array
 	if not array or #array == 0 then
@@ -60,6 +69,11 @@ function get.last(self)
 	end
 end
 
+--[=[
+@m iter
+@r function
+@d Returns an iterator for all contained objects in a consistent order.
+]=]
 function ArrayIterable:iter()
 	local array = self._array
 	if not array or #array == 0 then
