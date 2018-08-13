@@ -30,205 +30,177 @@
 --]]
 --[[lit-meta
     name = "Samur3i/direct-loader"
-    version = "1.3.0"
+    version = "2.0.0"
     license = "MIT"
     homepage = "https://github.com/Samur3i/direct-loader"
     dependencies = {
+        "luvit/require",
         "luvit/fs"
     }
 --]]
 
-local export = {}
 local fs = require("fs")
 
-local DEFAULT_METHOD = "merge"
-local VALID_METHODS = {
-    -- Makes arg-checking easier.
-    merge = true, 
-    ignore = true,
-    rename = true,
-    replace = true
-}
+local exports = {}
+local handlers = {}
 
-local function isDir(path)
-    -- Helper function to verify a given path leads to a directory. Returns true or false.
-    local stat = fs.statSync(path)
-    if not stat then
-        -- Path is invalid; return false.
-        return false
+--[[
+    Function to merge all values from a key conflict into a single table, giving them a key that is the same as
+    the script the function was loaded from.
+
+    For example:
+    Given two scripts, foo.lua and bar.lua, each with a function func(), the result would be the table "func"
+    containing the functions foo() and bar().
+    In this way, all functions can be included regardless of the number of conflicts, as no two scripts in a single
+    directory should be able to share the exact same name.
+--]]
+function handlers.merge(_, newValue, storedValue, metadata)
+    local mergedTable = {}
+    if type(storedValue) == "table" and metadata.merged then
+        -- The key has already been merged; simply add the new value to the table.
+        mergedTable = storedValue
+        mergedTable[metadata.currentSource] = newValue
     else
-        return stat.type == "directory"
+        -- Create a new merged table, storing the current and new values using their source as the key.
+        metadata.merged = true
+        mergedTable[metadata.originalSource] = storedValue
+        mergedTable[metadata.currentSource] = newValue
     end
+    return mergedTable
 end
 
-function export.getDefaultBehavior()
-    -- Returns the current default behavior.
-    return DEFAULT_METHOD
+-- Function that replaces previous values with subsequently-encountered ones.
+function handlers.replace(_, newValue)
+    return newValue
 end
 
-function export.setDefaultBehavior(newDefault)
-    -- Function to change the default conflict behavior of load().
-    -- Returns true on success, false and an error on failure.
-    if type(newDefault) ~= "string" then
-        return false, string.format("Unexpected type to argument #1 (string expected, got %s)", type(newDefault))
+--[[
+    Function to load all files from a directory, and compress them into one table.
+    Uses Luvit's File System library for I/O operations, rather than the standard io library.
 
-    elseif not VALID_METHODS[newDefault] then
-        return false, string.format("Unexpected value \"%s\" to argument #1", newDefault)
-    else
-        DEFAULT_METHOD = newDefault
-        return true
-    end
-end
-
-function export.load(path, conflictBehavior)
-    --[[ 
-        Function to load all scripts from a given directory, then return the results from them as one table.
-        Returns the new table on success, nil and an error on failure.
-
-        Defining conflictBehavior is optional, and defaults to "merge", though this can be changed at runtime with setDefaultMethod().
-        When set to "merge", this function will merge conflicted entries into a table named <key> containing the duplicate keys' values.
-        They are named such that, given two modules foo and bar, each containing the function func(), the result would be the table func containing the functions foo() and bar().
-
-        In addition to merge, the other optional modes are "ignore", "rename", and "replace".
-        - Using "ignore" will cause all conflicts to be ignored, saving only the first value assigned.
-        - Using "rename" will cause all keys to be renamed, such that function func() from script foo would become foo_func().
-        - Using "replace" will cause conflicting values to be overwritten by each subsequent value, such that the last conflicting value parsed will be the one assigned.
-
-        Certain methods are unreliable due to the way that the pairs() function works, meaning that the same value nor order can not be guaranteed across multiple calls.
-
-        Regardless of the behavior chosen, this function will log all conflicts.
-    --]]
-
+    This function accepts two arguments: a filepath to a directory, and the method in which to handle conflicts.
+    The only required argument is the first one; when not supplied with a conflict handler, conflicts will simply be
+    ignored, preserving only the first value of that name that was encountered.
+    If a conflict handler is desired, one can be defined in one of two ways: as a string naming a default handler,
+    or as a custom function.
+    If a custom function is used, then it must abide by the rules defined in the docs, or the resulting behavior may
+    be unpredictable.
+--]]
+function exports.load(path, conflictHandler)
     if type(path) ~= "string" then
-        return nil, string.format("Unexpected type to argument #1 (string expected, got %s)", type(path))
-    elseif not isDir(path) then
-        return nil, "No such directory: "..path
+        return nil, "Unexpected type to argument #1 (string expected, got "..type(path)..")\n"
+    else
+        -- Check if path leads to a directory:
+        local stat = fs.statSync(path)
+        if not stat or stat.type ~= "directory" then
+            return nil, "No such directory: "..path.."\n"
+        end
+    end
+    local doHandleConflicts = true -- Assign as true, since only one case leads to it being false.
+    if not conflictHandler then
+        -- If conflictHandler is false or nil, then conflicts will be ignored.
+        doHandleConflicts = false
+    elseif type(conflictHandler) == "string" then
+        if handlers[conflictHandler] then
+            -- Assign the corresponding function
+            conflictHandler = handlers[conflictHandler]
+        else
+            -- The string was not a valid handler; return nil.
+            return nil, conflictHandler.." is not a valid conflict handler\n"
+        end
+    elseif type(conflictHandler) ~= "function" then
+        return nil, "Unexpected type to argument #2 (string or function expected, got "..type(conflictHandler)..")\n"
     end
 
-    conflictBehavior = conflictBehavior or DEFAULT_METHOD
-    if type(conflictBehavior) ~= "string" then
-        return nil, string.format("Unexpected type to argument #2 (string expected, got %s)", type(conflictBehavior))
-
-    elseif not VALID_METHODS[conflictBehavior] then
-        return nil, string.format("Unexpected value \"%s\" to argument #2", conflictBehavior)
-    end
-    
-    local write, format, insert = io.write, string.format, table.insert -- Localize looped functions to improve performace in large loops.
     local modules = {} -- Table to store the results from each require in.
-    local originalSource = {} -- Create an empty table to store metadata in.
 
-    write(format("Loading files from directory: %s\n", path))
+    io.write("Loading files from directory: "..path.."\n")
     for fname, ftype in fs.scandirSync(path) do
+        -- Iterate through the files in the given directory, loading Lua files
         if ftype == "file" and fname:find("%.lua") then
-            -- Build the require path by stripping the extension from the filename using string.match()
-            -- Then attempt to require the module using that path in a protected call.
+            -- Build the require path by stripping the extension from the filename using string.match,
+            -- then attempt to require the module using that path in a protected call:
             local name = fname:match("(.+)%.lua")
-            local scriptPath = format("%s/%s", path, name)
-            local success, result = pcall(require, scriptPath)
-            if not success then
-                -- If the require failed, log the error and move on.
-                write(format("Failed to load %s.lua with error:\n%s\n", name, result))
+            local success, result = pcall(require, path.."/"..name)
+            if success then
+                io.write("Loaded "..fname.."\n")
+                modules[name] = result -- Save with name as key to aid with resolving conflicts.
             else
-                write(format("Loaded %s.lua\n", name))
-                modules[name] = result
+                io.write("Failed to load "..fname.." with error: "..result.."\n")
             end
         end
     end
     if next(modules) == nil then
-        -- Nothing was returned. Return nil since continuing would be pointless.
-        return nil, "No modules loaded from directory: "..path
+        -- Nothing was loaded. Return nil since continuing would be pointless.
+        return nil, "No modules loaded from directory: "..path.."\n"
     end
 
-    -- Begin building the new table:
-    local target = {} -- Create an empty table to build into.
+    local target = {} -- Table to build into. This will be the return value of the function.
+    local metadata = {} -- Store metadata, such as what a certain key conflicts with.
     local numConflicts = 0 -- Store the number of conflicts encountered while merging the tables.
-    local mergedTables = {} -- Store an index of merged tables so that metadata can be removed once the new table is complete.
 
-    write("Building new table from loaded modules...\n")
+    -- Protect the following keys for use in metadata:
+    local restrictedKeys = {originalSource = true, currentSource = true, lastSource = true, sources = true}
+
+    -- Function to be used as the __newindex metamethod for metadata proxy tables.
+    -- Protects certain keys to prevent conflictHandler functions from overwriting them by mistake.
+    local function safeWrite(tbl, key, value)
+        local index = getmetatable(tbl).__index
+        if restrictedKeys[key] then
+            error("Attempt to overwrite a protected key.", 2)
+        else
+            index[key] = value
+        end
+    end
+
     for source, module in pairs(modules) do
-        -- Iterates through the provided table, looking for nested tables or top-level functions.
-        -- Upon finding a nested table, iterate through it, adding everything in that table to the new, combined table.
+        -- Take the loaded modules, and begin building the new table.
         if type(module) == "table" then
-            -- First, check if source has any dashes or spaces, and replace them with underscores.
-            if source:find("%-+") then
-                source = source:gsub("%-+", "_") -- Match consecutive dashes as one pattern.
-            end
-            if source:find("%s+") then
-                source = source:gsub("%s+", "_") -- Match consecutive spaces as one pattern.
-            end
             for key, value in pairs(module) do
-                if conflictBehavior == "rename" then
-                    -- Renames ALL keys as <source>_<key> to avoid conflicts.
-                    target[format("%s_%s", source, key)] = value
+                if target[key] == nil then
+                    target[key] = value
+                    metadata[key] = {
+                        originalSource = source, -- Where the key was first encountered.
+                        currentSource = source, -- The source in the current loop.
+                        lastSource = source, -- The previous source in the loop.
+                        sources = {source}, -- Everywhere the key has been encountered.
+                    }
                 else
-                    if target[key] == nil then -- IMPORTANT: Specifically checks if target[key] is nil in case the value is false, in which case we would want to preserve it.
-                        target[key] = value
-                        originalSource[key] = source -- If target[key] is nil, so is originalSource[key], since they're assigned at the same time.
-                    else
-                        numConflicts = numConflicts+1
-                        local msg
-                        if type(key) == "number" then 
-                            -- Note that this is entirely pointless, and serves no purpose other than making the log syntax identical to Lua's native key syntax.
-                            msg = "An entry with the key [%i] already exists: %s and %s have conflicting entries.\n"
+                    -- Log the conflict:
+                    io.write(string.format("The key [%s] already exists: %s and %s have conflicting entries."),
+                            key, metadata[key].lastSource, source)
+                    -- Now update the metadata and handle the conflict if a handler was provided:
+                    numConflicts = numConflicts + 1
+                    metadata[key].lastSource = metadata[key].currentSource
+                    metadata[key].currentSource = source
+                    table.insert(metadata[key].sources, source)
+                    if doHandleConflicts and conflictHandler then
+                        --[[
+                            Call conflictHandler in a protected call, passing the conflicting key,
+                            the newly-conflicted value, the current value in the target table, and a proxy for the
+                            current key's metadata.
+
+                            By using a proxy table with __index and __newindex metamethods, we can access and assign
+                            or edit values from an external function, without needing to return the edited metadata
+                            table from it.
+
+                            Metatables are certainly useful.
+                        --]]
+                        local proxy = setmetatable({}, {__index = metadata[key], __newindex = safeWrite})
+                        local success, result = pcall(conflictHandler, key, value, target[key], proxy)
+                        if success then
+                            target[key] = result
                         else
-                            msg = "An entry with the key [\"%s\"] already exists: %s and %s have conflicting entries.\n"
-                        end
-                        write(format(msg, key, source, originalSource[key]))
-
-                        if conflictBehavior == "replace" then
-                            -- Replaces the previous value each time it hits a duplicate key. Resulting value is unreliable due to how pairs() works.
-                            target[key] = value
-
-                        elseif conflictBehavior == "merge" then
-                            -- Merges conflicting keys into one table. Ensures all values are saved, but is not optimal for some applications.
-                            if type(target[key]) == "table" and target[key].__merged then
-                            -- If the table was previously merged, simply add the value to it.
-                            target[key][source] = value
-
-                            else 
-                                -- Create a new merged table using the conflicting key.
-                                -- First, save the previous value and overwrite it with a table containing temporary metadata.
-                                local oldValue = target[key]
-                                target[key] = {__merged = true}
-
-                                -- Then, save the old value using its metadata, followed by the new value.
-                                target[key][originalSource[key]] = oldValue
-                                target[key][source] = value
-
-                                -- Now, add the merged table to a list of merged tables, and add a helpful function to it via metatable.
-                                insert(mergedTables, key) -- This is only temporary; __merged will be removed later.
-                                setmetatable(target[key], {
-                                    -- Add __call metamethod to inform the user that the function they tried to call is a member of this table:
-                                    __call = function(tbl)
-                                        -- Build a table of functions contained by this table:
-                                        local funcs = {}
-                                        for k, v in pairs(tbl) do
-                                            table.insert(funcs, k)
-                                        end
-                                        -- Now build the message and throw an error:
-                                        error(string.format("Attempted to call a merged table.\nThis table contains conflicting functions from the following modules: %s\nPlease call the desired function from this table, or create a variable pointing to it.", table.concat(funcs, ", ")), 2)
-                                    end
-                                })
-                            end
+                            io.write("Failed to resolve conflict with error: "..result.."\n")
+                            -- TODO: Should anything else be done if conflict resolution fails?
                         end
                     end
                 end
             end
         end
     end
-
-    if numConflicts > 0 then
-        -- If conflicts were encountered, log a warning.
-        write(format("Encountered %i conflicts while merging tables. Conflicts were handled using method %s.\n", numConflicts, conflictBehavior))
-
-        if conflictBehavior == "merge" then
-            -- Delete temporary metadata from merged tables.
-            for _, v in ipairs(mergedTables) do
-                target[v].__merged = nil
-            end
-        end
-    end
+    io.write("Encountered "..numConflicts.." conflict(s) while combining tables.\n")
     return target
 end
 
-return export
+return exports
