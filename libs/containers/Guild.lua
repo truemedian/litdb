@@ -158,9 +158,9 @@ function Guild:getMember(id)
 end
 
 --[=[
-@m getMember
-@p id User-ID-Resolvable
-@r Member
+@m getRole
+@p id Role-ID-Resolvable
+@r Role
 @d Gets a role object by ID.
 ]=]
 function Guild:getRole(id)
@@ -442,6 +442,23 @@ function Guild:getBans()
 end
 
 --[=[
+@m getBan
+@p id User-ID-Resolvable
+@r Ban
+@d This will return a Ban object for a giver user if that user is banned
+from the guild; otherwise, `nil` is returned.
+]=]
+function Guild:getBan(id)
+	id = Resolver.userId(id)
+	local data, err = self.client._api:getGuildBan(self._id, id)
+	if data then
+		return Ban(data, self._parent)
+	else
+		return nil, err
+	end
+end
+
+--[=[
 @m getInvites
 @r Cache
 @d Returns a newly constructed cache of all invite objects for the guild. The
@@ -646,6 +663,11 @@ end
 "large" will not initialize with all members.]=]
 function get.large(self)
 	return self._large
+end
+
+--[=[@p lazy boolean Whether the guild has follows rules for the lazy-loading of client data.]=]
+function get.lazy(self)
+	return self._lazy
 end
 
 --[=[@p region string The voice region that is used for all voice connections in the guild.]=]
