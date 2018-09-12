@@ -1,9 +1,9 @@
--- RxLua v0.0.2
+-- RxLua v0.0.3
 -- https://github.com/bjornbytes/rxlua
 -- MIT License
 
 exports.name = 'bjornbytes/rx'
-exports.version = '0.0.2'
+exports.version = '0.0.3'
 exports.description = 'Reactive Extensions for Lua'
 exports.license = 'MIT'
 exports.author = { url = 'https://github.com/bjornbytes' }
@@ -13,12 +13,6 @@ local util = {}
 
 util.pack = table.pack or function(...) return { n = select('#', ...), ... } end
 util.unpack = table.unpack or unpack
-util.xpcall = function(fn, err, ...)
-  local arg = util.pack(...)
-  return xpcall(function()
-    fn(util.unpack(arg))
-  end, err)
-end
 util.eq = function(x, y) return x == y end
 util.noop = function() end
 util.identity = function(x) return x end
@@ -27,9 +21,11 @@ util.isa = function(object, class)
   return type(object) == 'table' and getmetatable(object).__index == class
 end
 util.tryWithObserver = function(observer, fn, ...)
-  return util.xpcall(fn, function(...)
-    return observer:onError(...)
-  end, ...)
+  local success, result = pcall(fn, ...)
+  if not success then
+    observer:onError(result)
+  end
+  return success, result
 end
 
 --- @class Subscription
@@ -154,12 +150,17 @@ function Observable.throw(message)
   end)
 end
 
---- Creates an Observable that produces a single value.
--- @arg {*} value
+--- Creates an Observable that produces a set of values.
+-- @arg {*...} values
 -- @returns {Observable}
-function Observable.fromValue(value)
+function Observable.of(...)
+  local args = {...}
+  local argCount = select('#', ...)
   return Observable.create(function(observer)
-    observer:onNext(value)
+    for i = 1, argCount do
+      observer:onNext(args[i])
+    end
+
     observer:onCompleted()
   end)
 end
@@ -203,11 +204,14 @@ function Observable.fromTable(t, iterator, keys)
 end
 
 --- Creates an Observable that produces values when the specified coroutine yields.
--- @arg {thread} coroutine
+-- @arg {thread|function} fn - A coroutine or function to use to generate values.  Note that if a
+--                             coroutine is used, the values it yields will be shared by all
+--                             subscribed Observers (influenced by the Scheduler), whereas a new
+--                             coroutine will be created for each Observer when a function is used.
 -- @returns {Observable}
-function Observable.fromCoroutine(thread, scheduler)
-  thread = type(thread) == 'function' and coroutine.create(thread) or thread
+function Observable.fromCoroutine(fn, scheduler)
   return Observable.create(function(observer)
+    local thread = type(fn) == 'function' and coroutine.create(fn) or fn
     return scheduler:schedule(function()
       while not observer.stopped do
         local success, value = coroutine.resume(thread)
@@ -225,6 +229,26 @@ function Observable.fromCoroutine(thread, scheduler)
         coroutine.yield()
       end
     end)
+  end)
+end
+
+--- Creates an Observable that produces values from a file, line by line.
+-- @arg {string} filename - The name of the file used to create the Observable
+-- @returns {Observable}
+function Observable.fromFileByLine(filename)
+  return Observable.create(function(observer)
+    local f = io.open(filename, 'r')
+    if f
+    then
+      f:close()
+      for line in io.lines(filename) do
+        observer:onNext(line)
+      end
+
+      return observer:onCompleted()
+    else
+      return observer:onError(filename)
+    end
   end)
 end
 
@@ -611,6 +635,39 @@ function Observable:count(predicate)
   end)
 end
 
+function Observable:debounce(time, scheduler)
+  time = time or 0
+
+  return Observable.create(function(observer)
+    local debounced = {}
+
+    local function wrap(key)
+      return function(...)
+        local value = util.pack(...)
+
+        if debounced[key] then
+          debounced[key]:unsubscribe()
+        end
+
+        local values = util.pack(...)
+
+        debounced[key] = scheduler:schedule(function()
+          return observer[key](observer, util.unpack(values))
+        end, time)
+      end
+    end
+
+    local subscription = self:subscribe(wrap('onNext'), wrap('onError'), wrap('onCompleted'))
+
+    return Subscription.create(function()
+      if subscription then subscription:unsubscribe() end
+      for _, timeout in pairs(debounced) do
+        timeout:unsubscribe()
+      end
+    end)
+  end)
+end
+
 --- Returns a new Observable that produces a default set of items if the source Observable produces
 -- no values.
 -- @arg {*...} values - Zero or more values to produce if the source completes without emitting
@@ -640,6 +697,38 @@ function Observable:defaultIfEmpty(...)
     end
 
     return self:subscribe(onNext, onError, onCompleted)
+  end)
+end
+
+--- Returns a new Observable that produces the values of the original delayed by a time period.
+-- @arg {number|function} time - An amount in milliseconds to delay by, or a function which returns
+--                                this value.
+-- @arg {Scheduler} scheduler - The scheduler to run the Observable on.
+-- @returns {Observable}
+function Observable:delay(time, scheduler)
+  time = type(time) ~= 'function' and util.constant(time) or time
+
+  return Observable.create(function(observer)
+    local actions = {}
+
+    local function delay(key)
+      return function(...)
+        local arg = util.pack(...)
+        local handle = scheduler:schedule(function()
+          observer[key](observer, util.unpack(arg))
+        end, time())
+        table.insert(actions, handle)
+      end
+    end
+
+    local subscription = self:subscribe(delay('onNext'), delay('onError'), delay('onCompleted'))
+
+    return Subscription.create(function()
+      if subscription then subscription:unsubscribe() end
+      for i = 1, #actions do
+        actions[i]:unsubscribe()
+      end
+    end)
   end)
 end
 
@@ -1129,6 +1218,42 @@ function Observable:retry(count)
     end
 
     return self:subscribe(onNext, onError, onCompleted)
+  end)
+end
+
+--- Returns a new Observable that produces its most recent value every time the specified observable
+-- produces a value.
+-- @arg {Observable} sampler - The Observable that is used to sample values from this Observable.
+-- @returns {Observable}
+function Observable:sample(sampler)
+  if not sampler then error('Expected an Observable') end
+
+  return Observable.create(function(observer)
+    local latest = {}
+
+    local function setLatest(...)
+      latest = util.pack(...)
+    end
+
+    local function onNext()
+      return observer:onNext(util.unpack(latest))
+    end
+
+    local function onError(message)
+      return observer:onError(message)
+    end
+
+    local function onCompleted()
+      return observer:onCompleted()
+    end
+
+    local sourceSubscription = self:subscribe(setLatest, onError)
+    local sampleSubscription = sampler:subscribe(onNext, onError, onCompleted)
+
+    return Subscription.create(function()
+      if sourceSubscription then sourceSubscription:unsubscribe() end
+      if sampleSubscription then sampleSubscription:unsubscribe() end
+    end)
   end)
 end
 
@@ -1701,7 +1826,7 @@ CooperativeScheduler.__tostring = util.constant('CooperativeScheduler')
 
 --- Creates a new CooperativeScheduler.
 -- @arg {number=0} currentTime - A time to start the scheduler at.
--- @returns {Scheduler.CooperativeScheduler}
+-- @returns {CooperativeScheduler}
 function CooperativeScheduler.create(currentTime)
   local self = {
     tasks = {},
@@ -1711,11 +1836,13 @@ function CooperativeScheduler.create(currentTime)
   return setmetatable(self, CooperativeScheduler)
 end
 
---- Schedules a function to be run after an optional delay.
+--- Schedules a function to be run after an optional delay.  Returns a subscription that will stop
+-- the action from running.
 -- @arg {function} action - The function to execute. Will be converted into a coroutine. The
 --                          coroutine may yield execution back to the scheduler with an optional
 --                          number, which will put it to sleep for a time period.
--- @arg {number=0} delay - Delay execution of the action by a time period.
+-- @arg {number=0} delay - Delay execution of the action by a virtual time period.
+-- @returns {Subscription}
 function CooperativeScheduler:schedule(action, delay)
   local task = {
     thread = coroutine.create(action),
@@ -1745,21 +1872,25 @@ end
 function CooperativeScheduler:update(delta)
   self.currentTime = self.currentTime + (delta or 0)
 
-  for i = #self.tasks, 1, -1 do
+  local i = 1
+  while i <= #self.tasks do
     local task = self.tasks[i]
 
     if self.currentTime >= task.due then
       local success, delay = coroutine.resume(task.thread)
 
-      if success then
-        task.due = math.max(task.due + (delay or 0), self.currentTime)
-      else
-        error(delay)
-      end
-
       if coroutine.status(task.thread) == 'dead' then
         table.remove(self.tasks, i)
+      else
+        task.due = math.max(task.due + (delay or 0), self.currentTime)
+        i = i + 1
       end
+
+      if not success then
+        error(delay)
+      end
+    else
+      i = i + 1
     end
   end
 end
@@ -1767,6 +1898,31 @@ end
 --- Returns whether or not the CooperativeScheduler's queue is empty.
 function CooperativeScheduler:isEmpty()
   return not next(self.tasks)
+end
+
+--- @class TimeoutScheduler
+-- @description A scheduler that uses luvit's timer library to schedule events on an event loop.
+local TimeoutScheduler = {}
+TimeoutScheduler.__index = TimeoutScheduler
+TimeoutScheduler.__tostring = util.constant('TimeoutScheduler')
+
+--- Creates a new TimeoutScheduler.
+-- @returns {TimeoutScheduler}
+function TimeoutScheduler.create()
+  return setmetatable({}, TimeoutScheduler)
+end
+
+--- Schedules an action to run at a future point in time.
+-- @arg {function} action - The action to run.
+-- @arg {number=0} delay - The delay, in milliseconds.
+-- @returns {Subscription}
+function TimeoutScheduler:schedule(action, delay, ...)
+  local timer = require 'timer'
+  local subscription
+  local handle = timer.setTimeout(delay, action, ...)
+  return Subscription.create(function()
+    timer.clearTimeout(handle)
+  end)
 end
 
 --- @class Subject
@@ -2078,6 +2234,7 @@ return {
   Observable = Observable,
   ImmediateScheduler = ImmediateScheduler,
   CooperativeScheduler = CooperativeScheduler,
+  TimeoutScheduler = TimeoutScheduler,
   Subject = Subject,
   AsyncSubject = AsyncSubject,
   BehaviorSubject = BehaviorSubject,
