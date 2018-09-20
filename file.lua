@@ -18,7 +18,7 @@ limitations under the License.
 
 --[[lit-meta
   name = "luvit/http-codec"
-  version = "3.0.3"
+  version = "2.0.2"
   homepage = "https://github.com/luvit/luvit/blob/master/deps/http-codec.lua"
   description = "A simple pair of functions for converting between hex and raw strings."
   tags = {"codec", "http"}
@@ -167,13 +167,13 @@ local function decoder()
   local bytesLeft -- For counted decoder
 
   -- This state is for decoding the status line and headers.
-  function decodeHead(chunk, index)
-    if not chunk or index > #chunk then return end
+  function decodeHead(chunk)
+    if not chunk then return end
 
-    local _, last = find(chunk, "\r?\n\r?\n", index)
+    local _, length = find(chunk, "\r?\n\r?\n", 1)
     -- First make sure we have all the head before continuing
-    if not last then
-      if (#chunk - index) <= 8 * 1024 then return end
+    if not length then
+      if #chunk < 8 * 1024 then return end
       -- But protect against evil clients by refusing heads over 8K long.
       error("entity too large")
     end
@@ -183,12 +183,12 @@ local function decoder()
     local _, offset
     local version
     _, offset, version, head.code, head.reason =
-      find(chunk, "^HTTP/(%d%.%d) (%d+) ([^\r\n]+)\r?\n", index)
+      find(chunk, "^HTTP/(%d%.%d) (%d+) ([^\r\n]*)\r?\n")
     if offset then
       head.code = tonumber(head.code)
     else
       _, offset, head.method, head.path, version =
-        find(chunk, "^(%u+) ([^ ]+) HTTP/(%d%.%d)\r?\n", index)
+        find(chunk, "^(%u+) ([^ ]+) HTTP/(%d%.%d)\r?\n")
       if not offset then
         error("expected HTTP data")
       end
@@ -230,62 +230,64 @@ local function decoder()
     elseif not head.keepAlive then
       mode = decodeRaw
     end
-    return head, last + 1
+
+    return head, sub(chunk, length + 1)
 
   end
 
   -- This is used for inserting a single empty string into the output string for known empty bodies
-  function decodeEmpty(chunk, index)
+  function decodeEmpty(chunk)
     mode = decodeHead
-    return "", index
+    return "", chunk or ""
   end
 
-  function decodeRaw(chunk, index)
-    if #chunk < index then return end
-    return sub(chunk, index)
+  function decodeRaw(chunk)
+    if not chunk then return "", "" end
+    if #chunk == 0 then return end
+    return chunk, ""
   end
 
-  function decodeChunked(chunk, index)
+  function decodeChunked(chunk)
     local len, term
-    len, term = match(chunk, "^(%x+)(..)", index)
+    len, term = match(chunk, "^(%x+)(..)")
     if not len then return end
     assert(term == "\r\n")
-    index = index + #len + 2
-    local offset = index - 1
     local length = tonumber(len, 16)
-    if #chunk < offset + length + 2 then return end
+    if #chunk < length + 4 + #len then return end
     if length == 0 then
       mode = decodeHead
     end
-    assert(sub(chunk, index + length, index + length + 1) == "\r\n")
-    local piece = sub(chunk, index, index + length - 1)
-    return piece, index + length + 2
+    chunk = sub(chunk, #len + 3)
+    assert(sub(chunk, length + 1, length + 2) == "\r\n")
+    return sub(chunk, 1, length), sub(chunk, length + 3)
   end
 
-  function decodeCounted(chunk, index)
+  function decodeCounted(chunk)
     if bytesLeft == 0 then
       mode = decodeEmpty
-      return mode(chunk, index)
+      return mode(chunk)
     end
-    local offset = index - 1
-    local length = #chunk - offset
+    local length = #chunk
     -- Make sure we have at least one byte to process
     if length == 0 then return end
 
-    -- If there isn't enough data left, emit what we got so far
-    if length < bytesLeft then
-      bytesLeft = bytesLeft - length
-      return sub(chunk, index)
+    if length >= bytesLeft then
+      mode = decodeEmpty
     end
 
-    mode = decodeEmpty
-    return sub(chunk, index, offset + bytesLeft), index + bytesLeft
+    -- If the entire chunk fits, pass it all through
+    if length <= bytesLeft then
+      bytesLeft = bytesLeft - length
+      return chunk, ""
+    end
+
+    return sub(chunk, 1, bytesLeft), sub(chunk, bytesLeft + 1)
   end
 
   -- Switch between states by changing which decoder mode points to
   mode = decodeHead
-  return function (chunk, index)
-    return mode(chunk, index)
+  return function (chunk)
+    return mode(chunk)
   end
 
 end
