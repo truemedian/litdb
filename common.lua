@@ -28,7 +28,7 @@ local utils = require('utils')
 local createCredentials
 local DEFAULT_CIPHERS = 'ECDHE-RSA-AES128-SHA256:AES128-GCM-SHA256:' .. -- TLS 1.2
                         'RC4:HIGH:!MD5:!aNULL:!EDH'                     -- TLS 1.0
-
+local DEFAULT_SECUREPROTOCOL = 'TLSv1_2'
 -------------------------------------------------------------------------------
 
 local getSecureOptions = function(protocol, flags)
@@ -63,7 +63,7 @@ function Credential:initialize(secureProtocol, defaultCiphers, flags, rejectUnau
   if context then
     self.context = context
   else
-    self.context = openssl.ssl.ctx_new(secureProtocol or 'TLSv1',
+    self.context = openssl.ssl.ctx_new(secureProtocol or DEFAULT_SECUREPROTOCOL,
       defaultCiphers or DEFAULT_CIPHERS)
     self.context:mode(true, 'release_buffers')
     self.context:options(getSecureOptions(secureProtocol, flags))
@@ -153,8 +153,8 @@ function TLSSocket:_init()
   self.ssl = self.ctx.context:ssl(self.inp, self.out, self.server)
 
   if (not self.server) then
-    if self.options.servername then
-      self.ssl:set('hostname',self.options.servername)
+    if self.options.hostname then
+      self.ssl:set('hostname',self.options.hostname)
     end
     if self.ctx.session then
       self.ssl:session(self.ctx.session)
@@ -307,7 +307,7 @@ function TLSSocket:flush(callback)
 end
 
 function TLSSocket:_write(data, callback)
-  local ret, i, err
+  local ret, err
   if not self.ssl or self.destroyed or self._shutdown or not self._connected then
     return
   end
