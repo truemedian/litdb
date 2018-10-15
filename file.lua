@@ -30,7 +30,7 @@
 --]]
 --[[lit-meta
     name = "Samur3i/direct-loader"
-    version = "2.0.0"
+    version = "2.0.1"
     license = "MIT"
     homepage = "https://github.com/Samur3i/direct-loader"
     dependencies = {
@@ -167,8 +167,8 @@ function exports.load(path, conflictHandler)
                     }
                 else
                     -- Log the conflict:
-                    io.write(string.format("The key [%s] already exists: %s and %s have conflicting entries."),
-                            key, metadata[key].lastSource, source)
+                    io.write(string.format("The key [%s] already exists: %s and %s have conflicting entries.\n",
+                            key, metadata[key].lastSource, source))
                     -- Now update the metadata and handle the conflict if a handler was provided:
                     numConflicts = numConflicts + 1
                     metadata[key].lastSource = metadata[key].currentSource
