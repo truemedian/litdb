@@ -1,6 +1,6 @@
 return {
 	name = "Lautenschlager-id/fromage",
-	version = "0.2.3",
+	version = "0.2.5",
 	homepage = "https://github.com/Lautenschlager-id/Fromage",
 	dependencies = {
 		"creationix/coro-http@3.0.0",
@@ -13,7 +13,7 @@ return {
 	files = {
 		"init.lua",
 		"package.lua",
-		"enums/enum.lua",
-		"enums/enumerations.lua"
+		"libs/enum.lua",
+		"libs/enumerations.lua"
 	}
 }
