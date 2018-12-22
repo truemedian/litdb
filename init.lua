@@ -1,10 +1,10 @@
 --[[ Dependencies ]]--
 -- Performs HTTP(S) requests
-local http = require("libs/coro-http")
+local http = require("coro-http")
 -- Encoding
-local base64 = require("libs/base64")
+local base64 = require("base64")
 -- Necessary enumerations
-local enumerations = require("libs/enumerations")
+local enumerations = require("enumerations")
 
 --[[ Private Enumerations ]]--
 local cookieState = {
