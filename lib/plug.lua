@@ -1,108 +1,57 @@
-local class = require('./class')
+-- MIT License
+-- Copyright (c) 2019 Martin Aguilar
+
 local JSON = require('json')
-local lume = require('./lume')
-
-local local_config = {}
-
--- In-class functions
-local f = {
-   color = {
-      green = function(...)
-         return string.format('%s' .. ..., '#G')
-      end,
-      red = function(...)
-         return string.format('%s' .. ..., '#R')
-      end,
-      blue = function(...)
-         return string.format('%s' .. ..., '#B')
-      end,
-      hex = function(hc, ...)
-         return string.format('%s' .. ..., '#c' .. hc)
-      end
-   },
-   effect = {
-      blink = function(...)
-         return string.format('%s' .. ..., '#b')
-      end
-   },
-   format = {
-      tab = function(...)
-         return string.format('%s' .. ..., '#P')
-      end
-   }
-}
+local f = require('./format')
+local util = require('./util')
+local p = require('./process')
 
 -- Plug class
 
-local Plug = class(function(this, filename, desc)
-   -- Filename for `compose` method.
+local Plug = function(filename, desc, config)
+
+   local this = {
+      config = config or {}
+   }
+
    this.filename = filename
 
    -- Base class
    this.base_class = {
-      comment = {
+      ['//'] = {
          'Auto generated with <3 by Plug (mrtnpwn/plug).',
          'Compile date: ' .. os.date('%x %X')
       },
       foreign_ids = {},
       mod_desc = {
          filename = filename,
-         author = local_config.__author,
-         uuid = local_config.__uuid,
-         version = local_config.__version
+         author = this.config.author or nil,
+         uuid = this.config.uuid or nil,
+         version = this.config.version or nil
       }
    }
 
-   -- Declaring to call and get any errors here + use it on `compose` method.
-   this.desc = desc(f)
-end)
+   this.desc = desc(f, p)
 
--- Static Functions
+   -- Methods
+   return {
+      compose = function(model, keep_base)
+         if not keep_base then keep_base = false end
 
-function Plug.setAuthor(uin)
-   if uin then
-      local_config.__author = uin
-   end
+         if model and keep_base == false then
+            this.base_class = model.export()
+         elseif model and keep_base == true then
+            util.merge(this.base_class, model.export())
+         end
 
-   return uin or nil
+         util.merge(this.base_class, this.desc)
+
+         local plugin = io.open(this.filename .. '.json', 'w')
+
+         plugin:write(JSON.encode(this.base_class))
+         plugin:close()
+      end
+   }
 end
 
-function Plug.setVersion(version)
-   if version then
-      local_config.__version = version
-   end
-
-   return version or nil
-end
-
-function Plug.setUUID(uuid)
-   if uuid then
-      local_config.__uuid = uuid
-   end
-
-   return uuid or nil
-end
-
--- Plug methods
-
-function Plug:compose(category)
-   if category == 'horse' then
-      self.base_class = {
-         comment = {
-            'Auto generated with <3 by Plug (mrtnpwn/plug).',
-            'Compile date: ' .. os.date('%x %X')
-         },
-      }
-   end
-
-   local desc = lume.extend(self.base_class, self.desc)
-   local plugin = io.open(self.filename .. '.json', 'w')
-
-   plugin:write(JSON.encode(desc))
-   plugin:close()
-end
-
-return {
-   Plug = Plug,
-   UUID = require('luv4').gen
-}
+return Plug
