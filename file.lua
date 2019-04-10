@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/cbor"
-  version = "1.0.2"
+  version = "1.1.0"
   homepage = "https://github.com/creationix/luajit-cbor"
   description = "Pure luajit implementation of a subset of cbor."
   tags = {"hash", "cbor", "ffi", "luajit"}
@@ -26,10 +26,12 @@ local u64 = typeof 'uint64_t'
 local buf = typeof 'uint8_t[?]'
 
 local function bin(str)
-  local len = #str
-  local b = buf(len)
-  ffi.copy(b, str, len)
-  return b
+  return buf(#str, str)
+end
+
+local tags = {}
+local function registerTag(num, tagDecoder)
+  tags[num] = tagDecoder
 end
 
 local encoders = {}
@@ -174,7 +176,7 @@ local function decode_u64(chunk, index)
   ), index + 8
 end
 
-decoders[0] = function (minor, chunk, index)
+local function major0(minor, chunk, index)
   if minor < 24 then
     return minor, index
   elseif minor == 24 then
@@ -189,6 +191,7 @@ decoders[0] = function (minor, chunk, index)
     error 'Unexpected minor value'
   end
 end
+decoders[0] = major0
 
 decoders[1] = function (minor, chunk, index)
   if minor < 24 then
@@ -208,19 +211,19 @@ end
 
 decoders[2] = function (minor, chunk, index)
   local len
-  len, index = decoders[0](minor, chunk, index)
-  return bin(sub(chunk, index, index + len - 1)), index + len
+  len, index = major0(minor, chunk, index)
+  return buf(len, sub(chunk, index, index + len - 1)), index + len
 end
 
 decoders[3] = function (minor, chunk, index)
   local len
-  len, index = decoders[0](minor, chunk, index)
+  len, index = major0(minor, chunk, index)
   return sub(chunk, index, index + len - 1), index + len
 end
 
 decoders[4] = function (minor, chunk, index)
   local len
-  len, index = decoders[0](minor, chunk, index)
+  len, index = major0(minor, chunk, index)
   local parts = {}
   for i = 1, len do
     local val
@@ -232,7 +235,7 @@ end
 
 decoders[5] = function (minor, chunk, index)
   local len
-  len, index = decoders[0](minor, chunk, index)
+  len, index = major0(minor, chunk, index)
   local parts = {}
   for _ = 1, len do
     local key
@@ -245,10 +248,13 @@ decoders[5] = function (minor, chunk, index)
 end
 
 decoders[6] = function (minor, chunk, index)
-  error "TODO: Implement decoder major 6"
+  local value, tag
+  tag, index = major0(minor, chunk, index)
+  value, index = decode(chunk, index)
+  return assert(tags[tag], "Unknown tag encountered")(value), index
 end
 
-decoders[7] = function (minor, chunk, index)
+decoders[7] = function (minor, _, index)
   if minor == 20 then
     return false, index
   elseif minor == 21 then
@@ -264,6 +270,7 @@ return {
   u64 = u64,
   buf = buf,
   bin = bin,
+  registerTag = registerTag,
   encode = encode,
   decode = decode,
 }
