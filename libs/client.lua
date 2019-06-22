@@ -10,7 +10,6 @@ local enum = require("enum")
 -- Optimization --
 local bit_bxor = bit.bxor
 local coroutine_makef = coroutine.makef
-local coroutine_wrap = coroutine.wrap
 local encode_btea = encode.btea
 local encode_getPasswordHash = encode.getPasswordHash
 local encode_setPacketKeys = encode.setPacketKeys
@@ -122,6 +121,59 @@ tribulleListener = {
 			@param playerName<string> The player name.
 		]]
 		self.event:emit("friendDisconnection", string_toNickname(playerName, true))
+	end,
+	[34] = function(self, packet, connection, tribulleId)
+		local soulmate = { }
+		soulmate.id = packet:read32()
+		soulmate.playerName = packet:readUTF()
+ 		soulmate.gender = packet:read8()
+ 		packet:read32() -- id again
+		soulmate.isFriend = packet:readBool()
+		soulmate.isConnected = packet:readBool()
+		packet:read32() -- ?
+		soulmate.roomName = packet:readUTF()
+		soulmate.lastConnection = packet:read32()
+
+		local friendList = { }
+		for i = 1, packet:read16() do
+			friendList[i] = { }
+			friendList[i].id = packet:read32()
+			friendList[i].playerName = packet:readUTF()
+ 			friendList[i].gender = packet:read8()
+ 			packet:read32() -- id again
+			friendList[i].isFriend = packet:readBool()
+			friendList[i].isConnected = packet:readBool()
+			packet:read32() -- ?
+			friendList[i].roomName = packet:readUTF()
+			friendList[i].lastConnection = packet:read32()
+		end
+
+		--[[@
+			@desc Triggered when the friend list is loaded.
+			@param friendList<table> The data of the players in the account's friend list.
+			@param soulmate<table> The separated data of the account's soulmate.
+			@struct @friendlist {
+				[i] = {
+					id = 0, -- The player id.
+					playerName = "", -- The player name.
+					gender = 0, -- The gender of the player. Enum in enum.gender.
+					isFriend = true, -- Whether the player has the account as a friend (added back) or not.
+					isConnected = true, -- Whether the player is online or not.
+					roomName = "", -- The name of the room where the player is.
+					lastConnection = 0 -- Timestamp of when was the last connection of the player.
+				}
+			}
+			@struct @soulmate {
+				id = 0, -- The player id.
+				playerName = "", -- The player name.
+				gender = 0, -- The gender of the player. Enum in enum.gender.
+				isFriend = true, -- Whether the player has the account as a friend (added back) or not.
+				isConnected = true, -- Whether the player is online or not.
+				roomName = "", -- The name of the room where the player is.
+				lastConnection = 0 -- Timestamp of when was the last connection of the player.
+			}
+		]]
+		self.event:emit("friendList", friendList, soulmate)
 	end,
 	[59] = function(self, packet, connection, tribulleId) -- /who
 		local fingerprint = packet:read32()
@@ -566,7 +618,7 @@ packetListener = {
 
 			data.gender = packet:read8() -- enum.gender
 			data.tribeName = packet:readUTF()
-			data.soulmate = packet:readUTF()
+			data.soulmate = string_toNickname(packet:readUTF())
 
 			data.saves = { }
 			data.saves.normal = packet:read32()
@@ -774,7 +826,7 @@ packetListener = {
 				@param rooms<table> The data of the rooms in the list.
 				@param pinned<tablet> The data of the pinned objects in the list.
 				@struct @rooms {
-					[n] = {
+					[i] = {
 						name = "", -- The name of the room.
 						totalPlayers = 0, -- The quantity of players in the room.
 						maxPlayers = 0, -- The maximum quantity of players the room can get.
@@ -782,7 +834,7 @@ packetListener = {
 					}
 				}
 				@struct @pinned {
-					[n] = {
+					[i] = {
 						name = "", -- The name of the object.
 						totalPlayers = 0 -- The quantity of players in the object counter. (Might be a string)
 					}
@@ -1349,7 +1401,6 @@ receive = function(self, connectionName)
 end
 --[[@
 	@desc Gets the connection keys in the API endpoint.
-	@desc This function is destroyed when @see client.start is called.
 	@param self<client> A Client object.
 	@param tfmId<string,int> The developer's transformice id.
 	@param token<string> The developer's token.
@@ -1481,13 +1532,14 @@ end
 
 --[[@
 	@desc Initializes the API connection with the authentication keys. It must be the first method of the API to be called.
-	@desc This function can be called only once.
 	@param tfmId<string,int> The Transformice ID of your account. If you don't know how to obtain it, go to the room **#bolodefchoco0id** and check your chat.
 	@param token<string> The API Endpoint token to get access to the authentication keys.
 ]]
-client.start = coroutine_wrap(function(self, tfmId, token)
+client.start = coroutine_makef(function(self, tfmId, token)
+	self:closeAll()
+	self.isConnected = false
+
 	getKeys(self, tfmId, token)
-	getKeys = nil -- Saves memory
 
 	self.main:connect(enum.setting.mainIp)
 
@@ -1503,13 +1555,13 @@ client.start = coroutine_wrap(function(self, tfmId, token)
 		receive(self, "main")
 		receive(self, "bulle")
 		local loop
-		loop = timer_setInterval(10, function(self, loop)
+		loop = timer_setInterval(10, function(self)
 			if not self.main.open then
 				timer_clearInterval(self._hbTimer)
 				timer_clearInterval(loop)
 				closeAll(self)
 			end
-		end, self, loop)
+		end, self)
 	end)
 
 	self.main.event:on("_receive", function(connection, packet)
@@ -1620,7 +1672,17 @@ client.connect = function(self, userName, userPassword, startRoom, timeout)
 
 	timer_setTimeout((timeout or (20 * 1000)), function(self)
 		if not self._isConnected then
-			return error("↑error↓[LOGIN]↑ Impossible to log in. Try again later.", enum.errorLevel.low)
+			self:closeAll()
+			timer_setTimeout(1000, function() -- This timer prevents the time out issue, since it gives time to closeAll work.
+				if self.event.handlers.connectionFailed then
+					--[[@
+						@desc Triggered when the login connection fails.
+					]]
+					self.event:emit("connectionFailed")
+				else
+					return error("↑error↓[LOGIN]↑ Impossible to log in. Try again later.", enum.errorLevel.low)
+				end
+			end)
 		end
 	end, self)
 end
@@ -1800,7 +1862,6 @@ end
 client.likeCafeMessage = function(self, topicId, messageId, dislike)
 	self.main:send(enum.identifier.cafeLike, byteArray:new():write32(topicId):write32(messageId):writeBool(not dislike))
 end
-
 -- Miscellaneous
 --[[@
 	@desc Sends a command (/).
@@ -1846,6 +1907,12 @@ client.requestRoomList = function(self, roomMode)
 	if not roomMode then return end
 
 	self.main:send(enum.identifier.roomList, byteArray:new():write8(roomMode))
+end
+--[[@
+	@desc Requests the friend list.
+]]
+client.requestFriendList = function(self)
+	self.main:send(enum.identifier.bulle, encode_xorCipher(byteArray:new():write16(28):write32(3), self.main.packetID))
 end
 
 return client
