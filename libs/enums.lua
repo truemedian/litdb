@@ -51,17 +51,22 @@ enums.channelType = enum {
 	voice    = 2,
 	group    = 3,
 	category = 4,
+	news     = 5,
 }
 
 enums.messageType = enum {
-	default           = 0,
-	recipientAdd      = 1,
-	recipientRemove   = 2,
-	call              = 3,
-	channelNameChange = 4,
-	channelIconchange = 5,
-	pinnedMessage     = 6,
-	memberJoin        = 7,
+	default                       = 0,
+	recipientAdd                  = 1,
+	recipientRemove               = 2,
+	call                          = 3,
+	channelNameChange             = 4,
+	channelIconchange             = 5,
+	pinnedMessage                 = 6,
+	memberJoin                    = 7,
+	premiumGuildSubscription      = 8,
+	premiumGuildSubscriptionTier1 = 9,
+	premiumGuildSubscriptionTier2 = 10,
+	premiumGuildSubscriptionTier3 = 11,
 }
 
 enums.relationshipType = enum {
@@ -103,6 +108,13 @@ enums.explicitContentLevel = enum {
 	none   = 0,
 	medium = 1,
 	high   = 2,
+}
+
+enums.premiumTier = enum {
+	none  = 0,
+	tier1 = 1,
+	tier2 = 2,
+	tier3 = 3,
 }
 
 enums.permission = enum {

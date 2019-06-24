@@ -1,6 +1,6 @@
 --[=[
 @c Iterable
-@d Abstract base class that defines the base methods and/or properties for a
+@d Abstract base class that defines the base methods and properties for a
 general purpose data structure with features that are better suited for an
 object-oriented environment.
 
@@ -17,7 +17,7 @@ local Iterable = require('class')('Iterable')
 --[=[
 @m __pairs
 @r function
-@d Defines the behavior of the `pair` function. Returns an iterator that returns
+@d Defines the behavior of the `pairs` function. Returns an iterator that returns
 a `key, value` pair, where `key` is the result of calling `__hash` on the `value`.
 ]=]
 function Iterable:__pairs()
@@ -234,6 +234,34 @@ function Iterable:select(...)
 		end
 	end)
 	return rows
+end
+
+--[=[
+@m pick
+@p ... string/function
+@r function
+@d This returns an iterator that, when called, returns the values from each
+encountered object, picked by the provided keys. If a key is a string, the objects
+are indexed with the string. If a key is a function, the function is called with
+the object passed as its first argument.
+]=]
+function Iterable:pick(...)
+	local keys = pack(...)
+	local values = {}
+	local n = keys.n
+	return wrap(function()
+		for obj in self:iter() do
+			for i = 1, n do
+				local k = keys[i]
+				if type(k) == 'function' then
+					values[i] = k(obj)
+				else
+					values[i] = obj[k]
+				end
+			end
+			yield(unpack(values, 1, n))
+		end
+	end)
 end
 
 return Iterable

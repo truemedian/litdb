@@ -60,7 +60,7 @@ function Guild:_makeAvailable(data)
 
 	for _, channel in ipairs(data.channels) do
 		local t = channel.type
-		if t == channelType.text then
+		if t == channelType.text or t == channelType.news then
 			text_channels:_insert(channel)
 		elseif t == channelType.voice then
 			voice_channels:_insert(channel)
@@ -351,8 +351,7 @@ end
 @m setSystemChannel
 @p id Channel-Id-Resolvable
 @r boolean
-@d Transfers ownership of the guild to another user. Only the current guild owner
-can do this.
+@d Sets the guild's join message channel.
 ]=]
 function Guild:setSystemChannel(id)
 	id = id and Resolver.channelId(id)
@@ -380,6 +379,17 @@ end
 function Guild:setIcon(icon)
 	icon = icon and Resolver.base64(icon)
 	return self:_modify({icon = icon or json.null})
+end
+
+--[=[
+@m setBanner
+@p banner Base64-Resolvable
+@r boolean
+@d Sets the guild's banner. To remove the banner, pass `nil`.
+]=]
+function Guild:setBanner(banner)
+	banner = banner and Resolver.base64(banner)
+	return self:_modify({banner = banner or json.null})
 end
 
 --[=[
@@ -412,11 +422,23 @@ end
 --[=[
 @m pruneMembers
 @op days number
+@op count boolean
 @r number
-@d Prunes (removes) inactive, roleless members from the guild.
+@d Prunes (removes) inactive, roleless members from the guild who have not been online in the last provided days.
+If the `count` boolean is provided, the number of pruned members is returned; otherwise, `0` is returned.
 ]=]
-function Guild:pruneMembers(days)
-	local data, err = self.client._api:beginGuildPrune(self._id, nil, days and {days = days} or nil)
+function Guild:pruneMembers(days, count)
+	local t1 = type(days)
+	if t1 == 'number' then
+		count = type(count) == 'boolean' and count
+	elseif t1 == 'boolean' then
+		count = days
+		days = nil
+	end
+	local data, err = self.client._api:beginGuildPrune(self._id, nil, {
+		days = days,
+		compute_prune_count = count,
+	})
 	if data then
 		return data.pruned
 	else
@@ -428,9 +450,8 @@ end
 @m getBans
 @r Cache
 @d Returns a newly constructed cache of all ban objects for the guild. The
-cache is not automatically updated via gateway events, but the internally
-referenced user objects may be updated. You must call this method again to
-guarantee that the objects are up to date.
+cache and its objects are not automatically updated via gateway events. You must
+call this method again to get the updated objects.
 ]=]
 function Guild:getBans()
 	local data, err = self.client._api:getGuildBans(self._id)
@@ -482,10 +503,8 @@ end
 cache and its objects are not automatically updated via gateway events. You must
 call this method again to get the updated objects.
 
-- query.limit: number
-- query.user: UserId Resolvable
-- query.before: EntryId Resolvable
-- query.type: ActionType Resolvable
+If included, the query parameters include: query.limit: number, query.user: UserId Resolvable
+query.before: EntryId Resolvable, query.type: ActionType Resolvable
 ]=]
 function Guild:getAuditLogs(query)
 	if type(query) == 'table' then
@@ -549,7 +568,7 @@ end
 --[=[
 @m delete
 @r boolean
-@d Permanently deletes the guild. This cannot be undone!
+@d Permanently deletes the guild. The current user must owner the server. This cannot be undone!
 ]=]
 function Guild:delete()
 	local data, err = self.client._api:deleteGuild(self._id)
@@ -659,8 +678,19 @@ function get.splashURL(self)
 	return splash and format('https://cdn.discordapp.com/splashs/%s/%s.png', self._id, splash)
 end
 
+--[=[@p banner string/nil The hash for the guild's custom banner, if one is set.]=]
+function get.banner(self)
+	return self._banner
+end
+
+--[=[@p bannerURL string/nil The URL that can be used to view the guild's banner, if one is set.]=]
+function get.bannerURL(self)
+	local banner = self._banner
+	return banner and format('https://cdn.discordapp.com/banners/%s/%s.png', self._id, banner)
+end
+
 --[=[@p large boolean Whether the guild has an arbitrarily large amount of members. Guilds that are
-"large" will not initialize with all members.]=]
+"large" will not initialize with all members cached.]=]
 function get.large(self)
 	return self._large
 end
@@ -673,6 +703,26 @@ end
 --[=[@p region string The voice region that is used for all voice connections in the guild.]=]
 function get.region(self)
 	return self._region
+end
+
+--[=[@p vanityCode string/nil The guild's vanity invite URL code, if one exists.]=]
+function get.vanityCode(self)
+	return self._vanity_url_code
+end
+
+--[=[@p description string/nil The guild's custom description, if one exists.]=]
+function get.description(self)
+	return self._description
+end
+
+--[=[@p maxMembers number/nil The guild's maximum member count, if available.]=]
+function get.maxMembers(self)
+	return self._max_members
+end
+
+--[=[@p maxPresences number/nil The guild's maximum presence count, if available.]=]
+function get.maxPresences(self)
+	return self._max_presences
 end
 
 --[=[@p mfaLevel number The guild's multi-factor (or two-factor) verification level setting. A value of
@@ -723,6 +773,18 @@ function get.explicitContentSetting(self)
 	return self._explicit_content_filter
 end
 
+--[=[@p premiumTier number The guild's premier tier affected by nitro server
+boosts. See the `premiumTier` enumeration for a human-readable representation]=]
+function get.premiumTier(self)
+	return self._premium_tier
+end
+
+--[=[@p premiumSubscriptionCount number The number of users that have upgraded
+the guild with nitro server boosting.]=]
+function get.premiumSubscriptionCount(self)
+	return self._premium_subscription_count
+end
+
 --[=[@p features table Raw table of VIP features that are enabled for the guild.]=]
 function get.features(self)
 	return self._features
@@ -753,12 +815,12 @@ function get.afkChannel(self)
 	return self._voice_channels:get(self._afk_channel_id)
 end
 
---[=[@p systemChannelId string/nil The channel id where Discord's join messages will be displayed]=]
+--[=[@p systemChannelId string/nil The channel id where Discord's join messages will be displayed.]=]
 function get.systemChannelId(self)
 	return self._system_channel_id
 end
 
---[=[@p systemChannel GuildTextChannel/nil The channel where Discord's join messages will be displayed]=]
+--[=[@p systemChannel GuildTextChannel/nil The channel where Discord's join messages will be displayed.]=]
 function get.systemChannel(self)
 	return self._text_channels:get(self._system_channel_id)
 end

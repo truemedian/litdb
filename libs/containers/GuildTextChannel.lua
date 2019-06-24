@@ -61,7 +61,8 @@ end
 @m bulkDelete
 @p messages Message-ID-Resolvables
 @r boolean
-@d Bulk deletes multiple messages, from 2 to 100, from the channel.
+@d Bulk deletes multiple messages, from 2 to 100, from the channel. Messages over
+2 weeks old cannot be deleted and will return an error.
 ]=]
 function GuildTextChannel:bulkDelete(messages)
 	messages = Resolver.messageIds(messages)
@@ -133,6 +134,11 @@ end
 --[=[@p rateLimit number Slowmode rate limit per guild member.]=]
 function get.rateLimit(self)
 	return self._rate_limit_per_user or 0
+end
+
+--[=[@p isNews boolean Whether this channel is a news channel of type 5.]=]
+function get.isNews(self)
+	return self._type == 5
 end
 
 --[=[@p members FilteredIterable A filtered iterable of guild members that have

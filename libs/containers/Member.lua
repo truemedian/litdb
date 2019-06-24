@@ -2,7 +2,8 @@
 @c Member x UserPresence
 @d Represents a Discord guild member. Though one user may be a member in more than
 one guild, each presence is represented by a different member object associated
-with that guild.
+with that guild. Note that any method or property that exists for the User class is
+also available in the Member class.
 ]=]
 
 local enums = require('enums')
@@ -70,8 +71,8 @@ function Member:getColor()
 	return roles[1] and roles[1]:getColor() or Color()
 end
 
-local function has(a, b, admin)
-	return band(a, b) > 0 or admin and band(a, permission.administrator) > 0
+local function has(a, b)
+	return band(a, b) > 0
 end
 
 --[=[
@@ -104,6 +105,18 @@ function Member:hasPermission(channel, perm)
 	end
 
 	if self.id == guild.ownerId then
+		return true
+	end
+
+	local rolePermissions = guild.defaultRole.permissions
+
+	for role in self.roles:iter() do
+		if role.id ~= guild.id then -- just in case
+			rolePermissions = bor(rolePermissions, role.permissions)
+		end
+	end
+
+	if has(rolePermissions, permission.administrator) then
 		return true
 	end
 
@@ -151,19 +164,7 @@ function Member:hasPermission(channel, perm)
 
 	end
 
-	for role in self.roles:iter() do
-		if role.id ~= guild.id then -- just in case
-			if has(role.permissions, n, true) then
-				return true
-			end
-		end
-	end
-
-	if has(guild.defaultRole.permissions, n, true) then
-		return true
-	end
-
-	return false
+	return has(rolePermissions, n)
 
 end
 
@@ -476,6 +477,12 @@ an ISO 8601 string plus microseconds when available. Member objects generated
 via presence updates lack this property.]=]
 function get.joinedAt(self)
 	return self._joined_at
+end
+
+--[=[@p premiumSince string/nil The date and time at which the current member boosted the guild, represented as
+an ISO 8601 string plus microseconds when available.]=]
+function get.premiumSince(self)
+	return self._premium_since
 end
 
 --[=[@p voiceChannel GuildVoiceChannel/nil The voice channel to which this member is connected in the current guild.]=]

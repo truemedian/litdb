@@ -7,6 +7,7 @@ and from different date and time formats. Although microsecond precision is avai
 most formats are implemented with only second precision.
 ]=]
 
+local ffi = require('ffi')
 local class = require('class')
 local constants = require('constants')
 local Time = require('utils/Time')
@@ -14,6 +15,7 @@ local Time = require('utils/Time')
 local abs, modf, fmod, floor = math.abs, math.modf, math.fmod, math.floor
 local format = string.format
 local date, time, difftime = os.date, os.time, os.difftime
+local typeof = ffi.typeof
 local isInstance = class.isInstance
 
 local MS_PER_S = constants.MS_PER_S
@@ -21,6 +23,8 @@ local US_PER_MS = constants.US_PER_MS
 local US_PER_S = US_PER_MS * MS_PER_S
 
 local DISCORD_EPOCH = constants.DISCORD_EPOCH
+
+local uint64_t = typeof('uint64_t')
 
 local months = {
 	Jan = 1, Feb = 2, Mar = 3, Apr = 4, May = 5, Jun = 6,
@@ -72,11 +76,16 @@ end
 
 --[=[
 @m toString
+@op fmt string
 @r string
-@d Returns a string from this Date object in human-readable form.
+@d Returns a string from this Date object via Lua's `os.date`.
+If no format string is provided, the default is '%a %b %d %Y %T GMT%z (%Z)'.
 ]=]
-function Date:toString()
-	return date('%a %b %d %Y %T GMT%z (%Z)', self._s)
+function Date:toString(fmt)
+	if not fmt or fmt == '*t' or fmt == '!*t' then
+		fmt = '%a %b %d %Y %T GMT%z (%Z)'
+	end
+	return date(fmt, self._s)
 end
 
 function Date:__eq(other) check(self, other)
@@ -153,7 +162,7 @@ end
 
 --[=[
 @sm parseSnowflake
-@p str string
+@p id string
 @r number
 @d Converts a Discord Snowflake ID into a Unix time in seconds. Additional
 decimal points may be present, though only the first 3 (milliseconds) should be
@@ -165,7 +174,7 @@ end
 
 --[=[
 @sm parseTable
-@p str string
+@p tbl table
 @r number
 @d Interprets a Lua date table as a local time and converts it to a Unix time in
 seconds. Equivalent to `os.time(tbl)`.
@@ -176,7 +185,7 @@ end
 
 --[=[
 @sm parseTableUTC
-@p str string
+@p tbl table
 @r number
 @d Interprets a Lua date table as a UTC time and converts it to a Unix time in
 seconds. Equivalent to `os.time(tbl)` with a correction for UTC.
@@ -209,7 +218,7 @@ end
 
 --[=[
 @sm fromSnowflake
-@p str string
+@p id string
 @r Date
 @d Constructs a new Date object from a Discord/Twitter Snowflake ID. Equivalent to
 `Date(Date.parseSnowflake(id))`.
@@ -242,32 +251,32 @@ end
 
 --[=[
 @sm fromSeconds
-@p t number
+@p s number
 @r Date
 @d Constructs a new Date object from a Unix time in seconds.
 ]=]
-function Date.fromSeconds(t)
-	return Date(t)
+function Date.fromSeconds(s)
+	return Date(s)
 end
 
 --[=[
 @sm fromMilliseconds
-@p t number
+@p ms number
 @r Date
 @d Constructs a new Date object from a Unix time in milliseconds.
 ]=]
-function Date.fromMilliseconds(t)
-	return Date(t / MS_PER_S)
+function Date.fromMilliseconds(ms)
+	return Date(ms / MS_PER_S)
 end
 
 --[=[
 @sm fromMicroseconds
-@p t number
+@p us number
 @r Date
 @d Constructs a new Date object from a Unix time in microseconds.
 ]=]
-function Date.fromMicroseconds(t)
-	return Date(0, t)
+function Date.fromMicroseconds(us)
+	return Date(0, us)
 end
 
 --[=[
@@ -294,7 +303,7 @@ function Date:toISO(sep, tz)
 end
 
 --[=[
-@m toSnowflake
+@m toHeader
 @r string
 @d Returns an RFC 2822 string that represents the stored date and time.
 ]=]
@@ -309,7 +318,8 @@ end
 Note that `Date.fromSnowflake(id):toSnowflake()` may not return the original Snowflake.
 ]=]
 function Date:toSnowflake()
-	return format('%i', (self:toMilliseconds() - DISCORD_EPOCH) * 2^22)
+	local n = uint64_t(self:toMilliseconds() - DISCORD_EPOCH) * 2^22
+	return tostring(n):match('%d*')
 end
 
 --[=[

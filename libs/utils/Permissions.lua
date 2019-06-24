@@ -40,6 +40,23 @@ function Permissions:__tostring()
 	end
 end
 
+--[=[
+@sm fromMany
+@p ... Permission-Resolvables
+@r Permissions
+@d Returns a Permissions object with all of the defined permissions.
+]=]
+function Permissions.fromMany(...)
+	local ret = Permissions()
+	ret:enable(...)
+	return ret
+end
+
+--[=[
+@sm all
+@r Permissions
+@d Returns a Permissions object with all permissions.
+]=]
 function Permissions.all()
 	return Permissions(ALL)
 end
@@ -65,7 +82,7 @@ end
 
 --[=[
 @m enable
-@p ... Permissions-Resolvable
+@p ... Permission-Resolvables
 @r nil
 @d Enables a specific permission or permissions. See the `permission` enumeration
 for acceptable permission values.
@@ -81,7 +98,7 @@ end
 
 --[=[
 @m disable
-@p ... Permissions-Resolvable
+@p ... Permission-Resolvables
 @r nil
 @d Disables a specific permission or permissions. See the `permission` enumeration
 for acceptable permission values.
@@ -97,7 +114,7 @@ end
 
 --[=[
 @m has
-@p ... Permissions-Resolvable
+@p ... Permission-Resolvables
 @r boolean
 @d Returns whether this set has a specific permission or permissions. See the
 `permission` enumeration for acceptable permission values.

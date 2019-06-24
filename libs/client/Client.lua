@@ -2,7 +2,7 @@
 @ic Client x Emitter
 @op options table
 @d The main point of entry into a Discordia application. All data relevant to
-Discord are accessible through a client instance or its child objects after a
+Discord is accessible through a client instance or its child objects after a
 connection to Discord is established with the `run` method. In other words,
 client data should not be expected and most client methods should not be called
 until after the `ready` event is received. Base emitter methods may be called
@@ -273,7 +273,9 @@ end
 shards as are required or requested. By using coroutines that are automatically
 managed by Luvit libraries and a libuv event loop, multiple clients per process
 and multiple shards per client can operate concurrently. This should be the last
-method called after all other code and event handlers have been initialized.
+method called after all other code and event handlers have been initialized. If
+a presence table is provided, it will act as if the user called `setStatus`
+and `setGame` after `run`.
 ]=]
 function Client:run(token, presence)
 	self._presence = presence or {}
@@ -479,7 +481,7 @@ end
 @m listVoiceRegions
 @r table
 @d Returns a raw data table that contains a list of voice regions as provided by
-Discord, with no additional parsing.
+Discord, with no formatting beyond what is provided by the Discord API.
 ]=]
 function Client:listVoiceRegions()
 	return self._api:listVoiceRegions()
@@ -489,10 +491,21 @@ end
 @m getConnections
 @r table
 @d Returns a raw data table that contains a list of connections as provided by
-Discord, with no additional parsing. This is unrelated to voice connections.
+Discord, with no formatting beyond what is provided by the Discord API.
+This is unrelated to voice connections.
 ]=]
 function Client:getConnections()
 	return self._api:getUsersConnections()
+end
+
+--[=[
+@m getApplicationInformation
+@r table
+@d Returns a raw data table that contains information about the current OAuth2
+application, with no formatting beyond what is provided by the Discord API.
+]=]
+function Client:getApplicationInformation()
+	return self._api:getCurrentApplicationInformation()
 end
 
 local function updateStatus(self)
@@ -534,7 +547,7 @@ end
 @r nil
 @d Sets the current users's game on all shards that are managed by this client.
 If a string is passed, it is treated as the game name. If a table is passed, it
-must have a `name` field and may optionally have a `url` field. Pass `nil` to
+must have a `name` field and may optionally have a `url` or `type` field. Pass `nil` to
 remove the game status.
 ]=]
 function Client:setGame(game)
@@ -601,7 +614,7 @@ function get.verified(self)
 end
 
 --[=[@p mfaEnabled boolean/nil Whether the current user's owner's account has multi-factor (or two-factor)
-authentication enabled.]=]
+authentication enabled. This is equivalent to `verified`]=]
 function get.mfaEnabled(self)
 	return self._user and self._user._verified
 end

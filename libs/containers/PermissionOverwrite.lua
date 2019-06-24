@@ -19,7 +19,7 @@ end
 --[=[
 @m delete
 @r boolean
-@d Deletes the permission overwrite. This can be undone by created a new version of
+@d Deletes the permission overwrite. This can be undone by creating a new version of
 the same overwrite.
 ]=]
 function PermissionOverwrite:delete()
@@ -126,7 +126,7 @@ end
 
 --[=[
 @m allowPermissions
-@p ... Permissions-Resolvables
+@p ... Permission-Resolvables
 @r boolean
 @d Allows individual permissions in this overwrite.
 ]=]
@@ -138,7 +138,7 @@ end
 
 --[=[
 @m denyPermissions
-@p ... Permissions-Resolvables
+@p ... Permission-Resolvables
 @r boolean
 @d Denies individual permissions in this overwrite.
 ]=]
@@ -150,7 +150,7 @@ end
 
 --[=[
 @m clearPermissions
-@p ... Permissions-Resolvables
+@p ... Permission-Resolvables
 @r boolean
 @d Clears individual permissions in this overwrite.
 ]=]

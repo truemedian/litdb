@@ -39,6 +39,7 @@ local ignore = {
 	['MESSAGE_ACK'] = true,
 	['PRESENCES_REPLACE'] = true,
 	['USER_SETTINGS_UPDATE'] = true,
+	['USER_GUILD_SETTINGS_UPDATE'] = true,
 	['SESSIONS_REPLACE'] = true,
 }
 
@@ -134,7 +135,7 @@ function Shard:handlePayload(payload)
 
 	elseif op == HELLO then
 
-		self:info('Received HELLO (%s)', concat(d._trace, ', '))
+		self:info('Received HELLO')
 		self:startHeartbeat(d.heartbeat_interval)
 		if self._session_id then
 			self:resume()
