@@ -1,7 +1,6 @@
 local data = require('internal/data')
 
 return function(name)
-
 	return function (description)
 		data.meta = {
 			name = name,
