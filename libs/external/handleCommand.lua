@@ -38,7 +38,7 @@ return function(message)
 					local sentMessage = message.channel:send(command.response)
 
 					if command.confirmation then
-						data.confirmation[sentMessage.id] = {original = message, handler = command.confirmation}
+						data.confirmation[sentMessage.id] = {original = message, response = sentMessage, handler = command.confirmation}
 
 						sentMessage:addReaction("✅")
 						sentMessage:addReaction("❌")

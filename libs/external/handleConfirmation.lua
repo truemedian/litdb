@@ -6,9 +6,9 @@ return function(reaction, userId)
 		local confirmation = data.confirmation[reaction.message.id]
 
 		if reaction.emojiName == "✅" then
-			confirmation.handler(confirmation.original, true)
+			confirmation.handler(confirmation.original, confirmation.response, true)
 		elseif reaction.emojiName == "❌" then
-			confirmation.handler(confirmation.original, false)
+			confirmation.handler(confirmation.original, confirmation.response, false)
 		else
 			return false
 		end
