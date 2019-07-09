@@ -37,7 +37,28 @@ local tribulleListener, oldPacketListener, packetListener
 local handlePlayerField, handleFriendData
 
 local client = table_setNewClass()
-client.__index = client	
+
+local meta = {
+	playerList = {
+		__len = function(this)
+			return this.count or -1
+		end,
+		__pairs = function(this)
+			local indexes = { }
+			for i = 1, #this do
+				indexes[i] = this[i].playerName
+			end
+
+			local i = 0
+			return function()
+				i = i + 1
+				if this[indexes[i]] then
+					return this[indexes[i]].playerName, this[indexes[i]]
+				end
+			end
+		end
+	}
+}
 
 --[[@
 	@name new
@@ -79,11 +100,7 @@ client.new = function(self)
 		bulle = nil,
 		event = eventEmitter,
 		cafe = { },
-		playerList = setmetatable({ }, {
-			__len = function(this)
-				return this.count or -1
-			end
-		}),
+		playerList = setmetatable({ }, meta.playerList),
 		-- Private
 		_mainLoop = nil,
 		_bulleLoop = nil,
@@ -141,41 +158,41 @@ tribulleListener = {
 			@struct @friendlist {
 				[i] = {
 					id = 0, -- The player id.
-					playerName = "", -- The player name.
-					gender = 0, -- The gender of the player. Enum in enum.gender.
+					playerName = "", -- The player's name.
+					gender = 0, -- The player's gender. Enum in enum.gender.
 					isFriend = true, -- Whether the player has the account as a friend (added back) or not.
-					isConnected = true, -- Whether the player is online or not.
+					isConnected = true, -- Whether the player is online or offline.
 					gameId = 0, -- The id of the game where the player is connected. Enum in enum.game.
-					roomName = "", -- The name of the room where the player is.
-					lastConnection = 0 -- Timestamp of when was the last connection of the player.
+					roomName = "", -- The name of the room the player is in.
+					lastConnection = 0 -- Timestamp of when the player was last online.
 				}
 			}
 			@struct @soulmate {
 				id = 0, -- The player id.
-				playerName = "", -- The player name.
-				gender = 0, -- The gender of the player. Enum in enum.gender.
-				isFriend = true, -- Whether the player has the account as a friend (added back) or not.
-				isConnected = true, -- Whether the player is online or not.
-				gameId = 0, -- The id of the game where the player is connected. Enum in enum.game.
-				roomName = "", -- The name of the room where the player is.
-				lastConnection = 0 -- Timestamp of when was the last connection of the player.
+				playerName = "", -- The soulmate's name.
+				gender = 0, -- The soulmate's gender. Enum in enum.gender.
+				isFriend = true, -- Whether the soulmate has the account as a friend (added back) or not.
+				isConnected = true, -- Whether the soulmate is online or offline.
+				gameId = 0, -- The id of the game where the soulmate is connected. Enum in enum.game.
+				roomName = "", -- The name of the room the soulmate is in.
+				lastConnection = 0 -- Timestamp of when the soulmate was last online.
 			}
 		]]
 		self.event:emit("friendList", friendList, soulmate)
 	end,
 	[36] = function(self, packet, connection, tribulleId) -- Add friend
 		--[[
-			@desc Triggered when a new friend is added to the friend list.
+			@desc Triggered when a player is added to the friend list.
 			@param friend<table> The data of the new friend.
 			@struct @friend {
 				id = 0, -- The player id.
-				playerName = "", -- The player name.
-				gender = 0, -- The gender of the player. Enum in enum.gender.
+				playerName = "", -- The player's name.
+				gender = 0, -- The player's gender. Enum in enum.gender.
 				isFriend = true, -- Whether the player has the account as a friend (added back) or not.
-				isConnected = true, -- Whether the player is online or not.
+				isConnected = true, -- Whether the player is online or offline.
 				gameId = 0, -- The id of the game where the player is connected. Enum in enum.game.
-				roomName = "", -- The name of the room where the player is.
-				lastConnection = 0 -- Timestamp of when was the last connection of the player.
+				roomName = "", -- The name of the room the player is in.
+				lastConnection = 0 -- Timestamp of when the player was last online.
 			}
 		]]
 		self.event:emit("newFriend", handleFriendData(packet))
@@ -197,7 +214,7 @@ tribulleListener = {
 		--[[@
 			@name blackList
 			@desc Triggered when the black list is loaded.
-			@param blackList<table> An array of strings with the names that are in the black list.
+			@param blackList<table> An array of strings of the names that are in the black list.
 		]]
 		self.event:emit("blackList", blackList)
 	end,
@@ -268,7 +285,7 @@ tribulleListener = {
 		local memberName = packet:readUTF()
 		--[[@
 			@name tribeMemberDisconnection
-			@desc Triggered when a tribe member disconnects to the game.
+			@desc Triggered when a tribe member disconnects from the game.
 			@param memberName<string> The member name.
 		]]
 		self.event:emit("tribeMemberDisconnection", string_toNickname(memberName, true))
@@ -278,7 +295,7 @@ tribulleListener = {
 		--[[@
 			@name newTribeMember
 			@desc Triggered when a player joins the tribe.
-			@param memberName<string> The member who joined the tribe.
+			@param memberName<string> The name of the new tribe member.
 		]]
 		self.event:emit("newTribeMember", string_toNickname(memberName, true))
 	end,
@@ -297,7 +314,7 @@ tribulleListener = {
 			@name tribeMemberKick
 			@desc Triggered when a tribe member is kicked.
 			@param memberName<string> The member name.
-			@param kickerName<string> The name of who kicked the member.
+			@param kickerName<string> The name of the player who kicked the member.
 		]]
 		self.event:emit("tribeMemberKick", string_toNickname(memberName, true), string_toNickname(kickerName, true))
 	end,
@@ -307,7 +324,7 @@ tribulleListener = {
 			@name tribeMemberGetRole
 			@desc Triggered when a tribe member gets a role.
 			@param memberName<string> The member name.
-			@param setterName<string> The name of who set the role to the member.
+			@param setterName<string> The name of the player who set the role.
 			@param role<string> The role name.
 		]]
 		self.event:emit("tribeMemberGetRole", string_toNickname(memberName, true), string_toNickname(setterName, true), role)
@@ -332,32 +349,32 @@ oldPacketListener = {
 						playerName = "", -- The nickname of the player.
 						id = 0, -- The temporary id of the player during the section.
 						isShaman = false, -- Whether the player is shaman or not.
-						isDead = false, -- Whether the player is dead or not.
-						score = 0, -- The current player score.
+						isDead = false, -- Whether the player is dead or alive.
+						score = 0, -- The current player's score.
 						hasCheese = false, -- Whether the player has cheese or not.
-						title = 0, -- The id of the current title of the player.
-						titleStars = 0, -- The quantity of starts that the current title of the player has.
-						gender = 0, -- The gender of the player. Enum in enum.gender.
+						title = 0, -- The player's title id.
+						titleStars = 0, -- The number of stars the player's title has.
+						gender = 0, -- The player's gender. Enum in enum.gender.
 						look = "", -- The current outfit string code of the player.
 						mouseColor = 0, -- The color of the player. It is set to -1 if it's the default color.
 						shamanColor = 0, -- The color of the player as shaman.
 						nameColor = 0, -- The color of the nickname of the player.
 						isSouris = false, -- Whether the player is souris or not.
 						isVampire = false, -- Whether the player is vampire or not.
-						hasWon = false, -- Whether the player has joined the hole in the round or not.
-						winPosition = 0, -- The position where the player joined the hole. It is set to -1 if it has not won yet.
-						winTimeElapsed = 0, -- The time elapsed when the player joined the hole. It is set to -1 if it has not won yet.
-						isFacingRight = false, -- Whether the player is facing right or not.
-						movingRight = false, -- Whether the player is moving right or not.
-						movingLeft = false, -- Whether the player is moving left or not.
-						isBlueShaman = false, -- Whether the player is the blue shamamn or not.
-						isPinkShaman = false, -- Whether the player is the pink shamamn or not.
-						x = 0, -- The coordinate X of the player in the map.
-						y =  0, -- The coordinate Y of the player in the map.
-						vx = 0, -- The X speed of the player in the map.
-						vy =  0, -- The Y speed of the player in the map.
-						isDucking = false, -- Whether the player is ducking or not.
-						isJumping = false, -- Whether the player is jumping or not.
+						hasWon = false, -- Whether the player has entered the hole in the round or not.
+						winPosition = 0, -- The position where the player entered the hole. It is set to -1 if it has not won yet.
+						winTimeElapsed = 0, -- Time elapsed until the player enters the hole. It is set to -1 if it has not won yet.
+						isFacingRight = false, -- Whether the player is facing right.
+						movingRight = false, -- Whether the player is moving right.
+						movingLeft = false, -- Whether the player is moving left.
+						isBlueShaman = false, -- Whether the player is the blue shaman.
+						isPinkShaman = false, -- Whether the player is the pink shaman.
+						x = 0, -- Player's X coordinate in the map.
+						y =  0, -- Player's X coordinate in the map.
+						vx = 0, -- Player's X speed in the map.
+						vy =  0, -- Player's Y speed in the map.
+						isDucking = false, -- Whether the player is ducking.
+						isJumping = false, -- Whether the player is jumping.
 						_pos = 0 -- The position of the player in the array list. This value should never be changed manually.
 					}
 				]]
@@ -377,32 +394,32 @@ oldPacketListener = {
 						playerName = "", -- The nickname of the player.
 						id = 0, -- The temporary id of the player during the section.
 						isShaman = false, -- Whether the player is shaman or not.
-						isDead = false, -- Whether the player is dead or not.
-						score = 0, -- The current player score.
+						isDead = false, -- Whether the player is dead or alive.
+						score = 0, -- The current player's score.
 						hasCheese = false, -- Whether the player has cheese or not.
-						title = 0, -- The id of the current title of the player.
-						titleStars = 0, -- The quantity of starts that the current title of the player has.
-						gender = 0, -- The gender of the player. Enum in enum.gender.
+						title = 0, -- The player's title id.
+						titleStars = 0, -- The number of stars the player's title has.
+						gender = 0, -- The player's gender. Enum in enum.gender.
 						look = "", -- The current outfit string code of the player.
 						mouseColor = 0, -- The color of the player. It is set to -1 if it's the default color.
 						shamanColor = 0, -- The color of the player as shaman.
 						nameColor = 0, -- The color of the nickname of the player.
 						isSouris = false, -- Whether the player is souris or not.
 						isVampire = false, -- Whether the player is vampire or not.
-						hasWon = false, -- Whether the player has joined the hole in the round or not.
-						winPosition = 0, -- The position where the player joined the hole. It is set to -1 if it has not won yet.
-						winTimeElapsed = 0, -- The time elapsed when the player joined the hole. It is set to -1 if it has not won yet.
-						isFacingRight = false, -- Whether the player is facing right or not.
-						movingRight = false, -- Whether the player is moving right or not.
-						movingLeft = false, -- Whether the player is moving left or not.
-						isBlueShaman = false, -- Whether the player is the blue shamamn or not.
-						isPinkShaman = false, -- Whether the player is the pink shamamn or not.
-						x = 0, -- The coordinate X of the player in the map.
-						y =  0, -- The coordinate Y of the player in the map.
-						vx = 0, -- The X speed of the player in the map.
-						vy =  0, -- The Y speed of the player in the map.
-						isDucking = false, -- Whether the player is ducking or not.
-						isJumping = false, -- Whether the player is jumping or not.
+						hasWon = false, -- Whether the player has entered the hole in the round or not.
+						winPosition = 0, -- The position where the player entered the hole. It is set to -1 if it has not won yet.
+						winTimeElapsed = 0, -- Time elapsed until the player enters the hole. It is set to -1 if it has not won yet.
+						isFacingRight = false, -- Whether the player is facing right.
+						movingRight = false, -- Whether the player is moving right.
+						movingLeft = false, -- Whether the player is moving left.
+						isBlueShaman = false, -- Whether the player is the blue shaman.
+						isPinkShaman = false, -- Whether the player is the pink shaman.
+						x = 0, -- Player's X coordinate in the map.
+						y =  0, -- Player's X coordinate in the map.
+						vx = 0, -- Player's X speed in the map.
+						vy =  0, -- Player's Y speed in the map.
+						isDucking = false, -- Whether the player is ducking.
+						isJumping = false, -- Whether the player is jumping.
 						_pos = 0 -- The position of the player in the array list. This value should never be changed manually.
 					}
 				]]
@@ -414,7 +431,11 @@ oldPacketListener = {
 
 				self.playerList.count = self.playerList.count - 1
 				for i = pos, self.playerList.count do
-					self.playerList[i]._pos = self.playerList[i]._pos - 1
+					if self.playerList[i] then
+						self.playerList[i]._pos = self.playerList[i]._pos - 1
+					else
+						-- TODO : Error ?
+					end
 				end
 
 				-- Removes the other references
@@ -503,7 +524,7 @@ packetListener = {
 
 			--[[@
 				@name newGame
-				@desc Triggered when a new map is loaded.
+				@desc Triggered when a map is loaded.
 				@desc /!\ This event may increase the memory consumption significantly due to the XML processes. Set the variable `_process_xml` as false to avoid processing it.
 				@param map<table> The new map data.
 				@struct @map {
@@ -517,12 +538,14 @@ packetListener = {
 			self.event:emit("newGame", map)
 		end,
 		[21] = function(self, packet, connection, identifiers) -- Room changed
+			self.playerList = setmetatable({ }, meta.playerList) -- Refreshes it
+
 			local isPrivate, roomName = packet:readBool(), packet:readUTF()
 
 			if string_byte(roomName, 2) == 3 then
 				--[[@
 					@name joinTribeHouse
-					@desc Triggered when the player joins a tribe house.
+					@desc Triggered when the account joins a tribe house.
 					@param tribeName<string> The name of the tribe.
 				]]
 				self.event:emit("joinTribeHouse", string_sub(roomName, 3))
@@ -592,38 +615,38 @@ packetListener = {
 					@name playerWon
 					@desc Triggered when a player joins the hole.
 					@param playerData<table> The data of the player.
-					@param position<int> The position where the player joined the hole.
-					@param timeElapsed<number> The time elapsed when the accont joined the hole.
+					@param position<int> The position where the player entered the hole.
+					@param timeElapsed<number> The time elapsed until the player entered the hole.
 					@struct @playerdata {
 						playerName = "", -- The nickname of the player.
 						id = 0, -- The temporary id of the player during the section.
 						isShaman = false, -- Whether the player is shaman or not.
-						isDead = false, -- Whether the player is dead or not.
-						score = 0, -- The current player score.
+						isDead = false, -- Whether the player is dead or alive.
+						score = 0, -- The current player's score.
 						hasCheese = false, -- Whether the player has cheese or not.
-						title = 0, -- The id of the current title of the player.
-						titleStars = 0, -- The quantity of starts that the current title of the player has.
-						gender = 0, -- The gender of the player. Enum in enum.gender.
+						title = 0, -- The player's title id.
+						titleStars = 0, -- The number of stars the player's title has.
+						gender = 0, -- The player's gender. Enum in enum.gender.
 						look = "", -- The current outfit string code of the player.
 						mouseColor = 0, -- The color of the player. It is set to -1 if it's the default color.
 						shamanColor = 0, -- The color of the player as shaman.
 						nameColor = 0, -- The color of the nickname of the player.
 						isSouris = false, -- Whether the player is souris or not.
 						isVampire = false, -- Whether the player is vampire or not.
-						hasWon = false, -- Whether the player has joined the hole in the round or not.
-						winPosition = 0, -- The position where the player joined the hole. It is set to -1 if it has not won yet.
-						winTimeElapsed = 0, -- The time elapsed when the player joined the hole. It is set to -1 if it has not won yet.
-						isFacingRight = false, -- Whether the player is facing right or not.
-						movingRight = false, -- Whether the player is moving right or not.
-						movingLeft = false, -- Whether the player is moving left or not.
-						isBlueShaman = false, -- Whether the player is the blue shamamn or not.
-						isPinkShaman = false, -- Whether the player is the pink shamamn or not.
-						x = 0, -- The coordinate X of the player in the map.
-						y =  0, -- The coordinate Y of the player in the map.
-						vx = 0, -- The X speed of the player in the map.
-						vy =  0, -- The Y speed of the player in the map.
-						isDucking = false, -- Whether the player is ducking or not.
-						isJumping = false, -- Whether the player is jumping or not.
+						hasWon = false, -- Whether the player has entered the hole in the round or not.
+						winPosition = 0, -- The position where the player entered the hole. It is set to -1 if it has not won yet.
+						winTimeElapsed = 0, -- Time elapsed until the player enters the hole. It is set to -1 if it has not won yet.
+						isFacingRight = false, -- Whether the player is facing right.
+						movingRight = false, -- Whether the player is moving right.
+						movingLeft = false, -- Whether the player is moving left.
+						isBlueShaman = false, -- Whether the player is the blue shaman.
+						isPinkShaman = false, -- Whether the player is the pink shaman.
+						x = 0, -- Player's X coordinate in the map.
+						y =  0, -- Player's X coordinate in the map.
+						vx = 0, -- Player's X speed in the map.
+						vy =  0, -- Player's Y speed in the map.
+						isDucking = false, -- Whether the player is ducking.
+						isJumping = false, -- Whether the player is jumping.
 						_pos = 0 -- The position of the player in the array list. This value should never be changed manually.
 					}
 				]]
@@ -718,7 +741,7 @@ packetListener = {
 				@desc Triggered when the profile of an player is loaded.
 				@param data<table> The player profile data.
 				@struct @data {
-					playerName = "", -- The player name.
+					playerName = "", -- The player's name.
 					id = 0, -- The player id. It may be 0 if the player has no avatar.
 					registrationDate = 0, -- The timestamp of when the player was created.
 					role = 0, -- An enum from enum.role that specifies the player's role.
@@ -726,22 +749,22 @@ packetListener = {
 					tribeName = "", -- The name of the tribe.
 					soulmate = "", -- The name of the soulmate.
 					saves = {
-						normal = 0, -- Total saves in the normal mode.
-						hard = 0, -- Total saves in the hard mode.
-						divine = 0 -- Total saves in the divine mode.
+						normal = 0, -- Total saves in normal mode.
+						hard = 0, -- Total saves in hard mode.
+						divine = 0 -- Total saves in divine mode.
 					}, -- Total saves of the player.
-					shamanCheese = 0, -- Total of cheeses gathered as shaman.
-					firsts = 0, -- Total of firsts.
-					cheeses = 0, -- Total of cheeses.
-					bootcamps = 0, -- Total of bootcamps.
+					shamanCheese = 0, -- Number of cheese gathered as shaman.
+					firsts = 0, -- Number of firsts.
+					cheeses = 0, -- Number of cheese gathered.
+					bootcamps = 0, -- Number of bootcamps completed.
 					titleId = 0, -- The id of the current title.
-					totalTitles = 0, -- Total of unlocked titles.
+					totalTitles = 0, -- Number of titles unlocked.
 					titles = {
-						[id] = 0 -- The id of the title as index, the quantity of stars as value.
+						[id] = 0 -- The id of the title as index, the number of stars as value.
 					}, -- The list of unlocked titles.
 					look = "", -- The player's outfit code.
 					level = 0, -- The player's level.
-					totalBadges = 0, -- The total of unlocked badges.
+					totalBadges = 0, -- Number of unlocked badges.
 					badges = {
 						[id] = 0 -- The id of the badge as index, the quantity as value.
 					}, -- The list of unlocked badges.
@@ -754,11 +777,11 @@ packetListener = {
 						} -- The status id.
 					}, -- The list of mode statuses.
 					orbId = 0, -- The id of the current shaman orb.
-					totalOrbs = 0, -- The total of unlocked shaman orbs.
+					totalOrbs = 0, -- Number of shaman orbs unlocked.
 					orbs = {
 						[id] = true -- The id of the shaman orb as index.
 					}, -- The list of unlocked shaman orbs.
-					adventurePoints = 0 -- The total adventure points.
+					adventurePoints = 0 -- Number of adventure points.
 				}
 			]]
 			self.event:emit("profileLoaded", data)
@@ -773,32 +796,32 @@ packetListener = {
 					playerName = "", -- The nickname of the player.
 					id = 0, -- The temporary id of the player during the section.
 					isShaman = false, -- Whether the player is shaman or not.
-					isDead = false, -- Whether the player is dead or not.
-					score = 0, -- The current player score.
+					isDead = false, -- Whether the player is dead or alive.
+					score = 0, -- The current player's score.
 					hasCheese = false, -- Whether the player has cheese or not.
-					title = 0, -- The id of the current title of the player.
-					titleStars = 0, -- The quantity of starts that the current title of the player has.
-					gender = 0, -- The gender of the player. Enum in enum.gender.
+					title = 0, -- The player's title id.
+					titleStars = 0, -- The number of stars the player's title has.
+					gender = 0, -- The player's gender. Enum in enum.gender.
 					look = "", -- The current outfit string code of the player.
 					mouseColor = 0, -- The color of the player. It is set to -1 if it's the default color.
 					shamanColor = 0, -- The color of the player as shaman.
 					nameColor = 0, -- The color of the nickname of the player.
 					isSouris = false, -- Whether the player is souris or not.
 					isVampire = false, -- Whether the player is vampire or not.
-					hasWon = false, -- Whether the player has joined the hole in the round or not.
-					winPosition = 0, -- The position where the player joined the hole. It is set to -1 if it has not won yet.
-					winTimeElapsed = 0, -- The time elapsed when the player joined the hole. It is set to -1 if it has not won yet.
-					isFacingRight = false, -- Whether the player is facing right or not.
-					movingRight = false, -- Whether the player is moving right or not.
-					movingLeft = false, -- Whether the player is moving left or not.
-					isBlueShaman = false, -- Whether the player is the blue shamamn or not.
-					isPinkShaman = false, -- Whether the player is the pink shamamn or not.
-					x = 0, -- The coordinate X of the player in the map.
-					y =  0, -- The coordinate Y of the player in the map.
-					vx = 0, -- The X speed of the player in the map.
-					vy =  0, -- The Y speed of the player in the map.
-					isDucking = false, -- Whether the player is ducking or not.
-					isJumping = false, -- Whether the player is jumping or not.
+					hasWon = false, -- Whether the player has entered the hole in the round or not.
+					winPosition = 0, -- The position where the player entered the hole. It is set to -1 if it has not won yet.
+					winTimeElapsed = 0, -- Time elapsed until the player enters the hole. It is set to -1 if it has not won yet.
+					isFacingRight = false, -- Whether the player is facing right.
+					movingRight = false, -- Whether the player is moving right.
+					movingLeft = false, -- Whether the player is moving left.
+					isBlueShaman = false, -- Whether the player is the blue shaman.
+					isPinkShaman = false, -- Whether the player is the pink shaman.
+					x = 0, -- Player's X coordinate in the map.
+					y =  0, -- Player's X coordinate in the map.
+					vx = 0, -- Player's X speed in the map.
+					vy =  0, -- Player's Y speed in the map.
+					isDucking = false, -- Whether the player is ducking.
+					isJumping = false, -- Whether the player is jumping.
 					_pos = 0 -- The position of the player in the array list. This value should never be changed manually.
 				}
 			]]
@@ -876,15 +899,15 @@ packetListener = {
 				@struct @rooms {
 					[i] = {
 						name = "", -- The name of the room.
-						totalPlayers = 0, -- The quantity of players in the room.
-						maxPlayers = 0, -- The maximum quantity of players the room can get.
+						totalPlayers = 0, -- Number of players in the room.
+						maxPlayers = 0, -- Maximum Number of players the room can get.
 						onFuncorpMode = false -- Whether the room is having a funcorp event (orange name) or not.
 					}
 				}
 				@struct @pinned {
 					[i] = {
 						name = "", -- The name of the object.
-						totalPlayers = 0 -- The quantity of players in the object counter. (Might be a string)
+						totalPlayers = 0 -- Number of players in the object counter. (Might be a string)
 					}
 				}
 			]]
@@ -951,7 +974,7 @@ packetListener = {
 						id = 0, -- The id of the topic.
 						title = "", -- The title of the topic.
 						authorId = 0, -- The id of the topic author.
-						posts = 0, -- The quantity of messages in the topic.
+						posts = 0, -- The number of messages in the topic.
 						lastUserName = "", -- The name of the last user that posted in the topic.
 						timestamp = 0, -- When the topic was created.
 
@@ -965,8 +988,8 @@ packetListener = {
 								timestamp = 0, -- When the topic was created.
 								author = "", -- The name of the topic author.
 								content = "", -- The content of the message.
-								canLike = false, -- Whether the message can be liked by the bot or not.
-								likes = 0 -- The quantity of likes in the message.
+								canLike = false, -- Whether the account can like/dislike the message.
+								likes = 0 -- The number of likes on the message.
 							}
 						}
 					}
@@ -1011,7 +1034,7 @@ packetListener = {
 					id = 0, -- The id of the topic.
 					title = "", -- The title of the topic.
 					authorId = 0, -- The id of the topic author.
-					posts = 0, -- The quantity of messages in the topic.
+					posts = 0, -- The number of messages in the topic.
 					lastUserName = "", -- The name of the last user that posted in the topic.
 					timestamp = 0, -- When the topic was created.
 					author = "", -- The name of the topic author.
@@ -1023,8 +1046,8 @@ packetListener = {
 							timestamp = 0, -- When the topic was created.
 							author = "", -- The name of the topic author.
 							content = "", -- The content of the message.
-							canLike = false, -- Whether the message can be liked by the bot or not.
-							likes = 0 -- The quantity of likes in the message.
+							canLike = false, -- Whether the account can like/dislike the message.
+							likes = 0 -- The number of likes on the message.
 						}
 					}
 				}
@@ -1048,15 +1071,15 @@ packetListener = {
 							timestamp = 0, -- When the topic was created.
 							author = "", -- The name of the topic author.
 							content = "", -- The content of the message.
-							canLike = false, -- Whether the message can be liked by the bot or not.
-							likes = 0 -- The quantity of likes in the message.
+							canLike = false, -- Whether the account can like/dislike the message.
+							likes = 0 -- The number of likes on the message.
 						}
 						@struct @data
 						{
 							id = 0, -- The id of the topic.
 							title = "", -- The title of the topic.
 							authorId = 0, -- The id of the topic author.
-							posts = 0, -- The quantity of messages in the topic.
+							posts = 0, -- The number of messages in the topic.
 							lastUserName = "", -- The name of the last user that posted in the topic.
 							timestamp = 0, -- When the topic was created.
 							author = "", -- The name of the topic author.
@@ -1068,8 +1091,8 @@ packetListener = {
 									timestamp = 0, -- When the topic was created.
 									author = "", -- The name of the topic author.
 									content = "", -- The content of the message.
-									canLike = false, -- Whether the message can be liked by the bot or not.
-									likes = 0 -- The quantity of likes in the message.
+									canLike = false, -- Whether the account can like/dislike the message.
+									likes = 0 -- The number of likes on the message.
 								}
 							}
 						}
@@ -1091,7 +1114,7 @@ packetListener = {
 					id = 0, -- The id of the topic.
 					title = "", -- The title of the topic.
 					authorId = 0, -- The id of the topic author.
-					posts = 0, -- The quantity of messages in the topic.
+					posts = 0, -- The number of messages in the topic.
 					lastUserName = "", -- The name of the last user that posted in the topic.
 					timestamp = 0, -- When the topic was created.
 
@@ -1106,8 +1129,8 @@ packetListener = {
 							timestamp = 0, -- When the topic was created.
 							author = "", -- The name of the topic author.
 							content = "", -- The content of the message.
-							canLike = false, -- Whether the message can be liked by the bot or not.
-							likes = 0 -- The quantity of likes in the message.
+							canLike = false, -- Whether the account can like/dislike the message.
+							likes = 0 -- The number of likes on the message.
 						}
 					}
 				}
@@ -1159,39 +1182,39 @@ packetListener = {
 
 			--[[@
 				@name refreshPlayerList
-				@desc Triggered when the data of all players are refreshed (mostly in new games).
+				@desc Triggered when the data of all players are refreshed (mostly when a new map is loaded).
 				@param playerList<table> The data of all players.
 				@struct @playerList {
 					[playerName] = {
 						playerName = "", -- The nickname of the player.
 						id = 0, -- The temporary id of the player during the section.
 						isShaman = false, -- Whether the player is shaman or not.
-						isDead = false, -- Whether the player is dead or not.
-						score = 0, -- The current player score.
+						isDead = false, -- Whether the player is dead or alive.
+						score = 0, -- The current player's score.
 						hasCheese = false, -- Whether the player has cheese or not.
-						title = 0, -- The id of the current title of the player.
-						titleStars = 0, -- The quantity of starts that the current title of the player has.
-						gender = 0, -- The gender of the player. Enum in enum.gender.
+						title = 0, -- The player's title id.
+						titleStars = 0, -- The number of stars the player's title has.
+						gender = 0, -- The player's gender. Enum in enum.gender.
 						look = "", -- The current outfit string code of the player.
 						mouseColor = 0, -- The color of the player. It is set to -1 if it's the default color.
 						shamanColor = 0, -- The color of the player as shaman.
 						nameColor = 0, -- The color of the nickname of the player.
 						isSouris = false, -- Whether the player is souris or not.
 						isVampire = false, -- Whether the player is vampire or not.
-						hasWon = false, -- Whether the player has joined the hole in the round or not.
-						winPosition = 0, -- The position where the player joined the hole. It is set to -1 if it has not won yet.
-						winTimeElapsed = 0, -- The time elapsed when the player joined the hole. It is set to -1 if it has not won yet.
-						isFacingRight = false, -- Whether the player is facing right or not.
-						movingRight = false, -- Whether the player is moving right or not.
-						movingLeft = false, -- Whether the player is moving left or not.
-						isBlueShaman = false, -- Whether the player is the blue shamamn or not.
-						isPinkShaman = false, -- Whether the player is the pink shamamn or not.
-						x = 0, -- The coordinate X of the player in the map.
-						y =  0, -- The coordinate Y of the player in the map.
-						vx = 0, -- The X speed of the player in the map.
-						vy =  0, -- The Y speed of the player in the map.
-						isDucking = false, -- Whether the player is ducking or not.
-						isJumping = false, -- Whether the player is jumping or not.
+						hasWon = false, -- Whether the player has entered the hole in the round or not.
+						winPosition = 0, -- The position where the player entered the hole. It is set to -1 if it has not won yet.
+						winTimeElapsed = 0, -- Time elapsed until the player enters the hole. It is set to -1 if it has not won yet.
+						isFacingRight = false, -- Whether the player is facing right.
+						movingRight = false, -- Whether the player is moving right.
+						movingLeft = false, -- Whether the player is moving left.
+						isBlueShaman = false, -- Whether the player is the blue shaman.
+						isPinkShaman = false, -- Whether the player is the pink shaman.
+						x = 0, -- Player's X coordinate in the map.
+						y =  0, -- Player's X coordinate in the map.
+						vx = 0, -- Player's X speed in the map.
+						vy =  0, -- Player's Y speed in the map.
+						isDucking = false, -- Whether the player is ducking.
+						isJumping = false, -- Whether the player is jumping.
 						_pos = 0 -- The position of the player in the array list. This value should never be changed manually.
 					},
 					[i] = { }, -- Reference of [playerName], 'i' is stored in '_pos'
@@ -1263,38 +1286,38 @@ packetListener = {
 			if not _pos and not (isNew and data.playerName == self.playerName) then
 				--[[@
 					@name newPlayer
-					@desc Triggered when a new player joins the room.
+					@desc Triggered when a player joins the room.
 					@param playerData<table> The data of the player.
 					@struct @playerdata {
 						playerName = "", -- The nickname of the player.
 						id = 0, -- The temporary id of the player during the section.
 						isShaman = false, -- Whether the player is shaman or not.
-						isDead = false, -- Whether the player is dead or not.
-						score = 0, -- The current player score.
+						isDead = false, -- Whether the player is dead or alive.
+						score = 0, -- The current player's score.
 						hasCheese = false, -- Whether the player has cheese or not.
-						title = 0, -- The id of the current title of the player.
-						titleStars = 0, -- The quantity of starts that the current title of the player has.
-						gender = 0, -- The gender of the player. Enum in enum.gender.
+						title = 0, -- The player's title id.
+						titleStars = 0, -- The number of stars the player's title has.
+						gender = 0, -- The player's gender. Enum in enum.gender.
 						look = "", -- The current outfit string code of the player.
 						mouseColor = 0, -- The color of the player. It is set to -1 if it's the default color.
 						shamanColor = 0, -- The color of the player as shaman.
 						nameColor = 0, -- The color of the nickname of the player.
 						isSouris = false, -- Whether the player is souris or not.
 						isVampire = false, -- Whether the player is vampire or not.
-						hasWon = false, -- Whether the player has joined the hole in the round or not.
-						winPosition = 0, -- The position where the player joined the hole. It is set to -1 if it has not won yet.
-						winTimeElapsed = 0, -- The time elapsed when the player joined the hole. It is set to -1 if it has not won yet.
-						isFacingRight = false, -- Whether the player is facing right or not.
-						movingRight = false, -- Whether the player is moving right or not.
-						movingLeft = false, -- Whether the player is moving left or not.
-						isBlueShaman = false, -- Whether the player is the blue shamamn or not.
-						isPinkShaman = false, -- Whether the player is the pink shamamn or not.
-						x = 0, -- The coordinate X of the player in the map.
-						y =  0, -- The coordinate Y of the player in the map.
-						vx = 0, -- The X speed of the player in the map.
-						vy =  0, -- The Y speed of the player in the map.
-						isDucking = false, -- Whether the player is ducking or not.
-						isJumping = false, -- Whether the player is jumping or not.
+						hasWon = false, -- Whether the player has entered the hole in the round or not.
+						winPosition = 0, -- The position where the player entered the hole. It is set to -1 if it has not won yet.
+						winTimeElapsed = 0, -- Time elapsed until the player enters the hole. It is set to -1 if it has not won yet.
+						isFacingRight = false, -- Whether the player is facing right.
+						movingRight = false, -- Whether the player is moving right.
+						movingLeft = false, -- Whether the player is moving left.
+						isBlueShaman = false, -- Whether the player is the blue shaman.
+						isPinkShaman = false, -- Whether the player is the pink shaman.
+						x = 0, -- Player's X coordinate in the map.
+						y =  0, -- Player's X coordinate in the map.
+						vx = 0, -- Player's X speed in the map.
+						vy =  0, -- Player's Y speed in the map.
+						isDucking = false, -- Whether the player is ducking.
+						isJumping = false, -- Whether the player is jumping.
 						_pos = 0 -- The position of the player in the array list. This value should never be changed manually.
 					}
 				]]
@@ -1304,39 +1327,39 @@ packetListener = {
 		[6] = function(self, packet, connection, identifiers) -- Updates player cheese state
 			--[[@
 				@name playerGetCheese
-				@desc Triggered when a player gets (or loses) a cheese.
+				@desc Triggered when a player gets (or loses) the cheese.
 				@param playerData<table> The data of the player.
 				@param hasCheese<boolean> Whether the player has cheese or not.
 				@struct @playerdata {
 					playerName = "", -- The nickname of the player.
 					id = 0, -- The temporary id of the player during the section.
 					isShaman = false, -- Whether the player is shaman or not.
-					isDead = false, -- Whether the player is dead or not.
-					score = 0, -- The current player score.
+					isDead = false, -- Whether the player is dead or alive.
+					score = 0, -- The current player's score.
 					hasCheese = false, -- Whether the player has cheese or not.
-					title = 0, -- The id of the current title of the player.
-					titleStars = 0, -- The quantity of starts that the current title of the player has.
-					gender = 0, -- The gender of the player. Enum in enum.gender.
+					title = 0, -- The player's title id.
+					titleStars = 0, -- The number of stars the player's title has.
+					gender = 0, -- The player's gender. Enum in enum.gender.
 					look = "", -- The current outfit string code of the player.
 					mouseColor = 0, -- The color of the player. It is set to -1 if it's the default color.
 					shamanColor = 0, -- The color of the player as shaman.
 					nameColor = 0, -- The color of the nickname of the player.
 					isSouris = false, -- Whether the player is souris or not.
 					isVampire = false, -- Whether the player is vampire or not.
-					hasWon = false, -- Whether the player has joined the hole in the round or not.
-					winPosition = 0, -- The position where the player joined the hole. It is set to -1 if it has not won yet.
-					winTimeElapsed = 0, -- The time elapsed when the player joined the hole. It is set to -1 if it has not won yet.
-					isFacingRight = false, -- Whether the player is facing right or not.
-					movingRight = false, -- Whether the player is moving right or not.
-					movingLeft = false, -- Whether the player is moving left or not.
-					isBlueShaman = false, -- Whether the player is the blue shamamn or not.
-					isPinkShaman = false, -- Whether the player is the pink shamamn or not.
-					x = 0, -- The coordinate X of the player in the map.
-					y =  0, -- The coordinate Y of the player in the map.
-					vx = 0, -- The X speed of the player in the map.
-					vy =  0, -- The Y speed of the player in the map.
-					isDucking = false, -- Whether the player is ducking or not.
-					isJumping = false, -- Whether the player is jumping or not.
+					hasWon = false, -- Whether the player has entered the hole in the round or not.
+					winPosition = 0, -- The position where the player entered the hole. It is set to -1 if it has not won yet.
+					winTimeElapsed = 0, -- Time elapsed until the player enters the hole. It is set to -1 if it has not won yet.
+					isFacingRight = false, -- Whether the player is facing right.
+					movingRight = false, -- Whether the player is moving right.
+					movingLeft = false, -- Whether the player is moving left.
+					isBlueShaman = false, -- Whether the player is the blue shaman.
+					isPinkShaman = false, -- Whether the player is the pink shaman.
+					x = 0, -- Player's X coordinate in the map.
+					y =  0, -- Player's X coordinate in the map.
+					vx = 0, -- Player's X speed in the map.
+					vy =  0, -- Player's Y speed in the map.
+					isDucking = false, -- Whether the player is ducking.
+					isJumping = false, -- Whether the player is jumping.
 					_pos = 0 -- The position of the player in the array list. This value should never be changed manually.
 				}
 			]]
@@ -1356,7 +1379,7 @@ packetListener = {
 	@param C<int> The C packet.
 	@param CC<int> The CC packet.
 	@param f<function> The function to be triggered when the @C-@CC packets are received. The parameters are (packet, connection, identifiers).
-	@param append?<boolean> True if the function should be appended to the (C, CC) listener, false if the function should overwrite the (C, CC) listener. @default false
+	@param append?<boolean> 'true' if the function should be appended to the (C, CC) listener, 'false' if the function should overwrite the (C, CC) listener. @default false
 ]]
 client.insertPacketListener = function(self, C, CC, f, append)
 	if not packetListener[C] then
@@ -1378,7 +1401,7 @@ end
 	@desc Inserts a new function to the tribulle (60, 3) packet parser.
 	@param tribulleId<int> The tribulle id.
 	@param f<function> The function to be triggered when this tribulle packet is received. The parameters are (packet, connection, tribulleId).
-	@param append?<boolean> True if the function should be appended to the (C, CC, tribulle) listener, false if the function should overwrite the (C, CC) listener. @default false
+	@param append?<boolean> 'true' if the function should be appended to the (C, CC, tribulle) listener, 'false' if the function should overwrite the (C, CC) listener. @default false
 ]]
 client.insertTribulleListener = function(self, tribulleId, f, append)
 	f = coroutine_makef(f)
@@ -1397,7 +1420,7 @@ end
 	@param C<int> The C packet.
 	@param CC<int> The CC packet.
 	@param f<function> The function to be triggered when the @C-@CC packets are received. The parameters are (data, connection, oldIdentifiers).
-	@param append?<boolean> True if the function should be appended to the (C, CC) listener, false if the function should overwrite the (C, CC) listener. @default false
+	@param append?<boolean> 'true' if the function should be appended to the (C, CC) listener, 'false' if the function should overwrite the (C, CC) listener. @default false
 ]]
 client.insertOldPacketListener = function(self, C, CC, f, append)
 	if not oldPacketListener[C] then
@@ -1414,10 +1437,6 @@ client.insertOldPacketListener = function(self, C, CC, f, append)
 		oldPacketListener[C][CC] = f
 	end
 end
-
------ Compatibility -----
-client.insertReceiveFunction, client.insertTribulleFunction = client.insertPacketListener, client.insertTribulleListener
--------------------------
 
 --[[@
 	@name parsePacket
@@ -1569,32 +1588,32 @@ handlePlayerField = function(self, packet, fieldName, eventName, methodName, fie
 				playerName = "", -- The nickname of the player.
 				id = 0, -- The temporary id of the player during the section.
 				isShaman = false, -- Whether the player is shaman or not.
-				isDead = false, -- Whether the player is dead or not.
-				score = 0, -- The current player score.
+				isDead = false, -- Whether the player is dead or alive.
+				score = 0, -- The current player's score.
 				hasCheese = false, -- Whether the player has cheese or not.
-				title = 0, -- The id of the current title of the player.
-				titleStars = 0, -- The quantity of starts that the current title of the player has.
-				gender = 0, -- The gender of the player. Enum in enum.gender.
+				title = 0, -- The player's title id.
+				titleStars = 0, -- The number of stars the player's title has.
+				gender = 0, -- The player's gender. Enum in enum.gender.
 				look = "", -- The current outfit string code of the player.
 				mouseColor = 0, -- The color of the player. It is set to -1 if it's the default color.
 				shamanColor = 0, -- The color of the player as shaman.
 				nameColor = 0, -- The color of the nickname of the player.
 				isSouris = false, -- Whether the player is souris or not.
 				isVampire = false, -- Whether the player is vampire or not.
-				hasWon = false, -- Whether the player has joined the hole in the round or not.
-				winPosition = 0, -- The position where the player joined the hole. It is set to -1 if it has not won yet.
-				winTimeElapsed = 0, -- The time elapsed when the player joined the hole. It is set to -1 if it has not won yet.
-				isFacingRight = false, -- Whether the player is facing right or not.
-				movingRight = false, -- Whether the player is moving right or not.
-				movingLeft = false, -- Whether the player is moving left or not.
-				isBlueShaman = false, -- Whether the player is the blue shamamn or not.
-				isPinkShaman = false, -- Whether the player is the pink shamamn or not.
-				x = 0, -- The coordinate X of the player in the map.
-				y =  0, -- The coordinate Y of the player in the map.
-				vx = 0, -- The X speed of the player in the map.
-				vy =  0, -- The Y speed of the player in the map.
-				isDucking = false, -- Whether the player is ducking or not.
-				isJumping = false, -- Whether the player is jumping or not.
+				hasWon = false, -- Whether the player has entered the hole in the round or not.
+				winPosition = 0, -- The position where the player entered the hole. It is set to -1 if it has not won yet.
+				winTimeElapsed = 0, -- Time elapsed until the player enters the hole. It is set to -1 if it has not won yet.
+				isFacingRight = false, -- Whether the player is facing right.
+				movingRight = false, -- Whether the player is moving right.
+				movingLeft = false, -- Whether the player is moving left.
+				isBlueShaman = false, -- Whether the player is the blue shaman.
+				isPinkShaman = false, -- Whether the player is the pink shaman.
+				x = 0, -- Player's X coordinate in the map.
+				y =  0, -- Player's X coordinate in the map.
+				vx = 0, -- Player's X speed in the map.
+				vy =  0, -- Player's Y speed in the map.
+				isDucking = false, -- Whether the player is ducking.
+				isJumping = false, -- Whether the player is jumping.
 				_pos = 0 -- The position of the player in the array list. This value should never be changed manually.
 			}
 		]]
@@ -1608,13 +1627,13 @@ end
 	@returns table The data of the player.
 	@struct {
 		id = 0, -- The player id.
-		playerName = "", -- The player name.
-		gender = 0, -- The gender of the player. Enum in enum.gender.
+		playerName = "", -- The player's name.
+		gender = 0, -- The player's gender. Enum in enum.gender.
 		isFriend = true, -- Whether the player has the account as a friend (added back) or not.
-		isConnected = true, -- Whether the player is online or not.
+		isConnected = true, -- Whether the player is online or offline.
 		gameId = 0, -- The id of the game where the player is connected. Enum in enum.game.
-		roomName = "", -- The name of the room where the player is.
-		lastConnection = 0 -- Timestamp of when was the last connection of the player.
+		roomName = "", -- The name of the room the player is in.
+		lastConnection = 0 -- Timestamp of when the player was last online.
 	}
 ]]
 handleFriendData = function(packet)
@@ -1637,9 +1656,14 @@ end
 	@param tfmId<string,int> The Transformice ID of your account. If you don't know how to obtain it, go to the room **#bolodefchoco0id** and check your chat.
 	@param token<string> The API Endpoint token to get access to the authentication keys.
 ]]
+local first = true
 client.start = coroutine_makef(function(self, tfmId, token)
-	self:closeAll()
-	self.isConnected = false
+	if first then
+		first = nil
+	else
+		self:disconnect()
+		self.isConnected = false
+	end
 
 	getKeys(self, tfmId, token)
 
@@ -1683,7 +1707,7 @@ client.start = coroutine_makef(function(self, tfmId, token)
 				return timer_setTimeout(5000, function(self)
 					--[[@
 						@name connection
-						@desc Triggered when the player is logged and ready to perform actions.
+						@desc Triggered when the player is logged in and ready to perform actions.
 					]]
 					self.event:emit("connection")
 				end, self)
@@ -1701,7 +1725,7 @@ client.start = coroutine_makef(function(self, tfmId, token)
 end)
 --[[@
 	@name on
-	@desc Sets an event emitter that is triggered everytime the specific behavior happens.
+	@desc Sets an event emitter that is triggered everytime a specific behavior happens.
 	@desc See the available events in @see Events.
 	@param eventName<string> The name of the event.
 	@param callback<function> The function that must be called when the event is triggered.
@@ -1711,7 +1735,7 @@ client.on = function(self, eventName, callback)
 end
 --[[@
 	@name once
-	@desc Sets an event emitter that is triggered only once when a specific behavior happens.
+	@desc Sets an event emitter that is triggered only once a specific behavior happens.
 	@desc See the available events in @see Events.
 	@param eventName<string> The name of the event.
 	@param callback<function> The function that must be called only once when the event is triggered.
@@ -1731,30 +1755,18 @@ client.emit = function(self, eventName, ...)
 end
 --[[@
 	@name connectionTime
-	@desc Gets the total time of the connection.
-	@returns int The total time since the connection.
+	@desc Gets the total time since the account was connected.
+	@returns int The total time since account was logged in.
 ]]
 client.connectionTime = function(self)
 	return os.time() - self._connectionTime
-end
---[[@
-	@name closeAll
-	@desc Forces the private function @see closeAll to be called.
-	@returns boolean Whether the Connection objects can be destroyed or not.
-]]
-client.closeAll = function(self)
-	if self.main then
-		self.main.open = false
-		return true
-	end
-	return false
 end
 
 -- Methods
 -- Initialization
 --[[@
 	@name setCommunity
-	@desc Sets the community where the bot will be connected to.
+	@desc Sets the community the bot will connect to.
 	@desc /!\ This method must be called before the @see start.
 	@param community?<enum.community> An enum from @see community. (index or value) @default EN
 ]]
@@ -1764,6 +1776,37 @@ client.setCommunity = function(self, community)
 
 	self.community = community
 end
+--[[@
+	@name handlePlayers
+	@desc Toggles the field _\_handle\_players_ of the instance.
+	@desc If 'true', the following events are going to be handled: _playerGetCheese_, _playerVampire_, _playerWon_, _playerLeft_, _playerDied_, _newPlayer_, _refreshPlayerList_, _updatePlayer_.
+	@param handle?<boolean> Whether the bot should handle the player events. The default value is the inverse of the current value. The instance starts the field as 'false'.
+	@returns boolean Whether the bot will handle the player events.
+]]
+client.handlePlayers = function(self, handle)
+	if handle == nil then
+		self._handle_players = not self._handle_players
+	else
+		self._handle_players = handle
+	end
+	return self._handle_players
+end
+--[[@
+	@name processXml
+	@desc Toggles the field _\_process\_xml_ of the instance.
+	@desc If 'true', the XML will be processed in the event _newGame_.
+	@param process?<boolean> Whether map XMLs should be processed.
+	@returns boolean Whether map XMLs will be processed.
+]]
+client.processXml = function(self, process)
+	if process == nil then
+		self._process_xml = not self._process_xml
+	else
+		self._process_xml = handprocessle
+	end
+	return self._process_xml
+end
+-- Connection
 --[[@
 	@name connect
 	@desc Connects to an account in-game.
@@ -1784,12 +1827,12 @@ client.connect = function(self, userName, userPassword, startRoom, timeout)
 
 	timer_setTimeout((timeout or (20 * 1000)), function(self)
 		if not self._isConnected then
-			self:closeAll()
+			self:disconnect()
 			timer_setTimeout(1000, function() -- This timer prevents the time out issue, since it gives time to closeAll work.
 				if self.event.handlers.connectionFailed then
 					--[[@
 						@name connectionFailed
-						@desc Triggered when the login connection fails.
+						@desc Triggered when it fails to login.
 					]]
 					self.event:emit("connectionFailed")
 				else
@@ -1798,6 +1841,18 @@ client.connect = function(self, userName, userPassword, startRoom, timeout)
 			end)
 		end
 	end, self)
+end
+--[[@
+	@name disconnect
+	@desc Forces the private function @see closeAll to be called. (Ends the connections)
+	@returns boolean Whether the Connection objects can be destroyed or not.
+]]
+client.disconnect = function(self)
+	if self.main then
+		self.main.open = false
+		return true
+	end
+	return false
 end
 -- Room
 --[[@
@@ -1812,7 +1867,7 @@ end
 --[[@
 	@name sendRoomMessage
 	@desc Sends a message in the room chat.
-	@desc /!\ Note that the limit of characters for the message is 255, but if the account is new the limit is set to 80. You must limit it yourself or the bot may get disconnected.
+	@desc /!\ Note that a message has a limit of 80 characters in the first 24 hours after the account creation, and 255 characters later. You must handle the limit yourself or the bot may get disconnected.
 	@param message<string> The message.
 ]]
 client.sendRoomMessage = function(self, message)
@@ -1822,9 +1877,9 @@ end
 --[[@
 	@name sendWhisper
 	@desc Sends a whisper to an user.
-	@desc /!\ Note that the limit of characters for the message is 255, but if the account is new the limit is set to 80. You must limit it yourself or the bot may get disconnected.
+	@desc /!\ Note that a message has a limit of 80 characters in the first 24 hours after the account creation, and 255 characters later. You must handle the limit yourself or the bot may get disconnected.
 	@param message<string> The message.
-	@param targetUser<string> The user to receive the whisper.
+	@param targetUser<string> The user who will receive the whisper.
 ]]
 client.sendWhisper = function(self, targetUser, message)
 	self.main:send(enum.identifier.bulle, encode_xorCipher(byteArray:new():write16(52):write32(3):writeUTF(targetUser):writeUTF(message), self.main.packetID))
@@ -1853,7 +1908,7 @@ end
 --[[@
 	@name sendChatMessage
 	@desc Sends a message to a #chat.
-	@desc /!\ Note that the limit of characters for the message is 255, but if the account is new the limit is set to 80. You must limit it yourself or the bot may get disconnected.
+	@desc /!\ Note that a message has a limit of 80 characters in the first 24 hours after the account creation, and 255 characters later. You must handle the limit yourself or the bot may get disconnected.
 	@param chatName<string> The name of the chat.
 	@param message<string> The message.
 ]]
@@ -1870,7 +1925,7 @@ client.closeChat = function(self, chatName)
 end
 --[[@
 	@name chatWho
-	@desc Gets who is in a specific chat. (/who)
+	@desc Gets the names of players in a specific chat. (/who)
 	@param chatName<string> The name of the chat.
 ]]
 client.chatWho = function(self, chatName)
@@ -1882,7 +1937,7 @@ end
 -- Tribe
 --[[@
 	@name joinTribeHouse
-	@desc Joins the tribe house, if the account is in a tribe.
+	@desc Joins the tribe house (if the account is in a tribe).
 ]]
 client.joinTribeHouse = function(self)
 	self.main:send(enum.identifier.joinTribeHouse, byteArray:new())
@@ -1890,7 +1945,7 @@ end
 --[[@
 	@name sendTribeMessage
 	@desc Sends a message to the tribe chat.
-	@desc /!\ Note that the limit of characters for the message is 255, but if the account is new the limit is set to 80. You must limit it yourself or the bot may get disconnected.
+	@desc /!\ Note that a message has a limit of 80 characters in the first 24 hours after the account creation, and 255 characters later. You must handle the limit yourself or the bot may get disconnected.
 	@param message<string> The message.
 ]]
 client.sendTribeMessage = function(self, message)
@@ -1898,8 +1953,8 @@ client.sendTribeMessage = function(self, message)
 end
 --[[@
 	@name recruitPlayer
-	@desc Sends a recruitment invite to the player.
-	@desc /!\ Note that this method will not cover errors if the account is not in a tribe or do not have permissions.
+	@desc Sends a tribe invite to a player.
+	@desc /!\ Note that this method will not cover errors if the account is not in a tribe or does not have permissions.
 	@param playerName<string> The name of player to be recruited.
 ]]
 client.recruitPlayer = function(self, playerName)
@@ -1907,8 +1962,8 @@ client.recruitPlayer = function(self, playerName)
 end
 --[[@
 	@name kickTribeMember
-	@desc Kicks a member of the tribe.
-	@desc /!\ Note that this method will not cover errors if the account is not in a tribe or do not have permissions.
+	@desc Kicks a member from the tribe.
+	@desc /!\ Note that this method will not cover errors if the account is not in a tribe or does not have permissions.
 	@param memberName<string> The name of the member to be kicked.
 ]]
 client.kickTribeMember = function(self, memberName)
@@ -1917,9 +1972,9 @@ end
 --[[@
 	@name setTribeMemberRole
 	@desc Sets the role of a member in the tribe.
-	@desc /!\ Note that this method will not cover errors if the account is not in a tribe or do not have permissions.
+	@desc /!\ Note that this method will not cover errors if the account is not in a tribe or does not have permissions.
 	@param memberName<string> The name of the member to get the role.
-	@param roleId<int> The role id. (starts in 0, for the initial role. Increases until the Chief role)
+	@param roleId<int> The role id. (starts from 0, the initial role, and goes until the Chief role)
 ]]
 client.setTribeMemberRole = function(self, memberName, roleId)
 	self.main:send(enum.identifier.bulle, encode_xorCipher(byteArray:new():write16(112):write32(1):writeUTF(memberName):write8(roleId), self.main.packetID))
@@ -1942,9 +1997,9 @@ client.reloadCafe = function(self)
 end
 --[[@
 	@name openCafe
-	@desc Toggles the current Café state (open / closed).
+	@desc Toggles the current Café state (open / close).
 	@desc It will send @see client.reloadCafe automatically if close is false.
-	@param close?<boolean> If the Café must be closed. @default false
+	@param close?<boolean> If the Café should be closed. @default false
 ]]
 client.openCafe = function(self, close)
 	close = not close
@@ -1967,7 +2022,7 @@ end
 --[[@
 	@name openCafeTopic
 	@desc Opens a Café topic.
-	@desc You may use this method to reload the topic (refresh).
+	@desc You may use this method to reload (or refresh) the topic.
 	@param topicId<int> The id of the topic to be opened.
 ]]
 client.openCafeTopic = function(self, topicId)
@@ -2012,7 +2067,7 @@ client.requestBlackList = function(self)
 end
 --[[@
 	@name addFriend
-	@desc Adds a friend to the friend list.
+	@desc Adds a player to the friend list.
 	@param playerName<string> The player name to be added.
 ]]
 client.addFriend = function(self, playerName)
@@ -2021,14 +2076,14 @@ end
 --[[@
 	@name removeFriend
 	@desc Removes a player from the friend list.
-	@param playerName<string> The player name to be removed.
+	@param playerName<string> The player name to be removed from the friend list.
 ]]
 client.removeFriend = function(self, playerName)
 	self.main:send(enum.identifier.bulle, encode_xorCipher(byteArray:new():write16(20):write32(1):writeUTF(playerName), self.main.packetID))
 end
 --[[@
 	@name blacklistPlayer
-	@desc Adds a friend to the black list.
+	@desc Adds a player to the black list.
 	@param playerName<string> The player name to be added.
 ]]
 client.blacklistPlayer = function(self, playerName)
@@ -2037,7 +2092,7 @@ end
 --[[@
 	@name whitelistPlayer
 	@desc Removes a player from the black list.
-	@param playerName<string> The player name to be removed.
+	@param playerName<string> The player name to be removed from the black list.
 ]]
 client.whitelistPlayer = function(self, playerName)
 	self.main:send(enum.identifier.bulle, encode_xorCipher(byteArray:new():write16(44):write32(1):writeUTF(playerName), self.main.packetID))
@@ -2045,7 +2100,7 @@ end
 -- Miscellaneous
 --[[@
 	@name sendCommand
-	@desc Sends a command (/).
+	@desc Sends a (/)command.
 	@desc /!\ Note that some unlisted commands cannot be triggered by this function.
 	@param command<string> The command. (without /)
 ]]
@@ -2061,7 +2116,6 @@ end
 client.playEmote = function(self, emote, flag)
 	emote = enum_validate(enum.emote, enum.emote.dance, emote, string_format(enum.error.invalidEnum, "playEmote", "emote", "emote"))
 	if not emote then return end
-
 
 	local packet = byteArray:new():write8(emote):write32(0)
 	if emote == enum.emote.flag then
@@ -2092,5 +2146,10 @@ client.requestRoomList = function(self, roomMode)
 
 	self.main:send(enum.identifier.roomList, byteArray:new():write8(roomMode))
 end
+
+----- Compatibility -----
+client.insertReceiveFunction, client.insertTribulleFunction = "insertPacketListener", "insertTribulleListener"
+client.closeAll = "disconnect"
+-------------------------
 
 return client
