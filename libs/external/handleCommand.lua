@@ -34,15 +34,7 @@ return function(message)
 				if type(command.response) == "function" then
 					command.response(message)
 				elseif type(command.response) == "string" or type(command.response) == "table" then
-
-					local sentMessage = message.channel:send(command.response)
-
-					if command.confirmation then
-						data.confirmation[sentMessage.id] = {original = message, response = sentMessage, handler = command.confirmation}
-
-						sentMessage:addReaction("✅")
-						sentMessage:addReaction("❌")
-					end
+					message.channel:send(command.response)
 				end
 
 			else
@@ -56,5 +48,5 @@ return function(message)
 	else
 		return false
 	end
-	
+
 end
