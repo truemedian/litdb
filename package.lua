@@ -1,6 +1,6 @@
 return {
 	name = "innatical/dcrd",
-	version = "0.4.0",
+	version = "0.4.1",
 	description = "A framework that makes Discord bot development easier",
 	tags = { "lua", "lit", "luvit" },
 	license = "MIT",
