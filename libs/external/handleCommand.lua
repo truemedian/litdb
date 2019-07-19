@@ -20,16 +20,8 @@ return function(message)
 
 			local command = data.commands[parsedCommand[1]]
 
-			if command.whitelist then
-
-				if not command.whitelist[message.author.id] then
-					message.channel:send(":x: You are not allowed to use this command.")
-					return true
-				end
-			end
-
 			-- Check if user inputed correct number of arguments.
-			if (#parsedCommand - 1) == command.numberOfArguments then
+			if (#parsedCommand - 1) >= command.minimumArguments and (#parsedCommand - 1) <= command.maximumArguments then
 
 				if type(command.response) == "function" then
 					command.response(message)
