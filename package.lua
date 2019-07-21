@@ -1,11 +1,9 @@
 return {
   name = "logctl/luvit-prometheus",
-  version = "0.0.1",
-  dependencies = {
-    "luvit/core@2.0.0",
-  },
+  version = "0.0.2",
+  dependencies = {},
   license = "MIT",
-  homepage = "https://github.com/ernestrc/luvit-prometheus/blob/master/",
-  description = "Luvit prometheus exporter",
+  homepage = "https://github.com/logctl/luvit-prometheus/blob/master/",
+  description = "prometheus library for luvit",
   tags = {"prometheus", "metrics"}
 }
