@@ -5,7 +5,7 @@ expose them on a separate web page to be pulled by [Prometheus](https://promethe
 
 ## Installation
 
-`lit install logctl/luvit-prometheus`
+`lit install logctl/prometheus`
 
 ## API reference
 

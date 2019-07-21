@@ -1,3 +1,1 @@
-return {
-	Prometheus = require('./prometheus').Prometheus,
-}
+return require('./prometheus').Prometheus
