@@ -18,7 +18,7 @@ limitations under the License.
 
 --[[lit-meta
   name = "luvit/process"
-  version = "2.1.0"
+  version = "2.1.1"
   dependencies = {
     "luvit/hooks@2.0.0",
     "luvit/timer@2.0.0",
@@ -56,18 +56,20 @@ local lenv = {}
 function lenv.get(key)
   return lenv[key]
 end
-setmetatable(lenv, {
-  __pairs = function(table)
-    local keys = env.keys()
-    local index = 0
-    return function(...)
-      index = index + 1
-      local name = keys[index]
-      if name then
-        return name, table[name]
-      end
+function lenv.iterate()
+  local keys = env.keys()
+  local index = 0
+  return function(...)
+    index = index + 1
+    local name = keys[index]
+    if name then
+      return name, env.get(name)
     end
-  end,
+  end, keys, nil
+end
+
+setmetatable(lenv, {
+  __pairs = lenv.iterate,
   __index = function(table, key)
     return env.get(key)
   end,
@@ -87,7 +89,7 @@ end
 local signalWraps = {}
 
 local function on(self, _type, listener)
-  if _type == "error" or _type == "exit" then
+  if _type == "error" or _type == "uncaughtException" or _type == "exit" then
     Emitter.on(self, _type, listener)
   else
     if not signalWraps[_type] then
@@ -212,6 +214,7 @@ local function globalProcess()
   process.stdout = UvStreamWritable:new(pp.stdout)
   process.stderr = UvStreamWritable:new(pp.stderr)
   hooks:on('process.exit', utils.bind(process.emit, process, 'exit'))
+  hooks:on('process.uncaughtException', utils.bind(process.emit, process, 'uncaughtException'))
   return process
 end
 
