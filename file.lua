@@ -18,7 +18,7 @@ limitations under the License.
 
 --[[lit-meta
   name = "luvit/net"
-  version = "2.0.2"
+  version = "2.0.3"
   dependencies = {
     "luvit/timer@2.0.0",
     "luvit/utils@2.0.0",
@@ -135,11 +135,11 @@ function Socket:_read(n)
 end
 
 function Socket:shutdown(callback)
-  if self.destroyed == true then
+  if self.destroyed == true and callback then
     return callback()
   end
 
-  if uv.is_closing(self._handle) then
+  if uv.is_closing(self._handle) and callback then
     return callback()
   end
 
