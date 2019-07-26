@@ -8,11 +8,8 @@ local getType = require("mime").getType
 
 return function (basePath)
 
-    local vfs = fs.chroot(basePath)
-    p(vfs)
-
     local function loadMpk(package, expectedHash)
-        local data = vfs.readFile(package)
+        local data = fs.readFile(pathJoin(basePath, package))
         if not data then return nil, "No such mpk package '" .. package .. "' in basepath '" .. basePath .. "'" end
         local hash = blake2s.hash(data, 32, nil, 'hex')
         if expectedHash and expectedHash ~= hash then
@@ -26,7 +23,6 @@ return function (basePath)
         print("Loading", package)
         mpk, hash = loadMpk(package, hash)
         if not mpk then return go(hash) end
-        p(package, #mpk, hash)
     end
 
     local function sendFile(package, mpkHash, path, res, go)
@@ -56,8 +52,6 @@ return function (basePath)
         end
         package, path = path:match("^([^/]+%.mpk)(.*)")
         if not package then return go() end
-        p{package=package}
-        p{path=path}
 
         if path == "" then
             return sendMpk(package, hash, res, go)
