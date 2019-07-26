@@ -23,6 +23,10 @@ return function (basePath)
         print("Loading", package)
         mpk, hash = loadMpk(package, hash)
         if not mpk then return go(hash) end
+        res.code = 200
+        res.headers["Content-Type"] = "application/zip"
+        res.headers["ETag"] = '"' .. hash .. '"'
+        res.body = mpk
     end
 
     local function sendFile(package, mpkHash, path, res, go)

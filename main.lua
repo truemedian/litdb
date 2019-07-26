@@ -3,7 +3,7 @@ local os = require 'os'
 
 local host = os.getenv("HOST") or "0.0.0.0"
 local port = os.getenv("PORT") or 8080
-local baseDir = os.getenv("BASE_DIR") or uv.cwd()
+local baseDir = uv.fs_realpath(os.getenv("BASE_DIR") or uv.cwd())
 
 print("BASE_DIR:", baseDir)
 print("HOST:    ", host)

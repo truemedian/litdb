@@ -1,6 +1,6 @@
 return {
     name = "creationix/mpk-serve",
-    version = "0.0.3",
+    version = "0.0.4",
     luvi = {
         -- Configure this section for the kind of `lit make` you wish to have.
         -- This first option embeds tiny luvi inside the binary
