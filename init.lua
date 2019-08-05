@@ -58,7 +58,7 @@ local function dir_close(self)
 end
 
 local function dir_iter(self)
-    assert(self.closed, 'closed directory')
+    assert(not self.closed, 'closed directory')
 
     local ent = uv.fs_scandir_next(self.req)
     if not ent then
@@ -157,19 +157,19 @@ function lfs.touch(filepath, atime, mtime)
 end
 
 function lfs.setmode(file, mode)
-    return error('lfs.setmode not implmented')
+    return error('lfs.setmode not implemented')
 end
 
 function lfs.lock_dir(path, seconds_stale)
-    return error('lfs.lock_dir not implmented')
+    return error('lfs.lock_dir not implemented')
 end
 
 function lfs.lock(filehandle, mode, start, length)
-    return error('lfs.lock not implmented')
+    return error('lfs.lock not implemented')
 end
 
 function lfs.unlock(filehandle, start, length)
-    return error('lfs.unlock not implmented')
+    return error('lfs.unlock not implemented')
 end
 
 return lfs
