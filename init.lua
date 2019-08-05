@@ -54,7 +54,6 @@ end
 
 local function dir_close(self)
     self.closed = true
-    return uv.cancel(self.req)
 end
 
 local function dir_iter(self)

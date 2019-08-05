@@ -1,6 +1,6 @@
 return {
 	name = "truemedian/lfs",
-	version = "0.1.1",
+	version = "0.1.2",
 	description = "A libuv equivalent for the popular lfs library",
 	tags = { "lua", "lfs", "filesystem" },
 	license = "MIT",
