@@ -1,7 +1,8 @@
 --[=[
 @c Snowflake x Container
-@d Abstract base class that defines the base methods and/or properties for all
-Discord objects that have a Snowflake ID.
+@t abc
+@d Defines the base methods and/or properties for all Discord objects that have
+a Snowflake ID.
 ]=]
 
 local Date = require('utils/Date')
@@ -24,6 +25,7 @@ end
 
 --[=[
 @m getDate
+@t mem
 @r Date
 @d Returns a unique Date object that represents when the object was created by Discord.
 

@@ -1,5 +1,7 @@
 --[=[
-@ic Emitter
+@c Emitter
+@t ui
+@mt mem
 @d Implements an asynchronous event emitter where callbacks can be subscribed to
 specific named events. When events are emitted, the callbacks are called in the
 order that they were originally registered.
@@ -126,13 +128,15 @@ end
 function Emitter:getListeners(name)
 	local listeners = self._listeners[name]
 	if not listeners then return function() end end
-	return wrap(function()
-		for _, listener in ipairs(listeners) do
-			if listener then
-				yield(listener.fn)
+	local i = 0
+	return function()
+		while i < #listeners do
+			i = i + 1
+			if listeners[i] then
+				return listeners[i].fn
 			end
 		end
-	end)
+	end
 end
 
 --[=[

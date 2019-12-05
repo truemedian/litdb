@@ -54,6 +54,11 @@ enums.channelType = enum {
 	news     = 5,
 }
 
+enums.webhookType = enum {
+	incoming        = 1,
+	channelFollower = 2,
+}
+
 enums.messageType = enum {
 	default                       = 0,
 	recipientAdd                  = 1,
@@ -81,6 +86,7 @@ enums.activityType = enum {
 	default   = 0,
 	streaming = 1,
 	listening = 2,
+	custom    = 4,
 }
 
 enums.status = enum {
@@ -94,6 +100,7 @@ enums.gameType = enum { -- NOTE: deprecated; use activityType
 	default   = 0,
 	streaming = 1,
 	listening = 2,
+	custom    = 4,
 }
 
 enums.verificationLevel = enum {
@@ -127,6 +134,7 @@ enums.permission = enum {
 	addReactions        = 0x00000040,
 	viewAuditLog        = 0x00000080,
 	prioritySpeaker     = 0x00000100,
+	stream              = 0x00000200,
 	readMessages        = 0x00000400,
 	sendMessages        = 0x00000800,
 	sendTextToSpeech    = 0x00001000,
@@ -149,6 +157,14 @@ enums.permission = enum {
 	manageEmojis        = 0x40000000,
 }
 
+enums.messageFlag = enum {
+	crossposted          = 0x00000001,
+	isCrosspost          = 0x00000002,
+	suppressEmbeds       = 0x00000004,
+	sourceMessageDeleted = 0x00000008,
+	urgent               = 0x00000010,
+}
+
 enums.actionType = enum {
 	guildUpdate            = 1,
 	channelCreate          = 10,
@@ -163,6 +179,9 @@ enums.actionType = enum {
 	memberBanRemove        = 23,
 	memberUpdate           = 24,
 	memberRoleUpdate       = 25,
+	memberMove             = 26,
+	memberDisconnect       = 27,
+	botAdd                 = 28,
 	roleCreate             = 30,
 	roleUpdate             = 31,
 	roleDelete             = 32,
@@ -176,6 +195,12 @@ enums.actionType = enum {
 	emojiUpdate            = 61,
 	emojiDelete            = 62,
 	messageDelete          = 72,
+	messageBulkDelete      = 73,
+	messagePin             = 74,
+	messageUnpin           = 75,
+	integrationCreate      = 80,
+	integrationUpdate      = 81,
+	integrationDelete      = 82,
 }
 
 enums.logLevel = enum {

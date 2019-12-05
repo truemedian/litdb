@@ -1,5 +1,7 @@
 --[=[
-@ic Permissions
+@c Permissions
+@t ui
+@mt mem
 @d Wrapper for a bitfield that is more specifically used to represent Discord
 permissions. See the `permission` enumeration for acceptable permission values.
 ]=]
@@ -41,7 +43,8 @@ function Permissions:__tostring()
 end
 
 --[=[
-@sm fromMany
+@m fromMany
+@t static
 @p ... Permission-Resolvables
 @r Permissions
 @d Returns a Permissions object with all of the defined permissions.
@@ -53,7 +56,8 @@ function Permissions.fromMany(...)
 end
 
 --[=[
-@sm all
+@m all
+@t static
 @r Permissions
 @d Returns a Permissions object with all permissions.
 ]=]

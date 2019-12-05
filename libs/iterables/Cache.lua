@@ -1,5 +1,6 @@
 --[=[
 @c Cache x Iterable
+@mt mem
 @d Iterable class that holds references to Discordia Class objects in no particular order.
 ]=]
 
@@ -20,6 +21,7 @@ function Cache:__init(array, constructor, parent)
 	self._objects = objects
 	self._constructor = constructor
 	self._parent = parent
+	self._deleted = setmetatable({}, {__mode = 'v'})
 end
 
 function Cache:__pairs()
@@ -38,6 +40,7 @@ end
 
 local function remove(self, k, obj)
 	self._objects[k] = nil
+	self._deleted[k] = obj
 	self._count = self._count - 1
 	return obj
 end
@@ -60,7 +63,7 @@ end
 
 function Cache:_insert(data)
 	local k = assert(hash(data))
-	local old = self._objects[k]
+	local old = self._objects[k] or self._deleted[k]
 	if old then
 		old:_load(data)
 		return old
@@ -72,7 +75,7 @@ end
 
 function Cache:_remove(data)
 	local k = assert(hash(data))
-	local old = self._objects[k]
+	local old = self._objects[k] or self._deleted[k]
 	if old then
 		old:_load(data)
 		return remove(self, k, old)
@@ -82,7 +85,7 @@ function Cache:_remove(data)
 end
 
 function Cache:_delete(k)
-	local old = self._objects[k]
+	local old = self._objects[k] or self._deleted[k]
 	if old then
 		return remove(self, k, old)
 	else
