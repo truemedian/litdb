@@ -26,8 +26,8 @@ return function()
     function logger:setFile(name)
         if self._file then closeSync(self._file) end
 
-        self._file = openSync(fileName)
-        self:debug('Set file to: ' .. tostring(fileName))
+        self._file = openSync(name)
+        self:debug('Set file to: ' .. tostring(name))
 	end
 
 	function logger:info(fmt, ...)
@@ -86,30 +86,6 @@ return function()
             emitter:fire('hard-error', fmt)
             return error(fmt)
         end
-	end
-
-	function logger:harderr(fmt, ...)
-		if self ~= logger then
-			return harderr(logger, self, fmt, ...)
-		else
-			return harderr(logger, fmt, ...)
-		end
-	end
-
-	function logger:assert(truthy, fmt, ...)
-		if self ~= logger then
-			if self then
-				return self, truthy, fmt, ...
-			else
-				return harderr(logger, self, fmt, ...)
-			end
-		else
-			if truthy then
-				return truthy, fmt, ...
-			else
-				return harderr(logger, fmt, ...)
-			end
-		end
 	end
 
 	return logger
