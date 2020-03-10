@@ -18,7 +18,7 @@ limitations under the License.
 
 --[[lit-meta
   name = "luvit/process"
-  version = "2.1.1"
+  version = "2.1.2"
   dependencies = {
     "luvit/hooks@2.0.0",
     "luvit/timer@2.0.0",
@@ -210,7 +210,14 @@ local function globalProcess()
   process.memoryUsage = memoryUsage
   process.cpuUsage = cpuUsage
   process.removeListener = removeListener
-  process.stdin = UvStreamReadable:new(pp.stdin)
+  if uv.guess_handle(0) ~= "file" then
+    process.stdin = UvStreamReadable:new(pp.stdin)
+  else
+    -- special case for 'file' stdin handle to avoid aborting from
+    -- reading from a pipe to a file descriptor
+    -- see https://github.com/luvit/luvit/issues/1094
+    process.stdin = require('fs').ReadStream:new(nil, {fd=0})
+  end
   process.stdout = UvStreamWritable:new(pp.stdout)
   process.stderr = UvStreamWritable:new(pp.stderr)
   hooks:on('process.exit', utils.bind(process.emit, process, 'exit'))
