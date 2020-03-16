@@ -34,8 +34,8 @@ In case of an error thrown by the event watcher or fs_stat, `err` will be set
 to the respective error string and all other arguments will be nil. If `err` 
 is `nil` the event is processable. `filepath` will be a path the the relevant 
 file or directory **relative to the watcher's directory**. `stat` will be the 
-output of calling `fs_stat` on the file or directory, this may be nil. The 
-event string may be any of the events listed below:
+output of calling `fs_stat` on the file or directory, this may be nil or stale. 
+The event string may be any of the events listed below:
 
 #### created
 
@@ -44,12 +44,12 @@ A file was created
 #### removed
 
 A file was removed.  
-note: `stat` will be nil
+note: `stat` will be stale or nil
 
 #### file_changed
 
-Any attribute of the file changed, multiple of these events may be emitted for 
-one edit.
+The content of the file changed, multiple of these events may be emitted for 
+one edit if the file is cleared first.
 
 #### directory_changed
 
