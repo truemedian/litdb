@@ -1151,6 +1151,7 @@ packetListener = {
 			local onlinePlayers = packet:read32()
 
 			local community = packet:readUTF() -- Necessary to get the country and authkeys later
+			local language = packet:readUTF()
 			local country = packet:readUTF()
 
 			self._receivedAuthkey = packet:read32() -- Receives an authentication key, parsed in the login function
@@ -1160,18 +1161,20 @@ packetListener = {
 			local communityPacket = byteArray:new():write8(self.community):write8(0)
 			self.main:send(enum.identifier.community, communityPacket)
 
-			local osInfo = byteArray:new():writeUTF("en"):writeUTF("Linux")
-			osInfo:writeUTF("LNX 29,0,0,140"):write8(0)
+			local osInfo = byteArray:new()
+				:writeUTF("en"):writeUTF("Linux")
+				:writeUTF("LNX 29,0,0,140"):write8(0)
 			self.main:send(enum.identifier.os, osInfo)
 
 			--[[@
 				@name ready
 				@desc Triggered when the connection is alive and ready to login.
 				@param onlinePlayers<int> The number of players connected in the game.
-				@param community<string> The community that the account has been logged into.
-				@param country<string> The country related to the community connected.
+				@param community<string> The community based on the country.
+				@param country<string> The client's country.
+				@param language<string> The language based on the account's community and country.
 			]]
-			self.event:emit("ready", onlinePlayers, community, country)
+			self.event:emit("ready", onlinePlayers, community, country, language)
 		end,
 		[35] = function(self, packet, connection, identifiers) -- Room list
 			 -- Room types
@@ -1731,7 +1734,7 @@ packetListener = {
 	@desc Inserts a new function to the packet parser.
 	@param C<int> The C packet.
 	@param CC<int> The CC packet.
-	@param f<function> The function to be triggered when the @C-@CC packets are received. The parameters are (packet, connection, identifiers).
+	@param f<function> The function to be triggered when the @C-@CC packets are received. The parameters are (self, packet, connection, identifiers).
 	@param append?<boolean> 'true' if the function should be appended to the (C, CC) listener, 'false' if the function should overwrite the (C, CC) listener. @default false
 ]]
 client.insertPacketListener = function(self, C, CC, f, append)
@@ -1754,7 +1757,7 @@ end
 	@name insertTribulleListener
 	@desc Inserts a new function to the tribulle (60, 3) packet parser.
 	@param tribulleId<int> The tribulle id.
-	@param f<function> The function to be triggered when this tribulle packet is received. The parameters are (packet, connection, tribulleId).
+	@param f<function> The function to be triggered when this tribulle packet is received. The parameters are (self, packet, connection, tribulleId).
 	@param append?<boolean> 'true' if the function should be appended to the (C, CC, tribulle) listener, 'false' if the function should overwrite the (C, CC) listener. @default false
 ]]
 client.insertTribulleListener = function(self, tribulleId, f, append)
@@ -1774,7 +1777,7 @@ end
 	@desc Inserts a new function to the old packet parser.
 	@param C<int> The C packet.
 	@param CC<int> The CC packet.
-	@param f<function> The function to be triggered when the @C-@CC packets are received. The parameters are (data, connection, oldIdentifiers).
+	@param f<function> The function to be triggered when the @C-@CC packets are received. The parameters are (self, data, connection, oldIdentifiers).
 	@param append?<boolean> 'true' if the function should be appended to the (C, CC) listener, 'false' if the function should overwrite the (C, CC) listener. @default false
 ]]
 client.insertOldPacketListener = function(self, C, CC, f, append)
@@ -2067,7 +2070,9 @@ client.start = coroutine_makef(function(self, tfmId, token)
 	self.main.event:once("_socketConnection", function()
 		local packet = byteArray:new():write16(self._gameVersion)
 		if not self._hasSpecialRole then
-			packet:writeUTF(self._gameConnectionKey)
+			packet
+				:writeUTF("en")
+				:writeUTF(self._gameConnectionKey)
 		end
 		packet:writeUTF("Desktop"):writeUTF('-'):write32(0x1FBD):writeUTF('')
 			:writeUTF("86bd7a7ce36bec7aad43d51cb47e30594716d972320ef4322b7d88a85904f0ed")
