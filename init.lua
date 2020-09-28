@@ -25,31 +25,24 @@ local read = ((compiler == 0) and require'fs'.readFileSync) or ((compiler >= 1) 
 local stat = ((compiler == 0) and require'fs'.statSync) or ((compiler >= 1) and bundle.stat);
 
 --environments created via loadstring do not have metatables but ones created from a compiler do
-local inherit_of = function(true_env, super_env)
-    local meta = getmetatable(true_env);
-    if (meta == nil) then
-        local fake_env = {};
-        return setmetatable(fake_env, {__index = function(self, index) 
-            local original_result = rawget(fake_env, index);
-            if (original_result == nil) then
-                local secondary_result = true_env[index];
-                if (secondary_result == nil) then
-                    return super_env[index];
-                end;
-                return secondary_result;
-            end;
-            return original_result;
-        end;});
-    else
-        meta.__index = function(self, index)
-            local original_result = rawget(self, index);
-            if (original_result == nil) then
-                return super_env[index];
-            end;
-            return original_result;
+local inherit_of = function(blend, true_env, super_env)
+	--local blend = {unpack(_G)};
+    local meta = {__index = function(self, index)
+        local true_result = true_env[index];
+        if (true_result == nil) then
+            return super_env[index];
         end;
-        return true_env;
-    end;
+        return true_result;
+	end;};
+	local current_meta = getmetatable(blend);
+	if (current_meta == nil) then
+		setmetatable(blend, meta);
+	else
+		for i, v in next, meta do
+			current_meta[i] = v;
+		end;
+	end;
+	return blend;
 end;
 
 local singleImport = function(libraryName)
@@ -109,9 +102,12 @@ local singleImport = function(libraryName)
                                 local body = assert(read(pathExtension));
                                 local convert = assert(loadstring(body));
                                 local true_f_env = getfenv(convert);
-                                true_f_env.cd = pathFile;
-                                true_f_env.require = setfenv(customRequire, true_f_env);
-                                local result = {setfenv(convert, inherit_of(true_f_env, c_env))()};
+                                local base_env = c_env.base_env;
+                                local blend_env = inherit_of(base_env, true_f_env, c_env);
+                                blend_env.base_env = base_env;
+                                blend_env.cd = pathFile;
+                                blend_env.require = setfenv(customRequire, blend_env);
+                                local result = {setfenv(convert, blend_env)()};
                                 custom_loaded[libName] = unpack(result);
                                 return unpack(result);
                             end;
@@ -122,9 +118,12 @@ local singleImport = function(libraryName)
                         local init_body = assert(read(full_direct));
                         local convert = assert(loadstring(init_body));
                         local true_f_env = getfenv(convert);
-                        true_f_env.require = setfenv(customRequire, true_f_env);
-                        true_f_env.cd = libraryName;
-                        local result = {setfenv(convert, inherit_of(true_f_env, c_env))(...)};
+                        local base_env = {unpack(_G)};
+                        local blend_env = inherit_of(base_env, true_f_env, c_env);
+                        blend_env.base_env = base_env;
+                        blend_env.require = setfenv(customRequire, blend_env);
+                        blend_env.cd = libraryName;
+                        local result = {setfenv(convert, blend_env)(...)};
                         for i = 1, #paths do
                             loaded[paths[i]] = unpack(result);
                         end;
@@ -198,7 +197,8 @@ local singleImport = function(libraryName)
                 local full_direct = direct..splitter..'init.lua';
                 local stats_i = stat(full_direct);
                 if (stats_i ~= nil and stats_i.type == 'file') then --Init exists
-                    local custom_loaded = {};
+					local custom_loaded = {};
+					
                     local customRequire; customRequire = function(libName)
                         --this function is more complicated than this
                         --require'class', 'package', 'init', 'class/test'
@@ -215,26 +215,29 @@ local singleImport = function(libraryName)
                                 local body = assert(read(pathExtension));
                                 local convert = assert(loadstring(body));
                                 local true_f_env = getfenv(convert);
-                                true_f_env.cd = pathFile;
-                                true_f_env.require = setfenv(customRequire, true_f_env);
-                                local result = {setfenv(convert, inherit_of(true_f_env, c_env))()};
+                                local base_env = c_env.base_env;
+                                local blend_env = inherit_of(base_env, true_f_env, c_env);
+                                blend_env.base_env = base_env;
+                                blend_env.require = setfenv(customRequire, blend_env);
+                                blend_env.cd = pathFile;
+                                local result = {setfenv(convert, blend_env)()};
                                 custom_loaded[libName] = unpack(result);
                                 return unpack(result);
                             end;
                         end;
                         return c_require(libName);
-                    end;
+					end;
+					
                     preload[direct] = function(...)
                         local init_body = assert(read(full_direct));
                         local convert = assert(loadstring(init_body));
                         local true_f_env = getfenv(convert);
-                        true_f_env.require = setfenv(customRequire, true_f_env);
-                        true_f_env.cd = direct;
-                        --[[ Designed to test if the env has a metatable already
-                        local meta = {};
-                        meta.__index = function(self, index) return rawget(true_f_env); end;
-                        setmetatable(true_f_env, meta);]]
-                        return setfenv(convert, inherit_of(true_f_env, c_env))(...);
+                        local base_env = {unpack(_G)};
+                        local blend_env = inherit_of(base_env, true_f_env, c_env);
+                        blend_env.base_env = base_env;
+                        blend_env.require = setfenv(customRequire, blend_env);
+                        blend_env.cd = direct;
+                        return setfenv(convert, blend_env)(...);
                     end;
                 else --Init does not exist
                     preload[direct] = function(...)
