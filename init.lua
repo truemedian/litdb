@@ -1,5 +1,5 @@
 
-local package, insert, getfenv, require, getmetatable, setmetatable, rawget, assert, setfenv, unpack, loadstring, create, resume = package, table.insert, getfenv, require, getmetatable, setmetatable, rawget, assert, setfenv, unpack, loadstring, coroutine.create, coroutine.resume;
+local package, insert, getfenv, require, setmetatable, assert, setfenv, unpack, loadstring, create, resume = package, table.insert, getfenv, require, setmetatable, assert, setfenv, unpack, loadstring, coroutine.create, coroutine.resume;
 local supported_files = {'lua'};
 local preload, loaded, split, getSplitter = package.preload, package.loaded, function(s, spl)
     local result = {};
@@ -16,7 +16,7 @@ end, function(path)
 	return path:match'^.+(%..+)$';
 end;
 
-local c_env, c_require = getfenv(), require;
+local c_env, c_require, c_loadstring = getfenv(), require, loadstring;
 local bundle = require'luvi'.bundle;
 local local_path = args[0];
 local name, extension = getName(local_path), getExtension(local_path);
@@ -24,25 +24,80 @@ local compiler = ((name == 'luvit.exe') and 0) or ((name == 'luvi.exe') and 1) o
 local read = ((compiler == 0) and require'fs'.readFileSync) or ((compiler >= 1) and bundle.readfile);
 local stat = ((compiler == 0) and require'fs'.statSync) or ((compiler >= 1) and bundle.stat);
 
---environments created via loadstring do not have metatables but ones created from a compiler do
-local inherit_of = function(blend, true_env, super_env)
-	--local blend = {unpack(_G)};
-    local meta = {__index = function(self, index)
-        local true_result = true_env[index];
-        if (true_result == nil) then
-            return super_env[index];
+local new_env = function()
+    local env = {};
+    for i, v in next, _G do
+        if (type(v) == 'function') then
+            local success, result = pcall(setfenv, v, env);
+            if (success == true) then
+                v = result;
+            end;
         end;
-        return true_result;
-	end;};
-	local current_meta = getmetatable(blend);
-	if (current_meta == nil) then
-		setmetatable(blend, meta);
-	else
-		for i, v in next, meta do
-			current_meta[i] = v;
-		end;
-	end;
-	return blend;
+        env[i] = v;
+    end;
+    return env;
+end;
+
+--environments created via loadstring do not have metatables but ones created from a compiler do
+--the loadstring environments created are exactly the same in the same environment
+
+local internal_generator_source = [=[
+    local generator, loadstring, direct, splitter, read, stat, extend_env, c_require, loaded, preload = ...;
+    local customRequire = function(libName)
+        if (loaded[libName] ~= nil) then
+            return loaded[libName];
+        elseif (preload[libName] ~= nil) then
+            return preload[libName]();
+        end;
+        local c_env = getfenv();
+        local limport_data = c_env.limport_data;
+        local directors = {limport_data.cd; direct..splitter..'libs'; direct;};
+        for i = 1, #directors do
+            local pathFile = directors[i]..splitter..libName;
+            local pathExtension = pathFile..'.lua';
+            local stats = stat(pathExtension);
+            if (stats ~= nil) then
+                local body = assert(read(pathExtension));
+                local convert = assert(loadstring(body));
+                local ls_env = getfenv(convert);
+                local ex_ls_env = extend_env(ls_env, limport_data.global_env, c_env);
+                ex_ls_env.limport_data = {
+                    ls_env = ls_env;
+                    global_env = limport_data.global_env;
+                    parent_env = c_env;
+                    cd = pathFile;
+                };
+                local new_require = generator(direct, splitter, read, stat, extend_env, c_require, loaded, preload);
+                ex_ls_env.require = setfenv(new_require, ex_ls_env);
+                local result = {setfenv(convert, ex_ls_env)()};
+                loaded[libName] = unpack(result);
+                return unpack(result);
+            end;
+        end;
+        return c_require(libName);
+    end;
+    return customRequire;]=];
+
+local loadstring = function(...)
+    return setfenv(c_loadstring(...), new_env());
+end;
+
+local extend_env = function(loadstring_env, global_env, parent_env)
+    local index = function(self, index)
+        local global_result = global_env[index];
+        if (global_result == nil) then
+            return parent_env[index];
+        end;
+        return global_result;
+    end;
+    local meta = {__index = index; __newindex = function(self, index, value)
+        global_env[index] = value;
+    end};
+    return setmetatable(loadstring_env, meta);
+end;
+
+local generator; generator = function(direct, splitter, read, stat, extend_env, c_require, loaded, preload)
+    return loadstring(internal_generator_source)(generator, loadstring, direct, splitter, read, stat, extend_env, c_require, loaded, preload);
 end;
 
 local singleImport = function(libraryName)
@@ -89,41 +144,21 @@ local singleImport = function(libraryName)
                 local stats_i = stat(full_direct);
                 local paths = {libraryName, direct};
                 if (stats_i ~= nil and stats_i.type == 'file') then
-                    local custom_loaded = {};
-                    local customRequire; customRequire = function(libName)
-                        if (custom_loaded[libName] ~= nil) then return custom_loaded[libName] ~= nil; end;
-                        local c_env = getfenv();
-                        local directors = {c_env.cd; libraryName..splitter..'libs'; libraryName;};
-                        for i = 1, #directors do
-                            local pathFile = directors[i]..splitter..libName;
-                            local pathExtension = pathFile..'.lua';
-                            local stats = stat(pathExtension);
-                            if (stats ~= nil) then
-                                local body = assert(read(pathExtension));
-                                local convert = assert(loadstring(body));
-                                local true_f_env = getfenv(convert);
-                                local base_env = c_env.base_env;
-                                local blend_env = inherit_of(base_env, true_f_env, c_env);
-                                blend_env.base_env = base_env;
-                                blend_env.cd = pathFile;
-                                blend_env.require = setfenv(customRequire, blend_env);
-                                local result = {setfenv(convert, blend_env)()};
-                                custom_loaded[libName] = unpack(result);
-                                return unpack(result);
-                            end;
-                        end;
-                        return c_require(libName);
-                    end;
+                    local customRequire = generator(libraryName, splitter, read, stat, extend_env, c_require, loaded, preload);
                     local loader = function(...)
                         local init_body = assert(read(full_direct));
                         local convert = assert(loadstring(init_body));
-                        local true_f_env = getfenv(convert);
-                        local base_env = {unpack(_G)};
-                        local blend_env = inherit_of(base_env, true_f_env, c_env);
-                        blend_env.base_env = base_env;
-                        blend_env.require = setfenv(customRequire, blend_env);
-                        blend_env.cd = libraryName;
-                        local result = {setfenv(convert, blend_env)(...)};
+                        local ls_env = getfenv(convert);
+                        local global_env = new_env();
+                        local ex_ls_env = extend_env(ls_env, global_env, c_env);
+                        ex_ls_env.limport_data = {
+                            ls_env = ls_env;
+                            global_env = global_env;
+                            parent_env = c_env;
+                            cd = libraryName;
+                        };
+                        ex_ls_env.require = setfenv(customRequire, ex_ls_env);
+                        local result = {setfenv(convert, ex_ls_env)(...)};
                         for i = 1, #paths do
                             loaded[paths[i]] = unpack(result);
                         end;
@@ -197,47 +232,21 @@ local singleImport = function(libraryName)
                 local full_direct = direct..splitter..'init.lua';
                 local stats_i = stat(full_direct);
                 if (stats_i ~= nil and stats_i.type == 'file') then --Init exists
-					local custom_loaded = {};
-					
-                    local customRequire; customRequire = function(libName)
-                        --this function is more complicated than this
-                        --require'class', 'package', 'init', 'class/test'
-                        --we will search through the main directory and libs but also we need to search for a true env
-                        --we don't use full_direct because it's a path to the initializer
-                        if (custom_loaded[libName] ~= nil) then return custom_loaded[libName]; end;
-                        local c_env = getfenv();
-                        local directors = {c_env.cd; direct..splitter..'libs'; direct;};
-                        for i = 1, #directors do
-                            local pathFile = directors[i]..splitter..libName;
-                            local pathExtension = pathFile..'.lua';
-                            local stats = stat(pathExtension);
-                            if (stats ~= nil) then
-                                local body = assert(read(pathExtension));
-                                local convert = assert(loadstring(body));
-                                local true_f_env = getfenv(convert);
-                                local base_env = c_env.base_env;
-                                local blend_env = inherit_of(base_env, true_f_env, c_env);
-                                blend_env.base_env = base_env;
-                                blend_env.require = setfenv(customRequire, blend_env);
-                                blend_env.cd = pathFile;
-                                local result = {setfenv(convert, blend_env)()};
-                                custom_loaded[libName] = unpack(result);
-                                return unpack(result);
-                            end;
-                        end;
-                        return c_require(libName);
-					end;
-					
+                    local customRequire = generator(direct, splitter, read, stat, extend_env, c_require, loaded, preload);
                     preload[direct] = function(...)
                         local init_body = assert(read(full_direct));
                         local convert = assert(loadstring(init_body));
-                        local true_f_env = getfenv(convert);
-                        local base_env = {unpack(_G)};
-                        local blend_env = inherit_of(base_env, true_f_env, c_env);
-                        blend_env.base_env = base_env;
-                        blend_env.require = setfenv(customRequire, blend_env);
-                        blend_env.cd = direct;
-                        return setfenv(convert, blend_env)(...);
+                        local ls_env = getfenv(convert);
+                        local global_env = new_env();
+                        local ex_ls_env = extend_env(ls_env, global_env, c_env);
+                        ex_ls_env.limport_data = {
+                            ls_env = ls_env;
+                            global_env = global_env;
+                            parent_env = c_env;
+                            cd = direct;
+                        };
+                        ex_ls_env.require = setfenv(customRequire, ex_ls_env);
+                        return setfenv(convert, ex_ls_env)(...);
                     end;
                 else --Init does not exist
                     preload[direct] = function(...)
