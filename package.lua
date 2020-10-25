@@ -1,6 +1,6 @@
 return {
 	name = "iiToxicity/rbx.luaa",
-        version = "1.0.0.0";
+        version = "0.9.9";
 	dependencies = {
 		"creationix/coro-http@3.1.0",
 		"creationix/coro-websocket@3.1.0",
