@@ -3,11 +3,12 @@ local class = {};
 function class.new(name,methods)
 	local object = {};
 	local logger = require("./logger");
-        local memoryLocation = tostring(object):gsub("table: ","");
+	local timer = require("timer");
+    local memoryLocation = tostring(object):gsub("table: ","");
 
 	for key,method in pairs(methods) do 
 		object[key] = method;
-	end 
+	end
 
 	setmetatable(object,{
 		__newindex = function(t,k)

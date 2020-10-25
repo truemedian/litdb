@@ -24,7 +24,18 @@ local functions = {
         favorite = require("./web/game/favorite");
         unfavorite = require("./web/game/unfavorite");
         createDeveloperProduct = require("./web/game/createDeveloperProduct");
-        modifyDeveloperProduct = require("./web/game/modifyDeveloperProduct")
+        modifyDeveloperProduct = require("./web/game/modifyDeveloperProduct");
+
+        shout = require("./web/group/shout");
+        updateDescription = require("./web/group/updateDescription");
+        getJoinRequests = require("./web/group/getJoinRequests");
+        getAuditLogs = require("./web/group/getAuditLogs");
+        declineJoinRequest = require("./web/group/declineJoinRequest");
+        acceptJoinRequest = require("./web/group/acceptJoinRequest");
+        deleteWallPost = require("./web/group/deleteWallPost");
+        deleteWallPostsByUser = require("./web/group/deleteWallPostsByUser");
+        exileUser = require("./web/group/exileUser");
+        rankUser = require("./web/group/rankUser");
     };
 
     nonauthenticated = {
@@ -47,6 +58,11 @@ local functions = {
         getVotes = require("./web/game/getVotes");
         getServers = require("./web/game/getServers");
         getPrice = require("./web/game/getPrice");
+
+        getUsers = require("./web/group/getUsers");
+        getRoles = require("./web/group/getRoles");
+        getRoleId = require("./web/group/getRoleId");
+        getWall = require("./web/group/getWall");
     };
 
     functions = {
@@ -90,8 +106,25 @@ function exports.newFromCookie(authentication,callback)
                     isFriendsWith = functions.nonauthenticated.isFriendsWith;
                 };
 
-                group = {};
+                group = {
+                    getRoles = functions.nonauthenticated.getRoles;
+                    getUsers = functions.nonauthenticated.getUsers;
+                    getWall = functions.nonauthenticated.getWall;
+                    getRoleId = functions.nonauthenticated.getRoleId;
+                    shout = functions.authenticated.shout;
+                    updateDescription = functions.authenticated.updateDescription;
+                    getJoinRequests = functions.authenticated.getJoinRequests;
+                    getAuditLogs = functions.authenticated.getAuditLogs;
+                    declineJoinRequest = functions.authenticated.declineJoinRequest;
+                    acceptJoinRequest = functions.authenticated.acceptJoinRequest;
+                    exileUser = functions.authenticated.exileUser;
+                    rankUser = functions.authenticated.rankUser;
+                    deleteWallPost = functions.authenticated.deleteWallPost;
+                    deleteWallPostsByUser = functions.authenticated.deleteWallPostsByUser;
+                };
+
                 avatar = {};
+
                 game = {
                     createDeveloperProduct = functions.authenticated.createDeveloperProduct;
                     modifyDeveloperProduct = functions.authenticated.modifyDeveloperProduct;
@@ -113,8 +146,10 @@ function exports.newFromCookie(authentication,callback)
                 };
             };
 
+            local c = 0;
             for _,holder in pairs(client) do 
                 for key,module in pairs(holder) do 
+                    c = c + 1;
                     local env = {
                         api = api;
                         logger = logger;
@@ -132,13 +167,18 @@ function exports.newFromCookie(authentication,callback)
                     end
                 end
             end
+            logger:log(3,tostring(c).." modules loaded!");
 
             client["userId"] = json.decode(body)["id"];
+            local memoryLocation = tostring(client):gsub("table: ","");
 
             setmetatable(client,{
                 __newindex = function()
                     logger:log(1,"You cannot overwrite a client index.");
                     return false;
+                end,
+                __tostring = function()
+                    return "client: "..memoryLocation;
                 end
             })
             

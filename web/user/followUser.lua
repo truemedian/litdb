@@ -26,7 +26,7 @@ function module.run(authentication,userId,callback)
     local run = function(userId)
         if(type(userId) == "number" or resolveToNumber(userId) ~= nil) then
             api.getXCSRF(authentication,function(token)
-                local endpoint = "https://friends.roblox.com//v1/users/"..userId.."/follow";
+                local endpoint = "https://friends.roblox.com/v1/users/"..userId.."/follow";
                 api.request(endpoint,"POST",{
                     {"X-CSRF-TOKEN",token},
                 },{},authentication)(function(response,body)

@@ -1,4 +1,3 @@
-local http = require("coro-http");
 local json = require("json");
 local logger = require("./dependencies/logger");
 local api = {};
@@ -35,7 +34,9 @@ function internal:makeHeaders(headers,cookies)
     return format;
 end
 
-function api.request(url,method,headers,body,authentication)    
+function api.request(url,method,headers,body,authentication)  
+    local http = require("coro-http");
+  
     local postMethods = {
         ["POST"] = true,
         ["PATCH"] = true
@@ -47,10 +48,6 @@ function api.request(url,method,headers,body,authentication)
     }
 
     if(postMethods[method]) then 
-        if(body == nil) then 
-            body = {};
-        end 
-
         if(authentication ~= nil) then 
             return coroutine.wrap(function(callback)
                 local response,body = http.request(method,url,internal:makeHeaders(headers,{{".ROBLOSECURITY",authentication}}),json.encode(body));
@@ -94,17 +91,21 @@ function api.getXCSRF(cookie,callback)
         {"X-CSRF-TOKEN",nil};
     };
 
-    api.request("https://groups.roblox.com/v1/groups/0/status","PATCH",headers,{},cookie)(function(response,body)
+    api.request("https://auth.roblox.com/v2/logout","POST",headers,{},cookie)(function(response,body)
+        local found = false;
         for _,v in pairs(response) do 
             if(type(v) == "table") then
                 if(v[1]:lower() == "x-csrf-token") then 
                     callback(v[2]);
-                    return;
+                    found = true;
+                    break;
                 end
             end
         end
-        
-        logger:log(2,"XCRSF token not found!");
+
+        if(not found) then 
+            logger:log(2,"XCRSF token not found!");
+        end
     end);
 end
 
