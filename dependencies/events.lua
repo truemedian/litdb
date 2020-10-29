@@ -7,25 +7,45 @@ local connections;
 if(global.eventConnections_RBX ~= nil) then 
 	connections = global.eventConnections_RBX;
 else
+	internal = {};
 	connections = {};
+
+	global.internal_RBX = internal;
 	global.eventConnections_RBX = connections;
+	global.onEmitted = function(name,callback,...)
+		table.insert(global.internal_RBX,{name,callback,unpack(...)})
+		if(global["event_"..name] ~= nil) then 
+			global["event_"..name](...);
+		end
+	end
+
+	global.emit = function(name,...)
+		local tuple = {...};
+
+		for _,details in pairs(global.internal_RBX) do 
+			if(details[1] == name) then 
+				if(#details >= 3) then
+					if(details[#details] == tuple[#tuple]) then
+						details[2](...);
+					end
+				else 
+					details[2](...);
+				end
+			end
+		end
+	end
 end 
 
-function events.new(name,type,callback)
+events.onEmitted = global.onEmitted;
+events.emit = global.emit;
+
+function events.new(name,callback)
 	if(connections[name] == nil) then
-		local methods = {};
-
-		if(type == "invoke") then 
-			methods.callback = callback;
-			methods.type = "return";
-		else 
-			methods.callback = callback;
-			methods.type = "fetch";
-		end
-
+		local methods = {
+			["callback"] = callback;
+		};
 		local event = class.new("Event",methods);
-		connections[name] = event;
-
+		connections[name] = event
 		return event;
 	else	
 		logger:log(1,string.format("Event %q already exists!",tostring(name)))
@@ -41,25 +61,10 @@ function events.get(name)
 	end
 end
 
-function events.remove(name)
-	if(connections[name] ~= nil) then 
-		connections[name] = nil;
-	else 
-		logger:log(1,string.format("Event %q does not exist!",tostring(name)))
-	end
-end
-
 function events.invoke(name,...)
 	if(connections[name] ~= nil) then 
+		events.emit(name,...);
 		return connections[name]["callback"](...);
-	else 
-		logger:log(1,string.format("Event %q does not exist!",tostring(name)))
-	end
-end
-
-function events.fire(name,...)
-	if(connections[name] ~= nil) then 
-		connections[name]["callback"](...);
 	else 
 		logger:log(1,string.format("Event %q does not exist!",tostring(name)))
 	end
