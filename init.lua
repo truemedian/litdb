@@ -3,7 +3,7 @@ local package = require("./package");
 local coro = require("coro-http");
 
 logger:log(3,"Rbx.lua v"..package["version"]);
-coroutine.wrap(function() --> version checker
+coroutine.wrap(function() 
     local response,body = coro.request("GET","https://raw.githubusercontent.com/iiToxicity/rbx.lua/main/package.lua");
     if(response.code == 200) then
         local liveVersion = loadstring(body)()["version"];

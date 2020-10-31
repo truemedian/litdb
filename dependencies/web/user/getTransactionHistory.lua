@@ -1,5 +1,5 @@
 local module = {
-	authenticationRequired = false;
+	authenticationRequired = true;
 };
 
 copyTable = function(tbl)
@@ -14,10 +14,10 @@ copyTable = function(tbl)
 	return copy;                
 end 
 
-function module.run(authentication,input)
+function module.run(authentication,transactionType)
 	local run = function(userId)
 		if(userId ~= nil) then
-			local endpoint = "https://friends.roblox.com/v1/users/"..userId.."/followers?sortOrder=Desc&limit=100";
+			local endpoint = "https://economy.roblox.com/v1/users/"..userId.."/transactions?transactionType="..transactionType.."&limit=100"
 			local response,body = api.request("GET",endpoint,{},{},authentication,false,false);
 
 			if(response.code == 200) then 
@@ -81,7 +81,7 @@ function module.run(authentication,input)
 		end
 	end
 
-	return run(utility.resolveToUserId(input));
+	return run(client.userId);
 end
 
 return module;

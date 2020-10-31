@@ -1,3 +1,15 @@
+--[[
+       _               _             
+      | |             | |            
+  _ __| |____  __     | |_   _  __ _ 
+ | '__| '_ \ \/ /     | | | | |/ _` |
+ | |  | |_) >  <   _  | | |_| | (_| |
+ |_|  |_.__/_/\_\ (_) |_|\__,_|\__,_|
+
+Author: Toxic#2799
+Usage: API-based web functionality, such as XCRSF, cookie logins, and more. This is used in every web-based function.
+]]
+
 local json = require("json");
 local coro = require("coro-http");
 local logger = require("./logger");
@@ -59,33 +71,6 @@ function api.getXCSRF(authentication)
         logger:log(2,"Failed to get XCSRF token");
         return nil;
     end
-end
-
-function api.shortPoll(timeout,callback,arguments,callAnyway) --> needs rewrite later lmao
-    local last;
-    local invoked = false;
-
-    coroutine.wrap(function()
-        while(true) do 
-            local s,e = pcall(function()
-                local response,data = api.request(unpack(arguments));
-                if(response.code == 200) then
-                    if(data ~= last) then
-                        if(invoked == false) then 
-                            invoked = true;
-                            if(callAnyway) then 
-                                callback(data);
-                            end
-                        else
-                            callback(data);
-                        end
-                    end
-                    last = data;
-                end
-            end)
-            timer.sleep(timeout or 10000);
-        end
-    end)();
 end
 
 return api;

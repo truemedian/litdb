@@ -6,21 +6,18 @@
  | |  | |_) >  <   _  | | |_| | (_| |
  |_|  |_.__/_/\_\ (_) |_|\__,_|\__,_|
 
-Contact: Toxic#2799
-
-Note: This code is most-likely very inefficient as of it's release. If this project fails, it wasn't worth writing all this great code for < 10 people to actually end up using it.
-If it receives some form of community, I'm 100% going to be doing massive updates to add new functions and rewrite parts of the code.
-- Toxic
+Author: Toxic#2799
+Usage: Creating the client object which initializes your base. This contains authorization, configuration, and some events.
 ]]
 
-return function()
-	local configuration = require("./../configuration");
+return function(configuration)
+	local utility = require("./utility");
 	local class = require("./class");
 	local events = require("./events");
-	local logger = require("./logger");
 	local api = require("./api");
-	local utility = require("./utility");
+	local logger = require("./logger");
 	local json = require("json");
+	local configuration = utility.resolveConfiguration(configuration);
 	local modules = {};
 	local nonauthenticated = {};
 	local setEnv = {};
@@ -29,17 +26,31 @@ return function()
 	local isReady = false;
 
 	local search = {
-		user = {"acceptFriendRequest","blockUser","currentAuthenticated","declineAllFriendRequests","declineFriendRequest","followUser","getDescription","getFollowerCount","getFollowersList","getFollowingCount","getFollowingList","getFriendRequestAmount","getFriendRequestList","getFriendsCount","getFriendsList","getGroups","getOnlineFriends","getPastNames","getStatus","getUser","searchUsernames","sendFriendRequest","setStatus","unfollowUser"},
-		group = {"acceptJoinRequest","declineJoinRequest","deleteWallPost","deleteWallPostsByUser","exileUser","getAuditLogs","getJoinRequests","getRoleId","getRoles","getUsers","getWall","rankUser","shout","updateDescription"},
+		user = {"getTransactionHistory","acceptFriendRequest","getRobuxAmount","blockUser","currentAuthenticated","declineAllFriendRequests","declineFriendRequest","followUser","getDescription","getFollowerCount","getFollowersList","getFollowingCount","getFollowingList","getFriendRequestAmount","getFriendRequestList","getFriendsCount","getFriendsList","getGroups","getOnlineFriends","getPastNames","getStatus","getUser","searchUsernames","sendFriendRequest","setStatus","unfollowUser"},
+		group = {"getRevenue","getSales","getRobuxAmount","payout","acceptJoinRequest","declineJoinRequest","deleteWallPost","deleteWallPostsByUser","exileUser","getAuditLogs","getJoinRequests","getRoleId","getRoles","getUsers","getWall","rankUser","shout","updateDescription"},
 		game = {"createDeveloperProduct","dislike","favorite","getDetails","getPrice","getServers","getUniverseId","getVotes","like","modifyDeveloperProduct","unfavorite"},
-		functions = {"resolveToUserId", "resolveToUsername"}
 	}
 
+	local env = {
+		test = true,
+		client = client, 
+		api = api, 
+		logger = logger,
+		events = events, 
+		class = class, 
+		http = require("coro-http"), 
+		json = json,
+		utility = utility
+	};
+
 	local eventList = {
-		shout = "shout";
-		wallPost = "wallPost";
 		ready = utility.unique("ready");
 	}
+
+	client.functions = {
+		resolveToUsername = utility.resolveToUsername,
+		resolveToUserId = utility.resolveToUserId
+	};
 
 	for folder,moduleHolder in pairs(search) do 
 		for key,module in pairs(moduleHolder) do 
@@ -48,9 +59,15 @@ return function()
 				if(modules[folder] == nil) then 
 					modules[folder] = {};
 				end 
+
+				real.name = module;
+				real.env = env;
 				modules[folder][module] = real;
 				modules[folder][key] = nil;
-				setEnv[module] = real;
+				
+				for k,v in pairs(env) do
+					getfenv(real.run)[k] = v;
+				end
 
 				if(real.authenticationRequired == false) then 
 					if(nonauthenticated[folder] == nil) then 
@@ -61,7 +78,7 @@ return function()
 			end
 		end
 	end
-	
+		
 	local ready = function()
 		isReady = true;
 		events.invoke(eventList.ready);
@@ -70,13 +87,6 @@ return function()
 	local run = function(self,...)
 		local arguments = {...};
 		local security = arguments[1] or nil;
-		local env = {client = client, api = api, logger = logger, events = events, class = class, http = require("coro-http"), json = json};
-
-		for _,module in pairs(setEnv) do
-			for k,v in pairs(env) do 
-				getfenv(module.run)[k] = v;
-			end
-		end
 
 		if(security ~= nil) then 
 			logger:log(3,"Connecting to Roblox...");
@@ -123,6 +133,7 @@ return function()
 		end
 
 		callback = callback or function() end;
+
 		if(type(callback) == "function") then 
 			if(eventList[event] ~= nil) then 
 				event = eventList[event];
@@ -140,74 +151,7 @@ return function()
 	function client.isReady()
 		return isReady;
 	end
-	
-	if(_G["event_shout"] == nil) then
-		events.new(eventList.ready,function(...)end)
-		events.new(eventList.shout,function(...)end)
-		events.new(eventList.wallPost,function(...)end)
 
-		_G["event_shout"] = function(arguments)
-			local groupId = tostring(arguments[1]);
-			if(groupId ~= nil) then 
-				if(internal[groupId.."-shout"] == nil) then 
-					internal[groupId.."-shout"] = true;
-					local last = "";
-					local lastId = "";
-					local count = 0;
-
-					api.shortPoll(configuration.shortPollDelay,function(data)
-						local data = json.decode(data);
-						if(data["shout"] ~= nil) then 
-							if(json.encode(data["shout"]) ~= last) then
-								if(data["shout"]["body"] ~= lastId) then
-									last = json.encode(data["shout"]);
-									lastId = data["shout"]["body"];
-									if(count >= 1) then
-										events.invoke("shout",data["shout"],arguments[1]);
-									else 
-										count = count + 1;
-									end
-								end
-							end
-						end
-					end,{"GET","https://groups.roblox.com/v1/groups/"..groupId},true);
-				end
-			end
-		end
-
-		_G["event_wallPost"] = function(arguments)
-			local groupId = tostring(arguments[1]);
-			if(groupId ~= nil) then 
-				if(internal[groupId.."-wallPost"] == nil) then 
-					internal[groupId.."-wallPost"] = true;
-					local invoked = false;
-					local cache = {};
-					local highest = 0;
-
-					api.shortPoll(configuration.shortPollDelay,function(data)
-						local post = json.decode(data)["data"][1];
-						local last = "";
-						if(post ~= nil) then
-							if(post.id ~= last) then
-								if(invoked == true) then
-									if(cache[post.id] == nil) then 
-										if(post.id > highest) then 
-											highest = post.id;
-											cache[post.id] = true;
-											events.invoke("wallPost",post,arguments[1]);
-											last = post.id;
-										end
-									end
-								else 
-									invoked = true;
-								end
-							end
-						end
-					end,{"GET","https://groups.roblox.com/v1/groups/"..groupId.."/wall/posts?sortOrder=Desc"});
-				end
-			end
-		end
-	end
-
+	events.new(eventList.ready,function(...)end)
 	return utility.readOnly(client,"client");
 end

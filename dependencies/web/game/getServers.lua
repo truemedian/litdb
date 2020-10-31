@@ -1,15 +1,6 @@
-
 local module = {
 	authenticationRequired = false;
 };
-
-local resolveToNumber = function(str)
-	local existing;
-	pcall(function()
-		existing = tonumber(str);
-	end);
-	return existing;
-end
 
 copyTable = function(tbl)
 	local copy = {};
@@ -23,7 +14,7 @@ copyTable = function(tbl)
 	return copy;                
 end 
 
-function module.run(authentication,placeId,callback)
+function module.run(authentication,placeId)
 	local endpoint = "https://games.roblox.com/v1/games/"..placeId.."/servers/Public?sortOrder=Asc&limit=100";
 	local response,body = api.request("GET",endpoint,{},{},authentication,false,false);
 	if(response.code == 200) then 

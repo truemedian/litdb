@@ -2,14 +2,6 @@ local module = {
 	authenticationRequired = false;
 };
 
-local resolveToNumber = function(str)
-	local existing;
-	pcall(function()
-		existing = tonumber(str);
-	end);
-	return existing;
-end
-
 copyTable = function(tbl)
 	local copy = {};
 	for k,v in pairs(tbl) do 
@@ -22,7 +14,7 @@ copyTable = function(tbl)
 	return copy;                
 end 
 
-function module.run(authentication,query,callback)
+function module.run(authentication,query)
 	if(query ~= nil) then
 		local endpoint = "https://users.roblox.com/v1/users/search?keyword="..query.."&limit=100";
 

@@ -2,14 +2,6 @@ local module = {
 	authenticationRequired = false;
 };
 
-local resolveToNumber = function(str)
-	local existing;
-	pcall(function()
-		existing = tonumber(str);
-	end);
-	return existing;
-end
-
 copyTable = function(tbl)
 	local copy = {};
 	for k,v in pairs(tbl) do 
@@ -22,9 +14,9 @@ copyTable = function(tbl)
 	return copy;                
 end 
 
-function module.run(authentication,userId,callback)
+function module.run(authentication,input)
 	local run = function(userId)
-		if(type(userId) == "number" or resolveToNumber(userId) ~= nil) then
+		if(userId ~= nil) then
 			local endpoint = "https://friends.roblox.com/v1/users/"..userId.."/followings?sortOrder=Desc&limit=100";
 			local response,body = api.request("GET",endpoint,{},{},authentication,false,false);
 			if(response.code == 200) then 
@@ -88,17 +80,7 @@ function module.run(authentication,userId,callback)
 		end
 	end
 
-	if(resolveToNumber(userId) ~= nil or type(userId) == "number") then 
-		return run(userId);
-	else
-		local endpoint = "https://api.roblox.com/users/get-by-username?username="..userId;
-		local response,body = api.request("GET",endpoint,{},{},authentication,false,false);
-		if(response.code == 200) then 
-			return run(json.decode(body)["Id"]);
-		else
-			logger:log(1,"Invalid username provided.") 
-		end
-	end 
+	return run(utility.resolveToUserId(input));
 end
 
 return module;

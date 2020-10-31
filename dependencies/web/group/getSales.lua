@@ -14,8 +14,8 @@ copyTable = function(tbl)
 	return copy;                
 end 
 
-function module.run(authentication)
-	local endpoint = "https://friends.roblox.com/v1/my/friends/requests";
+function module.run(authentication,groupId)
+	local endpoint = "https://economy.roblox.com/v1/groups/"..groupId.."/transactions?limit=100&transactionType=Sale";
 	local response,body = api.request("GET",endpoint,{},{},authentication,false,false);
 	if(response.code == 200) then 
 		local pageClass = function(body)
@@ -71,8 +71,8 @@ function module.run(authentication)
 
 		return (pageClass(body));
 	else 
-		logger:log(1,"Something went wrong!");
+		logger:log(1,"Invalid permissions!");
 	end
 end
 
-return module
+return module;

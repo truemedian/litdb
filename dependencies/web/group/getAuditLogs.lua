@@ -2,7 +2,19 @@ local module = {
 	authenticationRequired = true;
 };
 
-function module.run(authentication,groupId,callback)
+copyTable = function(tbl)
+	local copy = {};
+	for k,v in pairs(tbl) do 
+		if(type(v) == "table") then 
+			copyTable(v);
+		else 
+			copy[k] = v;
+		end
+	end
+	return copy;                
+end 
+
+function module.run(authentication,groupId)
 	local endpoint = "https://groups.roblox.com/v1/groups/"..groupId.."/audit-log?limit=100";
 	local response,body = api.request("GET",endpoint,{},{},authentication,false,true);
 	if(response.code == 200) then 

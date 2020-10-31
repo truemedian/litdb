@@ -1,3 +1,15 @@
+--[[
+       _               _             
+      | |             | |            
+  _ __| |____  __     | |_   _  __ _ 
+ | '__| '_ \ \/ /     | | | | |/ _` |
+ | |  | |_) >  <   _  | | |_| | (_| |
+ |_|  |_.__/_/\_\ (_) |_|\__,_|\__,_|
+
+Author: Toxic#2799
+Usage: Events that can be registered with callbacks for the client.
+]]
+
 local events = {};
 local class = require("./class");
 local logger = require("./logger");
@@ -20,12 +32,12 @@ else
 	end
 
 	global.emit = function(name,...)
-		local tuple = {...};
+		local arguments = {...};
 
 		for _,details in pairs(global.internal_RBX) do 
 			if(details[1] == name) then 
-				if(#details >= 3) then
-					if(details[#details] == tuple[#tuple]) then
+				if(#details == 3) then
+					if(details[3] == arguments[3]) then
 						details[2](...);
 					end
 				else 
@@ -44,20 +56,14 @@ function events.new(name,callback)
 		local methods = {
 			["callback"] = callback;
 		};
+
 		local event = class.new("Event",methods);
-		connections[name] = event
+		connections[name] = event;
+		
 		return event;
 	else	
 		logger:log(1,string.format("Event %q already exists!",tostring(name)))
 		return nil;
-	end
-end
-
-function events.get(name)
-	if(connections[name] ~= nil) then 
-		return connections[name];
-	else 
-		logger:log(1,string.format("Event %q does not exist!",tostring(name)))
 	end
 end
 
