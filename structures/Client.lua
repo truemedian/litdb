@@ -96,7 +96,6 @@ function Toast:__init(allOptions)
 
       if not command then return end
       if not command.allowDMS and not msg.guild then return end
-      if not command.allowGuilds and msg.guild then return end
 
       if command:onCooldown(msg.author.id) then
          local _, time = command:onCooldown(msg.author.id)
@@ -130,7 +129,7 @@ function Toast:login(token, status)
 end
 
 function Toast:addCommand(command)
-   command = Command(command.name, command)
+   command = class.type(command) == 'Command' and command or Command(command.name, command)
    self._commands[command.name] = command
    self:debug('Command ' .. command.name .. ' has been added')
 end
