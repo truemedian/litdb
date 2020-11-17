@@ -1,6 +1,9 @@
 ---@type SuperToast
 local toast = require './init'
 
+---@type discordia
+local discordia = require 'discordia'
+
 toast.dotenv.config()
 
 ---@type SuperToastClient

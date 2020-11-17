@@ -1,6 +1,6 @@
 return {
    name = 'SovietKitsune/SuperToast',
-   version = '0.1.0',
+   version = '0.1.1',
    description = 'The better Toast',
    tags = {'toast', 'discordia'},
    license = 'MIT',
@@ -8,6 +8,7 @@ return {
    homepage = 'https://github.com/SovietKitsune/SuperToast',
    dependencies = {},
    files = {
-      '**.lua', '!test*', '!util' -- Utils are for running and ops
+      '**.lua', '!test*', '!util', -- Utils are for running and ops
+      'template.lua' -- Generates more types
    }
 }
