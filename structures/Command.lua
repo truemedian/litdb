@@ -23,13 +23,15 @@ end
 
 local function embedGen(self)
    local aliases = table.concat(self._aliases, '\n')
+   local perms = table.concat(self._userPerms, '\n')
    return Embed()
       :setColor('random')
       :setTitle(self._name:gsub('^(.)', string.upper))
       :setDescription(self._description)
-      :addField('Usage:', self._usage)
+      :addField('Usage:', self._example)
       :addField('Aliases:', #aliases == 0 and 'None' or aliases)
-      :setFooter('This command has a ' .. self._cooldown  .. ' second cooldown')
+      :addField('Perms:', #perms == 0 and 'None' or perms)
+      :setFooter('This command has a ' .. math.floor(self._cooldown / 1000)  .. ' second cooldown')
 end
 
 function Command:__init(name, options)
@@ -41,26 +43,30 @@ function Command:__init(name, options)
    self._cooldown = options.cooldown or 0
    self._execute = options.execute or function() end
    self._aliases = options.aliases or {}
+   self._hidden = not not options.hidden
    self._allowDMS = not not options.allowDMS
    self._allowGuilds = not (options.allowGuilds == false)
    self._nsfw = not not options.nsfw
-   self._perms = options.perms or {}
+   self._userPerms = options.userPerms or {}
+   self._botPerms = options.botPerms or {}
    self._hooks = hookInit(options.hooks)
    self._helpEmbed = embedGen(self)
 end
 
-function Command:hasPermission(member, channel)
+local function hasPerms(member, channel, perms)
    if not member or not channel.guild then return true end
-   local perms = member:getPermissions(channel)
-   return perms:has(unpack(self._perms))
+   local userPerms = member:getPermissions(channel)
+   return userPerms:has(unpack(perms))
 end
 
 function Command:check(msg)
    if not self._allowDMS and not msg.guild then return end
    if not self._allowGuilds and msg.guild then return end
    if self.nsfw and not msg.channel.nsfw then return end
-   if not self._hooks.check(msg) then return end
-   if not self:hasPermission(msg.member, msg.channel) then return end
+   local check, content = self._hooks.check(msg)
+   if not check then return content and msg:reply(content) and false end
+   if not hasPerms(msg.guild and msg.guild:getMember(msg.client.user.id), msg.channel, self._botPerms) then return end
+   if not hasPerms(msg.member, msg.channel, self._userPerms) then return end
    return true
 end
 
@@ -108,6 +114,10 @@ function set:cooldown(v)
    self._helpEmbed = embedGen(self)
 end
 
+function set:hidden(v)
+   self._hidden = v
+end
+
 function set:allowDMS(v)
    self._allowDMS = v
 end
@@ -116,8 +126,12 @@ function set:nsfw(v)
    self._nsfw = v
 end
 
-function set:perms(v)
-   self._perms = v
+function set:userPerms(v)
+   self._userPerms = v
+end
+
+function set:botPerms(v)
+   self._botPerms = v
 end
 
 -- Getters
@@ -158,8 +172,16 @@ function get:nsfw()
    return self._nsfw
 end
 
-function get:perms()
-   return self._perms
+function get:userPerms()
+   return self._userPerms
+end
+
+function get:botPerms()
+   return self._botPerms
+end
+
+function get:hidden()
+   return self._hidden
 end
 
 function get:hooks()

@@ -32,7 +32,7 @@ function Embed:send(chnl)
    if not chnl.guild then
       return chnl:send(self)
    end
-   if not chnl.guild.me:hasPermission(enums.permission.embedLinks) then
+   if not chnl.guild:getMember(chnl.client.user.id):hasPermission(enums.permission.embedLinks) then
       return chnl:send('I am missing permissions to send embeds')
    end
    return chnl:send(self)
@@ -120,9 +120,7 @@ function Embed:setAuthor(name, url, icon_url, proxy_icon_url)
 end
 
 function Embed:addField(name, value, inline)
-   if #self._embed.fields <= limits.fields then
-      return self
-   end
+   if #self._embed.fields >= limits.fields then return self end
    name = name or constants.ZWSP
    value = value or constants.ZWSP
    name = shrink(name, limits.field.name)
@@ -131,7 +129,7 @@ function Embed:addField(name, value, inline)
    return self
 end
 
-function get.embed(self)
+function get:embed()
    return self._embed
 end
 
