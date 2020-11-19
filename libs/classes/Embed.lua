@@ -11,7 +11,7 @@ local Embed = class('Embed')
 function Embed:__init(starting)
    self._embed = starting or {}
 
-   assert(type(self._starting) == 'table', 'The starting type must be a table')
+   assert(type(self._embed) == 'table', 'The starting type must be a table')
 end
 
 --- Set the title of the embed
@@ -19,7 +19,7 @@ end
 ---@return Embed
 function Embed:setTitle(title)
    assert(type(title) == 'string', 'The title must be a string')
-   self._embed.title = title
+   self._embed.title = title:sub(0, 256)
 
    return self
 end
@@ -30,7 +30,7 @@ end
 function Embed:setDescription(desc)
    assert(type(desc) == 'string', 'The description must be a string')
 
-   self._embed.description = desc
+   self._embed.description = desc:sub(2048)
 
    return self
 end
@@ -50,14 +50,24 @@ end
 ---@param name string
 ---@param value string
 ---@param inline boolean
+---@param ignore boolean
 ---@return Embed
-function Embed:addField(name, value, inline)
+function Embed:addField(name, value, inline, ignore)
+   inline = inline or false
+
    assert(type(name) == 'string', 'The name must be a string')
    assert(type(value) == 'string', 'The value must be a string')
+   assert(type(inline) == 'boolean', 'Inline must be a boolean')
 
    self._embed.fields = self._embed.fields or {}
 
-   table.insert(self._embed.fields, {name = name, value = value, inline = inline or false})
+   if #self._embed.fields >= 25 then
+      if not ignore then
+         print 'Embed is at max fields!'
+      end
+   else
+      table.insert(self._embed.fields, {name = name:sub(0, 256), value = value:sub(0, 1024), inline = inline})
+   end
 
    return self
 end
@@ -68,9 +78,14 @@ end
 ---@param url string
 ---@return Embed
 function Embed:setAuthor(name, icon, url)
-   assert(type(name) == 'string', 'The name must be a string')
+   icon = icon or ''
+   url = url or ''
 
-   self._embed.author = {name = name, icon_url = icon or '', url = url or ''}
+   assert(type(name) == 'string', 'The name must be a string')
+   assert(type(icon) == 'string', 'The icon must be a string')
+   assert(type(url) == 'string', 'The url must be a string')
+
+   self._embed.author = {name = name:sub(0, 256), icon_url = icon, url = url}
 
    return self
 end
@@ -80,9 +95,12 @@ end
 ---@param icon string
 ---@return Embed
 function Embed:setFooter(text, icon)
-   assert(type(text) == 'string', 'The text must be a string')
+   icon = icon or ''
 
-   self._embed.footer = {text = text, icon_url = icon or ''}
+   assert(type(text) == 'string', 'The text must be a string')
+   assert(type(icon) == 'string', 'The icon must be a string')
+
+   self._embed.footer = {text = text:sub(0, 2048), icon_url = icon}
 
    return self
 end
@@ -113,7 +131,11 @@ end
 ---@param date string
 ---@return Embed
 function Embed:setTimestamp(date)
-   self._embed.timestamp = date or os.date('!%Y-%m-%dT%TZ')
+   date = date or os.date('!%Y-%m-%dT%TZ')
+
+   assert(type(date) == 'string', 'The date must be a string')
+
+   self._embed.timestamp = date
 
    return self
 end

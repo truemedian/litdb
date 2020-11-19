@@ -21,7 +21,7 @@ local function getInfo(v)
 
       default = v[3]
    else
-      error(f('Expected value %s to be a string | function | table, instead got %s', type(v)))
+      error(f('Expected value to be a string | function | table, instead got %s', type(v)))
    end
 
    return vType, name, default, v[4]
@@ -29,7 +29,6 @@ end
 
 --- A class to typecheck option listings
 ---@class Option
----@field private _options table<string, table<number, any>> The options dictionary
 local Option = class('Option')
 
 function Option:__init(dict)
