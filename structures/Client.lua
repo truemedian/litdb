@@ -1,3 +1,10 @@
+--[=[
+@c Toast
+@t ui
+@op options table
+@d The class that does the important things like handling events and commands.
+]=]
+
 local discordia = require('discordia')
 local util = require('../util')
 local Command = require('./Command')
@@ -56,7 +63,10 @@ function Toast:__init(allOptions)
    self._owners = type(options.owners) == 'table' and options.owners or {options.owners or self.owner and self.owner.id}
    self._prefix = type(options.prefix) == 'table' and options.prefix or {options.prefix or '!'}
    self._commands = {options.defaultHelp and require('../commands/help')}
-   self._uptime = discordia.Stopwatch()
+
+   self:on('ready', function()
+      self._uptime = discordia.Stopwatch()
+   end)
 
    self:on('messageCreate', function(msg)
 
@@ -90,17 +100,13 @@ function Toast:__init(allOptions)
       end
 
       if not command then return end
-      if not command:check(msg) then return end
+
+      local check, content = command:check(msg)
+      if not check then return msg:reply(util.errorEmbed(nil, content)) end
 
       if command:onCooldown(msg.author.id) then
          local _, time = command:onCooldown(msg.author.id)
-         return msg:reply {
-            embed = {
-               title = 'Slow down, you\'re on cooldown',
-               description = 'Please wait ' .. util.formatLongfunction(time),
-               color = 16711731 -- error red colour
-            }
-         }
+         return msg:reply(util.errorEmbed('Slow down, you\'re on cooldown', 'Please wait ' .. util.formatLongfunction(time)))
       end
 
       command.hooks.preCommand(msg)
@@ -111,48 +117,76 @@ function Toast:__init(allOptions)
 
       if not success then
          self:error('ERROR WITH ' .. command.name .. ': ' .. err)
-         msg:reply('Failed to run command')
+         msg:reply(util.errorEmbed(nil, 'Please try this command later'))
       else
          command:startCooldown(msg.author.id)
       end
    end)
 end
 
+--[=[
+@m login
+@p token string
+@op presence table
+@r nil
+@d It's just this [this](https://github.com/SinisterRectus/Discordia/wiki/Client#runtoken-presence),
+   but it adds "Bot" to the beginning if it isn't already there.
+]=]
 function Toast:login(token, status)
-   self:run('Bot ' .. token)
-   return status and self:setStatus(status)
+   token = string.match(token, '^Bot') and token or 'Bot ' .. token
+   self:run(token, status)
 end
 
+--[=[
+@m addCommand
+@p command Command/table
+@r nil
+@d Adds a command to the command handler.
+]=]
 function Toast:addCommand(command)
    command = class.type(command) == 'Command' and command or Command(command.name, command)
-   self._commands[command.name] = command
+   table.insert(self._commands, command)
    self:debug('Command ' .. command.name .. ' has been added')
 end
 
+--[=[
+@m removeCommand
+@p name string
+@r nil
+@d Removes a command from the command handler.
+]=]
 function Toast:removeCommand(name)
-   local command = self._commands[name]
+   local command
 
-   if not command then
-      return
+   for _, v in pairs(self._commands) do
+      if v.name == name then
+         command = v
+      end
    end
+
+   if not command then return end
 
    self._commands[name] = nil
 
    self:debug('Command ' .. name .. ' has been removed')
 end
 
+--[=[@p prefix table The prefix(es) the bot uses.]=]
 function get:prefix()
    return self._prefix
 end
 
+--[=[@p commands table All the commands in a table.]=]
 function get:commands()
    return self._commands
 end
 
+--[=[@p owners table The owners of the bot.]=]
 function get:owners()
    return self._owners
 end
 
+--[=[@p uptime Stopwatch The uptime of the bot.]=]
 function get:uptime()
    return self._uptime
 end
