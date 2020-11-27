@@ -1,6 +1,6 @@
 return {
     name = "dustin10weering/luvit-yt-searcher",
-    version = "1.0",
+    version = "1.1",
     homepage = "https://github.com/dustin10weering/luvit-yt-searcher",
     dependencies = {
 		'creationix/coro-http@3.1.0'
