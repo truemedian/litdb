@@ -1,8 +1,8 @@
   return {
     name = "NotSoClassy/Invicta",
-    version = "0.0.1",
-    description = "Just a bot!",
-    tags = { "Toast", "Discord", "Discordia" },
+    version = "0.0.2",
+    description = "I didn't mean to publish this",
+    tags = {  },
     license = "MIT",
     author = { name = "NotSoClassy", email = "NotSoClassy357@gmail.com" },
     homepage = "https://github.com/NotSoClassy/Invicta",
