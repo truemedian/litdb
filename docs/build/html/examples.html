@@ -1,0 +1,357 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Examples &mdash; Typed 1.1.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="api.html" />
+    <link rel="prev" title="Welcome to Typed!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> Typed
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#simple-example">Simple example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#or-statements-example">Or statements example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#whatis-example">Whatis example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#function-example">Function example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#typed-dictionaries">Typed dictionaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#typed-arrays">Typed Arrays</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#schemas">Schemas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#schemas-continued">Schemas continued</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Typed</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Examples</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/examples.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="examples">
+<h1>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h1>
+<p>Some quick examples to get you started on enforcing types.</p>
+<div class="section" id="simple-example">
+<h2>Simple example<a class="headerlink" href="#simple-example" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="kd">local</span> <span class="n">typed</span> <span class="o">=</span> <span class="nb">require</span> <span class="s1">&#39;typed&#39;</span>
+
+<span class="kd">local</span> <span class="kr">function</span> <span class="nf">hi</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+   <span class="n">typed</span><span class="p">.</span><span class="n">func</span><span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="s1">&#39;string&#39;</span><span class="p">)(</span><span class="n">msg</span><span class="p">)</span>
+
+   <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+<span class="kr">end</span>
+
+<span class="n">hi</span><span class="p">(</span><span class="s1">&#39;hello&#39;</span><span class="p">)</span> <span class="c1">-- No errors</span>
+<span class="n">hi</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="c1">-- bad argument #1 to &#39;hi&#39; (string expected, got number)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="or-statements-example">
+<h2>Or statements example<a class="headerlink" href="#or-statements-example" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="kd">local</span> <span class="n">typed</span> <span class="o">=</span> <span class="nb">require</span> <span class="s1">&#39;typed&#39;</span>
+
+<span class="kd">local</span> <span class="kr">function</span> <span class="nf">hi</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+   <span class="c1">-- We see the use of `|` to allow strings **or** numbers</span>
+   <span class="n">typed</span><span class="p">.</span><span class="n">func</span><span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="s1">&#39;string | number&#39;</span><span class="p">)(</span><span class="n">msg</span><span class="p">)</span>
+
+   <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+<span class="kr">end</span>
+
+<span class="n">hi</span><span class="p">(</span><span class="s1">&#39;hello&#39;</span><span class="p">)</span> <span class="c1">-- No errors</span>
+<span class="n">hi</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="c1">-- No errors</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="whatis-example">
+<h2>Whatis example<a class="headerlink" href="#whatis-example" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="n">assert</span><span class="p">.</span><span class="n">are</span><span class="p">.</span><span class="n">equal</span><span class="p">(</span><span class="n">typed</span><span class="p">.</span><span class="n">whatIs</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;number&#39;</span><span class="p">)</span>
+<span class="n">assert</span><span class="p">.</span><span class="n">are</span><span class="p">.</span><span class="n">equal</span><span class="p">(</span><span class="n">typed</span><span class="p">.</span><span class="n">whatIs</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="s1">&#39;string&#39;</span><span class="p">)</span>
+<span class="n">assert</span><span class="p">.</span><span class="n">are</span><span class="p">.</span><span class="n">equal</span><span class="p">(</span><span class="n">typed</span><span class="p">.</span><span class="n">whatIs</span><span class="p">(</span><span class="kc">true</span><span class="p">),</span> <span class="s1">&#39;boolean&#39;</span><span class="p">)</span>
+<span class="n">assert</span><span class="p">.</span><span class="n">are</span><span class="p">.</span><span class="n">equal</span><span class="p">(</span><span class="n">typed</span><span class="p">.</span><span class="n">whatIs</span><span class="p">(</span><span class="nb">print</span><span class="p">),</span> <span class="s1">&#39;function&#39;</span><span class="p">)</span>
+<span class="n">assert</span><span class="p">.</span><span class="n">are</span><span class="p">.</span><span class="n">equal</span><span class="p">(</span><span class="n">typed</span><span class="p">.</span><span class="n">whatIs</span><span class="p">(</span><span class="nb">coroutine.create</span><span class="p">(</span><span class="kr">function</span><span class="p">()</span> <span class="kr">end</span><span class="p">)),</span> <span class="s1">&#39;thread&#39;</span><span class="p">)</span>
+<span class="n">assert</span><span class="p">.</span><span class="n">are</span><span class="p">.</span><span class="n">equal</span><span class="p">(</span><span class="n">typed</span><span class="p">.</span><span class="n">whatIs</span><span class="p">(</span><span class="nb">io.stdout</span><span class="p">),</span> <span class="s1">&#39;userdata&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="function-example">
+<h2>Function example<a class="headerlink" href="#function-example" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="kd">local</span> <span class="kr">function</span> <span class="nf">hi</span><span class="p">()</span>
+   <span class="n">typed</span><span class="p">.</span><span class="n">func</span><span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="s1">&#39;string&#39;</span><span class="p">)()</span>
+<span class="kr">end</span>
+
+<span class="n">assert</span><span class="p">.</span><span class="n">has</span><span class="p">.</span><span class="nb">error</span><span class="p">(</span><span class="kr">function</span><span class="p">()</span>
+   <span class="n">hi</span><span class="p">()</span>
+<span class="kr">end</span><span class="p">,</span> <span class="s1">&#39;bad argument #1 to </span><span class="se">\&#39;</span><span class="s1">hi</span><span class="se">\&#39;</span><span class="s1"> (string expected, got nil)&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="typed-dictionaries">
+<h2>Typed dictionaries<a class="headerlink" href="#typed-dictionaries" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="n">assert</span><span class="p">.</span><span class="n">has</span><span class="p">.</span><span class="nb">error</span><span class="p">(</span><span class="kr">function</span><span class="p">()</span>
+   <span class="n">typed</span><span class="p">.</span><span class="n">typedDict</span><span class="p">(</span><span class="s1">&#39;string&#39;</span><span class="p">,</span> <span class="s1">&#39;number&#39;</span><span class="p">)[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="kr">end</span><span class="p">,</span> <span class="s1">&#39;bad argument #1 to </span><span class="se">\&#39;</span><span class="s1">?</span><span class="se">\&#39;</span><span class="s1"> (string expected, got number)&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="typed-arrays">
+<h2>Typed Arrays<a class="headerlink" href="#typed-arrays" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-lua notranslate"><div class="highlight"><pre><span></span>   <span class="n">assert</span><span class="p">.</span><span class="n">has_error</span><span class="p">(</span><span class="kr">function</span><span class="p">()</span>
+      <span class="kd">local</span> <span class="n">arr</span> <span class="o">=</span> <span class="n">typed</span><span class="p">.</span><span class="n">TypedArray</span><span class="p">(</span><span class="s1">&#39;number&#39;</span><span class="p">)</span>
+
+      <span class="n">arr</span><span class="p">:</span><span class="n">push</span><span class="p">()</span>
+   <span class="kr">end</span><span class="p">,</span> <span class="s1">&#39;bad argument #1 to </span><span class="se">\&#39;</span><span class="s1">push</span><span class="se">\&#39;</span><span class="s1"> (number expected, got nil)&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="schemas">
+<h2>Schemas<a class="headerlink" href="#schemas" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="kd">local</span> <span class="n">typed</span> <span class="o">=</span> <span class="nb">require</span> <span class="s1">&#39;typed&#39;</span>
+
+<span class="kd">local</span> <span class="n">schema</span> <span class="o">=</span> <span class="n">typed</span><span class="p">.</span><span class="n">Schema</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>
+   <span class="p">:</span><span class="n">field</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;string&#39;</span><span class="p">)</span>
+   <span class="p">:</span><span class="n">field</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;number&#39;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">schema</span><span class="p">:</span><span class="n">validate</span> <span class="p">{</span>
+   <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;3&#39;</span><span class="p">,</span>
+   <span class="n">id</span> <span class="o">=</span> <span class="s1">&#39;2&#39;</span>
+<span class="p">})</span> <span class="c1">--&gt; false   Expected number, got string on field id</span>
+
+<span class="kd">local</span> <span class="n">newSchema</span> <span class="o">=</span> <span class="n">typed</span><span class="p">.</span><span class="n">Schema</span><span class="p">(</span><span class="s1">&#39;nested&#39;</span><span class="p">)</span>
+   <span class="p">:</span><span class="n">field</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="n">schema</span><span class="p">)</span>
+   <span class="p">:</span><span class="n">field</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;number&#39;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">newSchema</span><span class="p">:</span><span class="n">validate</span> <span class="p">{</span>
+   <span class="n">sub</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;3&#39;</span><span class="p">,</span>
+      <span class="n">id</span> <span class="o">=</span> <span class="s1">&#39;2&#39;</span>
+   <span class="p">},</span>
+   <span class="n">id</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="p">})</span> <span class="c1">--&gt; false   Expected test, got Malformed test on field sub; Expected number, got string on field id</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="schemas-continued">
+<h2>Schemas continued<a class="headerlink" href="#schemas-continued" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="cm">--[[</span>
+<span class="cm">A schema can be very useful when working with config files.</span>
+
+<span class="cm">Here we see a use by using a toml parser with schemas to fill in defaults and enforce types.</span>
+<span class="cm">]]</span>
+
+<span class="kd">local</span> <span class="n">typed</span> <span class="o">=</span> <span class="nb">require</span> <span class="s1">&#39;typed&#39;</span>
+<span class="kd">local</span> <span class="n">toml</span> <span class="o">=</span> <span class="nb">require</span> <span class="s1">&#39;toml&#39;</span>
+
+<span class="kd">local</span> <span class="n">configSchema</span> <span class="o">=</span> <span class="n">typed</span><span class="p">.</span><span class="n">Schema</span><span class="p">(</span><span class="s1">&#39;config&#39;</span><span class="p">)</span>
+   <span class="p">:</span><span class="n">field</span><span class="p">(</span><span class="s1">&#39;saveLocation&#39;</span><span class="p">,</span> <span class="s1">&#39;string&#39;</span><span class="p">)</span>
+   <span class="p">:</span><span class="n">field</span><span class="p">(</span><span class="s1">&#39;playerName&#39;</span><span class="p">,</span> <span class="s1">&#39;string&#39;</span><span class="p">,</span> <span class="s1">&#39;joe&#39;</span><span class="p">)</span>
+
+<span class="kd">local</span> <span class="n">data</span><span class="p">,</span> <span class="n">err</span> <span class="o">=</span> <span class="n">configSchema</span><span class="p">:</span><span class="n">validate</span><span class="p">(</span><span class="n">toml</span><span class="p">.</span><span class="n">parse</span><span class="p">(</span><span class="s">[[</span>
+<span class="s">saveLocation = &quot;hi&quot;</span>
+<span class="s">]]</span><span class="p">))</span>
+
+<span class="kr">if</span> <span class="n">err</span> <span class="kr">then</span>
+   <span class="nb">error</span> <span class="s1">&#39;Invalid config!&#39;</span>
+<span class="kr">end</span>
+
+<span class="kr">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="kr">in</span> <span class="nb">pairs</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="kr">do</span>
+   <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+   <span class="c1">--&gt; playerName      joe</span>
+   <span class="c1">--&gt; saveLocation    hi</span>
+<span class="kr">end</span>
+
+<span class="c1">--- The data would either be the filled in data or nil and an error</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="api.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Typed!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Soviet Kitsune
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
