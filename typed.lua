@@ -297,96 +297,51 @@ function typed.is(validator, value)
    return validator == typed.whatIs(value)
 end
 
---- Get the parameters of a function
----@param level number
----@return table<string, any>
-function typed.params(level)
-   assert(typed.resolve('number', 1, 'typed.params')(level))
-
-   local func = debug.getinfo(level).func
-
-   -- for i, v in pairs(debug.getinfo(level)) do print(i, v) end
-
-   local params = {}
-
-   local i = 1
-
-   while true do
-      local name = debug.getlocal(func, i)
-
-      if name then
-         params[name] = true
-
-         i = i + 1
-      else
-         break
-      end
-   end
-
-   i = 1
-
-   local passed = {}
-
-   while true do
-      local name, val = debug.getlocal(level, i)
-
-      if name then
-         if params[name] then
-            passed[name] = val
-         end
-
-         i = i + 1
-      else
-         break
-      end
-   end
-
-   return passed
-end
-
 --- Create a new typed function.
 ---
---- The vararg takes in validation strings tp pass to `typed.is`
+--- **This function uses the debug library**
+---
+--- You can override the inferred name by passing a first argument.
+---
+--- The rest of the arguments are validation strings.
 ---
 --- This returns a function which would take those arguments defined in the validation string.
+---@param name string
 ---@vararg string
 ---@return fun(...):void
-function typed.func(...)
+function typed.func(name, ...)
    local info = debug.getinfo(2)
 
+   typed.resolve('string | nil', 1, 'typed.func')(name or info.name)
+
    for i, v in pairs {...} do
-      assert(typed.resolve('string', i, 'typed.func')(v))
+      assert(typed.resolve('string', i + 1, 'typed.func')(v))
    end
 
    local arr = {...}
 
-   local args = typed.params(3)
+   return function(...)
+      local input = {...}
+      for i = 1, #arr do
+         local newInfo = debug.getinfo(2)
 
-   local input = {}
+         local succ, err = typed.resolve(arr[i], i, name or newInfo.name)(input[i])
 
-   for _, v in pairs(args) do
-      table.insert(input, v)
-   end
+         if not succ then
+            -- Testing
+            if not rawget(_G, '_TEST') then
+               print(debug.traceback(string.format('Uncaught exception:\n%s:%u: %s', newInfo.short_src,
+                                                   newInfo.currentline, err), 3))
+            else
+               -- Instead store the error within os
+               rawset(os, 'error', err)
+            end
 
-   for i = 1, #arr do
-      local newInfo = debug.getinfo(2)
-
-      local succ, err = typed.resolve(arr[i], i, newInfo.name)(input[i])
-
-      if not succ then
-         -- Testing
-         if not rawget(_G, '_TEST') then
-            print(debug.traceback(string.format('Uncaught exception:\n%s:%u: %s', newInfo.short_src,
-                                                newInfo.currentline, err), 3))
-         else
-            -- Instead store the error within os
-            rawset(os, 'error', err)
-         end
-
-         if typed.panic then
-            os.exit(-1)
-         else
-            print 'The code is now unstable now as panicking has been disabled!'
+            if typed.panic then
+               os.exit(-1)
+            else
+               print 'The code is now unstable now as panicking has been disabled!'
+            end
          end
       end
    end
