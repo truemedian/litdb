@@ -14,7 +14,7 @@ local class, enums, Client = discordia.class, discordia.enums, discordia.Client
 local Toast, get = class('Toast', Client)
 
 local match, gmatch = string.match, string.gmatch
-local insert, concat, unpack = table.insert, table.concat, table.unpack
+local concat, unpack = table.concat, table.unpack
 
 local validOptions = {
    prefix = {'string', 'table'},
@@ -98,7 +98,7 @@ function Toast:__init(allOptions)
 
       local args = {}
       for arg in gmatch(msgArg, '%S+') do
-         insert(args, arg)
+         args[#args + 1] = arg
       end
 
       local command
@@ -184,7 +184,7 @@ function Toast:addCommand(command)
 
    command = loopSubCommands(command) or command
 
-   insert(self._commands, command)
+   self._commands[#self._commands + 1] = command
    self:debug('Command ' .. command.name .. ' has been added')
 end
 
