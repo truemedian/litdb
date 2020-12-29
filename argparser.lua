@@ -70,12 +70,13 @@ local function parse(msg, cmdArgs, command)
 		local arg = cmdArgs[1]
 
 		local name = options.name
-		local type = options.value or options.type
 		local min, max = options.min, options.max
 		local default = options.default
 
 		if arg then
 			table.remove(cmdArgs, i)
+
+			local type = options.value or options.type
 
 			if name == 'ungrouped' then error('Name "ungrouped" is reserved') end
 			if args[name] ~= nil then error(name .. ' name is already in use') end
