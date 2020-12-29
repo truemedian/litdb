@@ -19,7 +19,11 @@ local types = {
 
 	boolean = function(arg)
 		arg = arg:lower()
-		return (arg == 'true' and true) or (arg == 'false' and false) or nil
+		if arg == 'true' then
+			return true
+		elseif arg == 'false' then
+			return false
+		end
 	end,
 
 	user = function(arg, msg)
