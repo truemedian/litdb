@@ -438,7 +438,7 @@ function ArgParser:parse(str, client)
          ))
 
          missing = missing + 1
-      else
+      elseif raw.flags[i] or v._ctx.type == 'boolean' then
          local flag = raw.flags[i]
 
          local data, start, stop
