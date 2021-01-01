@@ -348,7 +348,7 @@ function typed.typedDict(keyType, valueType)
    local mt = {}
 
    function mt:__newindex(k, v)
-      typed.func(_, self.__keyType, self.__valueType)(k, v)
+      typed.func(nil, self.__keyType, self.__valueType)(k, v)
       tbl[k] = v
    end
 
@@ -371,7 +371,7 @@ Schema.__name = 'Schema' -- Typed
 ---@param name string
 ---@return Schema
 function Schema:__init(name)
-   typed.func(_, 'string')(name)
+   typed.func(nil, 'string')(name)
 
    assert(not Schema.schemas[name], 'The schema name must be unique!')
 
@@ -387,13 +387,13 @@ end
 ---@param default any
 ---@return Schema
 function Schema:field(name, value, default)
-   typed.func(_, 'string', 'string | Schema')(name, value)
+   typed.func(nil, 'string', 'string | Schema')(name, value)
 
    if default ~= nil then
       if type(value) == 'table' then
          assert(value._id[1]:validate())
       else
-         typed.func(_, 'string', 'string | Schema', value)(name, value, default)
+         typed.func(nil, 'string', 'string | Schema', value)(name, value, default)
       end
    end
 
@@ -404,12 +404,13 @@ end
 
 --- Validate a table to see if it matches the schema
 ---@param tbl table<any, any>
----@return table<any, any> | boolean, string | nil
+---@return table<any, any> | boolean
+---@return string | nil
 function Schema:validate(tbl)
    local _, err = typed.resolve('table<string, any>', 1, 'validate')(tbl)
 
    --- Ignore if it is some sort of table since `any` works weird for some reason
-   if not typed.whatIs(tbl):match('table') then
+   if not typed.whatIs(tbl):match('table') and not typed.whatIs(tbl):match('unknown') then
       return false, err
    end
 
@@ -442,7 +443,7 @@ function Schema:validate(tbl)
 end
 
 function get:name()
-   return self.name
+   return self._name
 end
 
 typed.Schema = Schema

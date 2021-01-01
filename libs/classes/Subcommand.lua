@@ -6,7 +6,7 @@ local Command = require('classes/Command')
 ---@type Array
 local Array = require('classes/Array')
 
-local tFunc = typed.func(_, 'function')
+local tFunc = typed.func(nil, 'function')
 
 --- A subcommand to act as a mini command
 ---@class Subcommand: Command
@@ -27,12 +27,13 @@ function Subcommand:__init(parent, name)
 end
 
 --- Count the amount of parents up this subcommand has
+---@return number
 function Subcommand:count()
    return 1 + (self._parent and self._parent:count() or 0)
 end
 
 --- Sets the function to execute
----@param func fun(msg:Message, args: string[], client: SuperToastClient):void
+---@param func fun(msg:Message, args: string[], client: SuperToastClient)
 ---@return Command
 function Subcommand:execute(func)
    tFunc(func)
@@ -46,7 +47,7 @@ function Subcommand:execute(func)
    return self
 end
 
-function get:isSub()
+function get.isSub()
    return true
 end
 
