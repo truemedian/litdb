@@ -1,6 +1,6 @@
   return {
     name = "letiulthecode/Bread",
-    version = "1.0.0",
+    version = "1.0.1",
     description = "A command handler for discordia",
     tags = { "lua", "luvit", "discordia" },
     license = "MIT",
@@ -10,8 +10,7 @@
       "SinisterRectus/discordia"
     },
     files = {
-      "./Bread/*.lua",
-      "./Bread/examples/*.lua"
+      "./Bread",
     }
   }
   
