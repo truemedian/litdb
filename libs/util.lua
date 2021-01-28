@@ -1,10 +1,11 @@
-local argparse = require '../argparser'
+local flagparse = require 'flagparser'
+local argparse = require 'argparser'
 local util = require '../userUtil'
 
 local concat = table.concat
 
 local validOptions = {
-	prefix = {'string', 'table'},
+	prefix = {'string', 'table', 'function'},
 	owners = {'string', 'table'},
 	defaultHelp = 'boolean',
 	advancedArgs = 'boolean',
@@ -55,6 +56,7 @@ return {
 
 	-- parsing
 	argparse = argparse.parse,
+	flagparse = flagparse.parse,
 
 	-- other utils
 	time = util.formatLong,
