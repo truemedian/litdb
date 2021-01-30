@@ -61,7 +61,7 @@ local function parse(str)
 			local after = getAfter(a, #key+1, #str)
 			local value = getValue(after)
 
-			flags[key] = value
+			flags[string.lower(key)] = value
 
 			last = i
 		elseif s == '-' and (i ~= last + 1) and b[1] ~= '\\' then -- single letter
@@ -71,13 +71,21 @@ local function parse(str)
 			local after = getAfter(a, 2, #str)
 			local value = getValue(after)
 
-			flags[key] = value
+			flags[string.lower(key)] = value
 		end
 
 		::continue::
 	end
 
-	local finish = trim(gsub(str, [[((?<!\\)\-(?<!\\)\-?\S+\s?)(?|"(.+?)"|'(.+?)'|(\S+))?(\s*)]], '')) -- this removed flags for the arg parser
+	local finish -- str without flags for arg parser
+	finish = trim(gsub(str, [[((?<!\\)\-(?<!\\)\-?\S+\s)(?|"(.+?)"|'(.+?)'|(\S+))?(\s*)]], '')) -- uhh
+	finish = trim(string.gsub(finish, '((\\?)-(\\?)-?%S+)', function(s, s2, s3)
+		if s3 == '\\' then
+			return '-' .. string.sub(s, 3, #s)
+		elseif s2 == '\\' then
+			return string.sub(s, 2, #s)
+		end
+	end))
 
 	return flags, finish
 end
