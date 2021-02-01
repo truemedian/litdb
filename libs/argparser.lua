@@ -1,6 +1,6 @@
-local util = require 'utils'
 local rex = require 'rex'
 
+local example = require '../userUtil' .example
 local clamp = require 'discordia' .extensions.math.clamp
 local insert, remove, concat, unpack = table.insert, table.remove, table.concat, table.unpack
 local match, f = string.match, string.format
@@ -69,7 +69,7 @@ end
 
 local function parse(msg, cmdArgs, command)
     if #cmdArgs < command._requiredArgs then
-        return nil, util.example(command)
+        return nil, example(command)
     end
 
     cmdArgs = split(concat(cmdArgs, ' '))
@@ -121,7 +121,7 @@ local function parse(msg, cmdArgs, command)
     for i, opt in ipairs(command.args) do
         local depends = opt.depend or opt.depends
         if depends and args[opt.name] and not args[depends] then
-            return nil, f('Argument #%d depends the argument #%d (%s) ', i, i+1, depends)
+            return nil, f('Argument #%d depends on the argument named "%s"', i, depends)
         end
     end
 
