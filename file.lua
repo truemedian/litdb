@@ -10,7 +10,7 @@
 --------------------------------------------------------------------------------
 --[[lit-meta
   name = "SinisterRectus/sqlite3"
-  version = "1.0.0-1"
+  version = "1.0.1"
   homepage = "http://scilua.org/ljsqlite3.html"
   description = "SciLua's sqlite3 bindings repackaged for lit."
   tags = {"database", "sqlite3"}
@@ -387,7 +387,11 @@ function conn_mt:rowexec(command) T_open(self)
     err("misuse", "multiple records returned, 1 expected")
   end
   stmt:close()
-  return unpack(res)
+  if res then
+    return unpack(res)
+  else
+    return nil
+  end
 end
 
 function conn_mt:__call(commands, out) T_open(self)
