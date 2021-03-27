@@ -1,6 +1,6 @@
 return {
     name = 'Kuiarasu/lua-require';
-	version = '0.0.1';
+	version = '0.0.2';
 	description = 'Lightweight duplicate of Lua\'s require function based on understanding and behavior.';
 	tags = {'luvit', 'env', 'module', 'library', 'lightweight'};
 	license = 'MIT';
