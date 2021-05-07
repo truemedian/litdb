@@ -17,15 +17,16 @@ limitations under the License.
 --]]
 --[[lit-meta
   name = "bilal2453/discordia-replies"
-  version = "1.0.0"
-  homepage = "https://github.com/bilal2453/discordia-replies/blob/master/deps/discordia-replies.lua"
+  version = "1.1.0"
+  homepage = "https://github.com/bilal2453/discordia-replies/"
   description = "An addon for the library Discordia 2 to provide replies support."
   tags = {"discordia", "replies", "bots", "discord"}
   license = "Apache License 2.0"
 ]]
 
-local readFileSync, splitPath = require("fs").readFileSync, require("pathjoin").splitPath
 local configs, discordia = {fetchMessage = true}
+local readFileSync = require("fs").readFileSync
+local splitPath = require("pathjoin").splitPath
 
 local function assertType(value, types, arg, name)
   value = type(value) == "table" and value.__name or type(value)
@@ -42,8 +43,9 @@ local function assertType(value, types, arg, name)
   end
 end
 
--- aiming to replucate the same exact behavoir of the original send method, except with supporting message_reference,
--- without having to patch the original Discordia source code to do so.
+-- The following code have been copied from the original Discordia source code, and slightly modified,
+-- aiming to replucate the same exact behavoir of the original send method, while supporting additional features,
+-- without having to patch the original source code to do so.
 -- All rights reserved for SinisterRectus and the contributers of SinisterRectus/discordia under the MIT license.
 -- This do include changes made by the author of this module!
 
@@ -123,6 +125,7 @@ local function send(self, content)
       tts = tbl.tts,
       nonce = tbl.nonce,
       embed = tbl.embed,
+      allowed_mentions = tbl.allowedMentions,
       message_reference = tbl.messageReference,
     }, files)
   else
@@ -190,7 +193,7 @@ local function loadMore(self, data)
   if data.message_reference then
     self._message_reference = data.message_reference
   end
-  if data.referenced_message and #data.referenced_message > 1 then
+  if data.referenced_message and #data.referenced_message > 0 then
     self._referenced_message = self._parent._messages:_insert(data.referenced_message)
   end
 end
@@ -201,10 +204,19 @@ local function reply(msg, content)
   assertType(msg, "Message", 1, "reply")
   assertType(content, "string|table", 2, "reply")
 
+  -- setting content
   if type(content) ~= "table" then
     content = {content = tostring(content)}
   end
 
+  -- setting allowed_mentions
+  if configs.replyMention == false then -- Discord will treat the mention by content if no allowed_mention is passed
+    content.allowedMentions = {
+      replied_user = false
+    }
+  end
+
+  -- setting message_reference
   content.messageReference = not content.messageReference and {
     message_id = msg.id,
     fail_if_not_exists = configs.failIfNotExists,
@@ -215,6 +227,7 @@ end
 
 local function repliesTo(msg)
   if not msg._message_reference then return end
+  if not (msg.content or msg.attachment or msg.embeds) then return end
 
   local ref, client = msg._message_reference, msg.client
   local messageId, channelId = ref.message_id, ref.channel_id
@@ -253,12 +266,12 @@ end
 local function init(_, options)
   assertType(options, "table|nil", 1)
   if options then
-    if (options.package or {}).name == "SinisterRectus/discordia" then
+      configs = options
+      if (options.package or {}).name == "SinisterRectus/discordia" then
       discordia = options
       configs = {discordia = options}
     elseif options.discordia and (options.discordia.package or {}).name == "SinisterRectus/discordia" then
       discordia = options.discordia
-      configs = options
     end
   end
 
@@ -290,14 +303,14 @@ local function init(_, options)
   configs.fetchMessage = type(configs.fetchMessage) ~= "boolean" and true or configs.fetchMessage
   configs.failIfNotExists = configs.failIfNotExists == false and false or nil -- Saving on payload size
 
-  -- Returns the Discordia module, for convenience
+  -- Returns the patched Discordia module, for convenience
   return discordia
 end
 
 return setmetatable({
   reply = reply,
   module = "Bilal2453/discordia-replies",
-  version = '1.0.0',
+  version = '1.1.0',
 }, {
   __call = init
 })
