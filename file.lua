@@ -1,5 +1,4 @@
 --[[
-
 Copyright 2021 Bilal2453. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,31 +12,29 @@ distributed under the License is distributed on an "AS-IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 --]]
 --[[lit-meta
   name = "bilal2453/discordia-replies"
-  version = "1.1.0"
+  version = "1.2.2"
   homepage = "https://github.com/bilal2453/discordia-replies/"
   description = "An addon for the library Discordia 2 to provide replies support."
   tags = {"discordia", "replies", "bots", "discord"}
   license = "Apache License 2.0"
 ]]
 
-local configs, discordia = {fetchMessage = true}
 local readFileSync = require("fs").readFileSync
 local splitPath = require("pathjoin").splitPath
+local configs = {}
+local discordia -- lazy required/provided by user
 
 local function assertType(value, types, arg, name)
   value = type(value) == "table" and value.__name or type(value)
   name = name or '?'
   arg = arg or '?'
-
   local match
   for type in types:gmatch('(%w+)|?') do
     if type == value then match = true end
   end
-
   if not match then
     error(("bad argument #%s to '%s' (%s expected, got %s)"):format(arg, name, types, value))
   end
@@ -54,16 +51,16 @@ end
 -- libs/containers/abstract/TextChannel.lua --
 
 local function parseFile(obj, files)
-	if type(obj) == 'string' then
+	if type(obj) == "string" then
 		local data, err = readFileSync(obj)
 		if not data then return nil, err end
 		files = files or {}
 		table.insert(files, {table.remove(splitPath(obj)), data})
-	elseif type(obj) == 'table' and type(obj[1]) == 'string' and type(obj[2]) == 'string' then
+	elseif type(obj) == "table" and type(obj[1]) == "string" and type(obj[2]) == "string" then
 		files = files or {}
 		table.insert(files, obj)
 	else
-		return nil, 'Invalid file object: ' .. tostring(obj)
+		return nil, "Invalid file object: " .. tostring(obj)
 	end
 	return files
 end
@@ -193,7 +190,7 @@ local function loadMore(self, data)
   if data.message_reference then
     self._message_reference = data.message_reference
   end
-  if data.referenced_message and #data.referenced_message > 0 then
+  if data.referenced_message and next(data.referenced_message) then
     self._referenced_message = self._parent._messages:_insert(data.referenced_message)
   end
 end
@@ -204,19 +201,18 @@ local function reply(msg, content)
   assertType(msg, "Message", 1, "reply")
   assertType(content, "string|table", 2, "reply")
 
-  -- setting content
+  -- Setting content
   if type(content) ~= "table" then
     content = {content = tostring(content)}
   end
-
-  -- setting allowed_mentions
-  if configs.replyMention == false then -- Discord will treat the mention by content if no allowed_mention is passed
+  -- Setting allowed_mentions
+  -- Discord treats mentions by content if no allowed_mention is passed, therefor no need to pass it when true
+  if configs.replyMention == false and not content.allowedMentions then
     content.allowedMentions = {
       replied_user = false
     }
   end
-
-  -- setting message_reference
+  -- Setting message_reference
   content.messageReference = not content.messageReference and {
     message_id = msg.id,
     fail_if_not_exists = configs.failIfNotExists,
@@ -226,13 +222,16 @@ local function reply(msg, content)
 end
 
 local function repliesTo(msg)
-  if not msg._message_reference then return end
-  if not (msg.content or msg.attachment or msg.embeds) then return end
+  if msg._repliesTo then return msg._repliesTo end -- is it cached already?
+  if not msg._message_reference then return end -- any chance it's a reply?
+  if not (msg.content or msg.attachment or msg.embeds) then return end -- is it really a reply message?
+  -- Messages of type 21 also do have message_reference, can't check that since we are on API v7
 
-  local ref, client = msg._message_reference, msg.client
-  local messageId, channelId = ref.message_id, ref.channel_id
+  local client = msg.client
   local struct = {client = client}
+  msg._repliesTo = struct
 
+  -- Do we already have everything we need provided?
   local refMsg = msg._referenced_message
   if refMsg then
     struct.message = msg._referenced_message
@@ -240,6 +239,9 @@ local function repliesTo(msg)
     struct.guild = refMsg.guild
     return struct
   end
+
+  local ref = msg._message_reference
+  local messageId, channelId = ref.message_id, ref.channel_id
 
   -- Get the Guild and TextChannel objects
   local guild, channel = client._channel_map[channelId]
@@ -254,17 +256,18 @@ local function repliesTo(msg)
   if not channel then return struct end -- Not sure if possible but just in case
 
   -- Get the Message object
-  struct.message = channel._messages:get(messageId)
-  if not struct.message and configs.fetchMessage then
+  struct.message = channel._messages:get(messageId) -- Try to fetch it from cache first
+  if not struct.message and configs.fetchMessage then -- Not cached, fetch it from the API
     local data = client._api:getChannelMessage(channel._id, messageId)
     if data then struct.message = channel._messages:_insert(data) end
   end
-
   return struct
 end
 
 local function init(_, options)
   assertType(options, "table|nil", 1)
+  -- is `options` the actual options table or is it the Discordia module?
+  -- This is only here because I was (and probably still) dumb, it'd break backward compatibilty (ish) if removed
   if options then
       configs = options
       if (options.package or {}).name == "SinisterRectus/discordia" then
@@ -275,7 +278,7 @@ local function init(_, options)
     end
   end
 
-  discordia = discordia or require("discordia")
+  discordia = discordia or assert(require("discordia"), "This module requires Discordia to be installed!")
   local classes = discordia.class.classes
 
   -- Patch reply method in
@@ -299,8 +302,7 @@ local function init(_, options)
     classes.Message.__getters.repliesTo = repliesTo
   end
 
-  -- Defaulting options to true
-  configs.fetchMessage = type(configs.fetchMessage) ~= "boolean" and true or configs.fetchMessage
+  -- Defaulting options
   configs.failIfNotExists = configs.failIfNotExists == false and false or nil -- Saving on payload size
 
   -- Returns the patched Discordia module, for convenience
@@ -308,9 +310,10 @@ local function init(_, options)
 end
 
 return setmetatable({
+  send = send,
   reply = reply,
   module = "Bilal2453/discordia-replies",
-  version = '1.1.0',
+  version = '1.2.2',
 }, {
   __call = init
 })
