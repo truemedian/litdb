@@ -5,8 +5,6 @@
     API for ROBLOX's user API
 ]]
 
---//Require any modules and define variables
-
 local module = {}
 
 local http = require('coro-http')

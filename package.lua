@@ -1,6 +1,6 @@
   return {
     name = "LuauProgrammer/Bloxed",
-    version = "0.0.2",
+    version = "0.0.3",
     description = "ROBLOX API Wrapper for the Luvit Runtime Enviroment.",
     tags = { "roblox", "api", "wrapper" },
     license = "MIT",
