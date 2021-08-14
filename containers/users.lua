@@ -6,27 +6,26 @@
 ]]
 
 local module = {}
-
+local token = require('./authentication').AuthenticationToken
 local http = require('coro-http')
-local decode = require('json').decode
-local encode = require('json').encode
+local json = require('json')
 
 module.GetUserByID = function(userID)
     local res, body = http.request("GET", "https://users.roblox.com/v1/users/"..userID)
     if res.code ~= 200 then
         return nil
     end
-    return decode(body)
+    return json.decode(body)
 end
 
 module.GetUserByName = function(name)
-    local params = '{ \"usernames\": [ '..encode(name)..' ], \"excludeBannedUsers\": true}'
+    local params = '{ \"usernames\": [ '..json.encode(name)..' ], \"excludeBannedUsers\": true}'
     local res, body = http.request("POST", "https://users.roblox.com/v1/usernames/users/", {{"Content-Type","text/json"}}, params)
     if res.code ~= 200 then
         return nil
     end
     local data
-    for i,v in pairs(decode(body)) do --Legit a fucking terrible idea
+    for i,v in pairs(json.decode(body)) do --Legit a fucking terrible idea
         data = v
         for i,v in pairs(data) do
             data = v

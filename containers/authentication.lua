@@ -5,10 +5,9 @@
 ]]
 
 local module = {}
-
+local token = require('./authentication').AuthenticationToken
 local http = require('coro-http')
-local decode = require('json').decode
-local encode = require('json').encode
+local json = require('json')
 
 module.AuthenticationToken = nil
 
