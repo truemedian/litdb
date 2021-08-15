@@ -8,4 +8,6 @@
 return {
     users = require("./containers/users"),
     groups = require("./containers/groups"),
+    authentication = require("./containers/authentication"),
+    games = require("./containers/games"),
 }
