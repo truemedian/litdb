@@ -1,10 +1,10 @@
 ﻿--[[lit-meta
   name = "Corotyest/content"
-  version = "0.0.1"
+  version = "0.0.2"
   homepage = "https://github.com/Corotyest/content"
   description = "A simple couple of functions to manage files, that is in beta."
   tags = {"mem", "fast", "easy"}
-  dependecies = {"Corotyest/lua-extentions"}
+  dependencies = {"Corotyest/lua-extentions"}
   license = "MIT"
   author = { name = "Corotyest" }
 ]]
