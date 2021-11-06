@@ -24,10 +24,7 @@ function Resolver.buttonStyle(style)
 end
 
 function Resolver.buttonEmoji(emoji) -- Partial emoji object
-  if type(emoji) == "table"
-  and emoji.name
-  and emoji.id
-  and emoji.animated then
+  if type(emoji) == "table" and emoji.name then
     return {
       animated = emoji.animated,
       name = emoji.name,
@@ -59,9 +56,7 @@ function Resolver.objComponents(data)
     if type(cell) ~= "table" then return end -- definitely an invalid component
     cell.type = type(cell.type) == "number" and cell.type or componentType[cell.type]
     if bases[cell.type] then
-      -- optimization for passing fully constructed components
-      cell = isInstance(cell, classes.Component) and cell or bases[cell.type](cell)
-      nd:_buildComponent(cell.__class, cell)
+      nd:_buildComponent(bases[cell.type], cell)
     end
   end
   return nd
