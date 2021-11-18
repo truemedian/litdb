@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "creationix/coro-split"
-  version = "2.0.1"
+  version = "2.0.2"
   homepage = "https://github.com/luvit/lit/blob/master/deps/coro-split.lua"
   description = "An coro style helper for running tasks concurrently."
   tags = {"coro", "split"}
@@ -27,9 +27,10 @@ return function (...)
   local thread = coroutine.running()
   local left = #tasks
   local results = {}
+  local yielded = false
   local function check()
     left = left - 1
-    if left == 0 then
+    if left == 0 and yielded then
       assertResume(thread, unpack(results))
     end
   end
@@ -39,5 +40,9 @@ return function (...)
       check()
     end)()
   end
+  if left <= 0 then
+    return unpack(results)
+  end
+  yielded = true
   return coroutine.yield()
 end
