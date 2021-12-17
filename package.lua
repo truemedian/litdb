@@ -1,6 +1,6 @@
   return {
     name = "LeXinshou/smtp-mail",
-    version = "1.0.0",
+    version = "1.5.0",
     description = "Use SMTP mail client service using Luvit",
     tags = { "smtp", "mail", "luvit" },
     license = "MIT",
