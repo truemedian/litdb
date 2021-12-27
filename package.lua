@@ -1,5 +1,5 @@
 return {
-	version = "1.0.1",
+	version = "1.0.2",
 
 	name = "Lautenschlager-id/prepdir",
 	author = "Lautenschlager-id",
@@ -8,9 +8,7 @@ return {
 	license = "MIT",
 
 	files = { "*.lua" },
-	dependencies = {
-		"luvit/require"
-	},
+	dependencies = { },
 	tags = {
 		"lua",
 		"luvit",
