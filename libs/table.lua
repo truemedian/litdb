@@ -16,7 +16,7 @@ function self.copy(self, list, indexOnly)
 	local type1, type2 = type(self), type(list)
 	if type1 ~= 'table' then
 		return error(format(error_format, 1, 'copy', 'table', type1))
-	elseif self and type2 ~= 'table' then
+	elseif list and type2 ~= 'table' then
 		if not indexOnly and type2 == 'boolean' then
 			indexOnly = true
 		else
@@ -108,7 +108,7 @@ function self.read(self, docopy, auto_call)
 	local copy = docopy and table.copy(self, nil, true) or {}
 
 	return setmetatable(copy, {
-		__index = function(self, key)
+		__index = function(_, key)
 			local value = rawget(self, key)
 			if type(value) == 'function' then
 				return auto_call and value(self) or value

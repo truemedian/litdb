@@ -1,6 +1,6 @@
 return {
 	name = "Corotyest/lua-extentions",
-	version = "1.2.0",
+	version = "1.2.1",
 	description = "Useful functions for the Lua programming language.",
 	tags = { "jit", "fast", "util", "secure" },
 	license = "MIT",
