@@ -8,8 +8,8 @@ local format, dump, sfind = string.format, string.dump, string.find
 local create, yield, status, close, resume = coroutine.create, coroutine.yield, coroutine.status, coroutine.close, coroutine.resume
 
 local default_errors = {
-	bad = 'Incorrect argument #%s for %s (%s expected got %s)',
-	warning = 'Expected %s for %s are %s (in %s)', -- Expected value for channel are nil (in getSlot), etc
+	bad = 'bad argument #%s for %s (%s expected got %s)',
+	warning = 'Expected %s for %s are %s (in %s)'
 }
 
 local bad, warn = default_errors.bad, default_errors.warning

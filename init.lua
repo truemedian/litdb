@@ -1,13 +1,3 @@
--- local discordia = require 'discordia'
--- local console = discordia.Logger(4)
-
--- Hey this is a note to you. Add the getStoreSlot function.
-
---[=[
-	Chunk:
-		This block are setting the defaults for constructors.
-]=]
-
 local default_path = './deps/bestore/'
 
 local default_paths = {
@@ -16,12 +6,8 @@ local default_paths = {
 	auto_saves_path = default_path .. 'automatic-load-saves/',
 }
 
---[=[
-	Note, this default errors are not writeable, only for read.
-]=]
-
 local default_errors = {
-	normal = 'Incorrect argument #%s for %s (%s expected got %s)',
+	normal = 'bad argument #%s for %s (%s expected got %s)',
 	warning = 'Expected %s for %s are %s (in function %s)'
 }
 
@@ -36,7 +22,6 @@ local find = table.find
 
 local _type = type
 local saves_f = '_save_%s'
--- local options = {'channels', 'paths'}
 
 local function update(type, path)
 	local type1 = _type(type)
@@ -45,7 +30,6 @@ local function update(type, path)
 	end
 
 	local pathtr = default_path .. 'options.json'
-
 	local to = search(pathtr, '_path_saves') or {}; to[type] = path
 
 	return apply(pathtr, '_path_saves', to, 'module')
@@ -85,7 +69,6 @@ local function load(self, type, path)
 	self._types = types
 
 	path = path or self:getPath('auto_saves')
-
 	local load = search(path .. type .. '.json', format(saves_f, type))
 
 	if load then
@@ -125,7 +108,6 @@ local function setClient(self, client)
 	end
 
 	self.client = readOnlyClient(client)
-
 	return self
 end
 
@@ -145,19 +127,14 @@ return setmetatable({
 	package = function() return require './package' end
 }, {
 	__call = function(self, options)
-		-- options may not available, sorry
-
-		self._default_errors = default_errors
-		self._default_paths = default_paths; self._default_path = default_path
+		self._default_paths = default_paths; self._default_errors = default_errors
 
 		self._types = {}
-
 		for i, v in pairs(constructors) do
 			require(v)(self); self._types[i] = {}
 		end
 
 		local saves = search(default_path .. 'options.json', '_path_saves') or {}
-
 		if type(saves) == 'table' then
 			for name, path in pairs(saves) do
 				self:load(name, path)
@@ -174,4 +151,11 @@ return setmetatable({
 
 		return self
 	end,
+	__newindex = function(self, key, value)
+		if self[key] then
+			return error(format('Cannot overwrite protected propertie: %s', key), 3)
+		end
+
+		return rawset(self, key, value)
+	end
 })

@@ -30,7 +30,7 @@ local function getPath(self, name)
 	end
 
 	local paths = self._types.paths or {}
-	return not name and self._default_path or name and paths[name] or name and self._default_paths[name .. '_path']
+	return not name and self._default_paths.path or name and paths[name] or name and self._default_paths[name .. '_path']
 end
 
 local function remPath(self, name)
