@@ -142,11 +142,7 @@ return setmetatable({
 	save = save,
 	load = load,
 	setClient = setClient,
-	extra = {
-		copy = copy,
-		read = read,
-	},
-	package = require './package'
+	package = function() return require './package' end
 }, {
 	__call = function(self, options)
 		-- options may not available, sorry
