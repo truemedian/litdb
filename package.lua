@@ -22,11 +22,11 @@
 
 return {
 	name = "Corotyest/bestore",
-	version = "0.1.3",
+	version = "0.1.4",
 	description = "Better store, fast and secure.",
 	tags = { "data-store", "lua", "discord" },
 	license = "MIT",
-	author = { name = "Corotyest", email = "nil" },
+	author = { name = "Corotyest" },
 	dependencies = {
 		'SinisterRectus/discordia',
 		'Corotyest/lua-extentions',
