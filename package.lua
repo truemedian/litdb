@@ -20,9 +20,11 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 
+--! Note: this software are still in it beta version.
+
 return {
 	name = "Corotyest/bestore",
-	version = "0.1.5",
+	version = "0.1.6",
 	description = "Better store, fast and secure.",
 	tags = { "data-store", "lua", "discord" },
 	license = "MIT",
