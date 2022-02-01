@@ -25,37 +25,41 @@ end
 
 local stores = {}
 
-return {
-	isStore = function(store)
-		return stores[store]
-	end,
-	getStoreSlot = function(self, name, channelInt)
-		local type1, type2, type3 = type(self), type(name), type(channelInt)
-		if type1 ~= 'table' then
-			return error(format(bad, 'self', 'getStoreSlot', 'table', type1))
-		elseif type2 ~= 'string' then
-			return error(format(bad, 1, 'getStoreSlot', 'string', type2))
-		elseif channelInt and type3 ~= 'number' and type3 ~= 'string' then
-			return error(format(bad, 2, 'getStoreSlot', 'number', type2))
-		end
+local function isStore(store)
+	return stores[store]
+end
 
-		local channelId = self:getChannel(channelInt) or self._default_channel
-
-		if not channelId then
-			return nil, format(warn, 'value', 'channelId', 'nil', 'getSlotStore')
-		end
-
-		local mt = {
-			client = self.client,
-			_name = namefn(self, name),
-			_channel_id = channelId,
-			_threads = self._threads or {}
-		}
-
-		for name, fn in pairs(slots) do mt[name] = fn end
-		mt = table.read(mt, true)
-
-		stores[mt] = true
-		return mt
+local function getStoreSlot(self, name, channelInt)
+	local type1, type2, type3 = type(self), type(name), type(channelInt)
+	if type1 ~= 'table' then
+		return error(format(bad, 'self', 'getStoreSlot', 'table', type1))
+	elseif type2 ~= 'string' then
+		return error(format(bad, 1, 'getStoreSlot', 'string', type2))
+	elseif channelInt and type3 ~= 'number' and type3 ~= 'string' then
+		return error(format(bad, 2, 'getStoreSlot', 'number', type2))
 	end
+
+	local channelId = self:getChannel(channelInt) or self._default_channel
+
+	if not channelId then
+		return nil, format(warn, 'value', 'channelId', 'nil', 'getSlotStore')
+	end
+
+	local mt = {
+		client = self.client,
+		_name = namefn(self, name),
+		_channel_id = channelId,
+		_threads = self._threads or {}
+	}
+
+	for name, fn in pairs(slots) do mt[name] = fn end
+	mt = table.read(mt, true)
+
+	stores[mt] = true
+	return mt
+end
+
+return {
+	isStore = isStore,
+	getStoreSlot = getStoreSlot
 }

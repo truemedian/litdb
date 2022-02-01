@@ -12,24 +12,6 @@ local default_errors = {
 	warning = 'Expected %s for %s are %s (in %s)', -- Expected value for channel are nil (in getSlot), etc
 }
 
-local function fragment(string)
-	local res = { type = 'function'}
-	for n = 1, #string, 3 do
-		res[#res+1] = string:sub(n, n + 3)
-	end
-	return res
-end
-
-local function defragment(shard)
-	if type(shard) ~= 'table' then return nil end
-	if not shard.type == 'function' then return nil end
-	local buffer = ''
-	for _, buffer_shard in ipairs(shard) do
-		buffer = buffer .. buffer_shard
-	end
-	return buffer
-end
-
 local bad, warn = default_errors.bad, default_errors.warning
 
 local function encode(table, _in)
@@ -50,7 +32,7 @@ local function encode(table, _in)
 		if typev == 'function' then
 			local string = dump(value, true)
 
-			response[key] = fragment(string)
+			response[key] = string
 		elseif typev == 'table' and find(value, ':function') then
 			local ret = encode(value)
 			if ret then
@@ -87,14 +69,7 @@ local function decode(table, env, _in)
 	local nerror = 1
 	for key, value in pairs(table) do
 		local typev = type(value)
-		if typev == 'table' and value.type == 'function' then
-			local chunck, error = load(defragment(value), key, 'b', env)
-			if error then
-				errors[#errors + 1] = error
-			else
-				response[key] = chunck
-			end
-		elseif typev == 'string' then
+		if typev == 'string' then
 			local fn = value:find('function') and load(value, nil, nil, env)
 			response[key] = fn or value
 		elseif typev == 'table' and find(value, '%string') then
@@ -113,7 +88,6 @@ local function decode(table, env, _in)
 			response[key] = value
 		end
 	end
-
 	return response, getn(errors) ~= 0 and errors or nil
 end
 
@@ -148,15 +122,17 @@ local function getClientChannel(self, client, id)
 	return self._running_thread, #self._threads
 end
 
--- WARNING FORMATS
+local slots_cached = {}
+
 local noclient = format(warn, 'value', 'client', '%q', '%q')
 local nochannel = format(warn, 'value', 'channel', '%q', '%q')
 
+--- Set a slot in the cloud with a identification key `id`, return error if it are.
+---@param self table
+---@param id string
+---@param value any
+---@return boolean
 local function setSlot(self, id, value)
-	if self:getRunningThread() then
-		return nil, 'Another thread already running'
-	end
-
 	local type1, type2 = type(self), type(id)
 	if type1 ~= 'table' then
 		return error(format(bad, 'self', 'setSlot', 'table', type1))
@@ -166,70 +142,74 @@ local function setSlot(self, id, value)
 		return error(format(bad, 2, 'setSlot', 'any', nil))
 	end
 
+	if self:getRunningThread() then
+		return nil, 'Another thread already running'
+	end
+
 	local client, name = self.client, tostring(self._name)
 	if not client then
 		return nil, format(noclient, nil, name) .. ' for setSlot.'
 	end
 
 	local thread, _ = getClientChannel(self, client, self._channel_id)
-
-	-- for slotin in channel do
-	--     channel = slotin
-	-- end
 	local sucess, channel = resume(thread)
 
 	if sucess and channel then
 		local messageId, _ = sf(name .. '.json', id)
-
-		value = encode(value) or value
-
+		local store_value = encode(value) or value
 		if not messageId then
-			do
-				self:quitSlot(id)
-			end
+			do self:quitSlot(id) end
 
-			local content = json.encode(value)
+			local content = json.encode(store_value)
 			local message, error = channel:send(content)
-
 			if message then
 				local sucess, error = set(name .. '.json', id, message.id, 'module')
-
-				return sucess , error
+				if sucess then
+					slots_cached[id] = value
+				end
+				return sucess, error
 			end
-
-			return nil, { error = error, content = content, lua = value }
+			return nil, error, content
 		else
 			local message, _ = channel:getMessage(messageId)
-
 			if message then
-				local content = json.encode(value)
+				local content = json.encode(store_value)
 				local sucess, error = message:setContent(content)
 				if sucess then
+					slots_cached[id] = value
 					return true
 				else
-					return nil, { error = error, content = content, lua = value }
+					return nil, error, content
 				end
 			else
 				return self:setSlot(id, value)
 			end
 		end
 	end
-
 	return nil, format(nochannel, type(channel), name) .. ' for setSlot.'
 end
 
 local geterr = 'Not founded data store in %s [, with id %s]'
 
+--- Get a seted slot from the cloud, return error if it are.
+---@param self table
+---@param id string
+---@param data? table
+---@return boolean
 local function getSlot(self, id, data)
-	if self:getRunningThread() then
-		return nil, 'Another thread already running'
-	end
-
 	local type1, type2 = type(self), type(id)
 	if type1 ~= 'table' then
 		return error(format(bad, 'self', 'getSlot', 'table', type1))
 	elseif type2 ~= 'string' then
 		return error(format(bad, 1, 'getSlot', 'string', type2))
+	end
+
+	if self:getRunningThread() then
+		return nil, 'Another thread already running'
+	end
+
+	if slots_cached[id] then
+		return slots_cached[id]
 	end
 
 	local env, raw
@@ -243,28 +223,22 @@ local function getSlot(self, id, data)
 	end
 
 	local post, _ = getClientChannel(self, client, self._channel_id)
-
-	-- for slotin in channel do
-	--     channel = slotin
-	-- end
 	local _, channel = resume(post)
 
 	if channel then
 		local messageId, _ = sf(name .. '.json', id)
-
 		if messageId then
 			local message, error = channel:getMessage(messageId)
-
 			if message then
 				local cont = message.content
-
 				local dec, errs = decode(cont, env)
-
 				return not raw and dec or cont, errs
 			end
 
 			return nil, error
 		end
+
+		self:quitSlot(id)
 
 		return nil, format(geterr, name, id)
 	end
@@ -272,16 +246,20 @@ local function getSlot(self, id, data)
 	return nil, format(nochannel, type(channel), name) .. ' for getSlot.'
 end
 
+--- This function delete a slot from the cloud and return a error if it are.
+---@param self table
+---@param id string
+---@return boolean
 local function quitSlot(self, id)
-	if self:getRunningThread() then
-		return nil, 'Another thread already running'
-	end
-
 	local type1, type2 = type(self), type(id)
 	if type1 ~= 'table' then
 		return error(format(bad, 'self', 'quitSlot', 'table', type1))
 	elseif type2 ~= 'string' then
 		return error(format(bad, 1, 'quitSlot', 'string', type2))
+	end
+
+	if self:getRunningThread() then
+		return nil, 'Another thread already running'
 	end
 
 	local client, name = self.client, tostring(self._name)
@@ -290,22 +268,17 @@ local function quitSlot(self, id)
 	end
 
 	local unpost, _ = getClientChannel(self, client, self._channel_id)
-
-	-- for slotin in channel do
-	--     channel = slotin
-	-- end
-
 	local sucess, channel = resume(unpost)
 
 	if sucess and channel then
 		local messageId, _ = sf(name .. '.json', id)
-
 		if messageId then
 			local data, error = channel:getMessage(messageId)
 			if data then data:delete() end
-
 			local srem, err = rem(name .. '.json', id)
 			if srem then
+				if slots_cached[id] then slots_cached[id] = nil end
+
 				return true
 			else
 				return nil, err
@@ -324,14 +297,17 @@ local function escape(self, id)
 	return self:quitSlot(id)
 end
 
+--- Uses the `quitSlot` base to delete all posible deletable objects, return table with possible errors.
+---@param self table
+---@return table?
 local function quitAllSlots(self)
-	if self:getRunningThread() then
-		return nil, 'Another thread already running'
-	end
-
 	local type1 = type(self)
 	if type1 ~= 'table' then
 		return error(format(bad, 'self', 'quitAllSlots', 'table', type1))
+	end
+
+	if self:getRunningThread() then
+		return nil, 'Another thread already running'
 	end
 
 	local client, name = self.client, tostring(self._name)
@@ -352,6 +328,12 @@ local function quitAllSlots(self)
 	return nlen == 0 and true or nil, nlen ~= 0 and errors
 end
 
+-- thread management (not very util)
+
+--- Close a thread from table `self` located in `...[_threads]`.
+---@param self table
+---@param thread number
+---@return boolean
 local function closeThread(self, thread)
 	local type1, type2 = type(self), type(thread)
 	if type1 ~= 'table' then
@@ -371,6 +353,9 @@ local function closeThread(self, thread)
 	end
 end
 
+--- Clear all currently running threads or that may be closed, return a table with generated errors.
+---@param self table
+---@return table?
 local function closeAllThreads(self)
 	local type1 = type(self)
 	if type1 ~= 'table' then
@@ -399,6 +384,10 @@ local function closeAllThreads(self)
 	return n > 0 and errors
 end
 
+--- Returns the currently running thread from `self`.
+---@param self table
+---@param thread thread
+---@return boolean
 local function getRunningThread(self, thread)
 	local type1, type2 = type(self), type(thread)
 	if type1 ~= 'table' then
@@ -433,24 +422,15 @@ local function getRunningThread(self, thread)
 end
 
 local slots = {
-	encode = encode, -- encode a table to be formated into json
-
-	decode = decode, -- decode a converted table
-
-	setSlot = setSlot, -- set a data store `slot` in
-
-	getSlot = getSlot, -- get a seted data store `slot`
-
-	quitSlot = quitSlot, -- remove a slot seted into this data store
-
-	quitAllSlots = quitAllSlots, -- remove all seted slots into this data store
-
-	closeThread = closeThread, -- close a thread
-
-	closeAllThreads = closeAllThreads, -- close all threads
-
-	getRunningThread = getRunningThread, -- get the current running thread
+	encode = encode,
+	decode = decode,
+	setSlot = setSlot,
+	getSlot = getSlot,
+	quitSlot = quitSlot,
+	quitAllSlots = quitAllSlots,
+	closeThread = closeThread,
+	closeAllThreads = closeAllThreads,
+	getRunningThread = getRunningThread,
 }
 
--- slots.__index = slots
 return slots
