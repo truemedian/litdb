@@ -111,7 +111,7 @@ function self.read(self, docopy, auto_call)
 		__index = function(_, key)
 			local value = rawget(self, key)
 			if type(value) == 'function' then
-				return auto_call and value(self)
+				return auto_call and value(self) or not auto_call and value
 			else
 				local env = self.env
 				return value or env and env[key]
