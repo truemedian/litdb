@@ -60,7 +60,7 @@ local function save(self, type, path)
 	end
 
 	local rtype = self._types[type]
-	if not type then
+	if not rtype or #rtype == 0 then
 		return nil, format(warning, 'value', 'type', nil, 'save')
 	end
 

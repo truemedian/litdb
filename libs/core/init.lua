@@ -57,7 +57,7 @@ local function decode(table, env, _in)
 			if type(parse) == 'table' then
 				return decode(parse, env, _in)
 			elseif type(parse) == 'string' then
-				return load(parse, nil, nil, env)
+				return parse:find('function') and load(parse, nil, nil, env) or parse
 			end
 		end
 

@@ -42,7 +42,7 @@ local function getStoreSlot(self, name, channelInt)
 	local channelId = self:getChannel(channelInt) or self._default_channel
 
 	if not channelId then
-		return nil, format(warn, 'value', 'channelId', 'nil', 'getSlotStore')
+		return nil, format(warn, 'value', 'channelId', 'nil', 'getStoreSlot')
 	end
 
 	local mt = {

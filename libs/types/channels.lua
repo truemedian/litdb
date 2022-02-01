@@ -4,16 +4,13 @@ local format = string.format
 local find = table.find
 
 local function checkChannel(self, channel)
-	local client, error = self.client, nil
+	local client = self.client
 	if client and client.isInit and type(channel) == 'string' then
-		local sucess, error = client.get:getChannel(channel)
-
-		if not sucess then return nil, error end
-	else
-		--error = 'Cannot confirm channel existance.'
+		local sucess, err = client.get:getChannel(channel)
+		if not sucess then return nil, err end
 	end
 
-	return not error and true, error
+	return true
 end
 
 local function newChannel(self, channel)
@@ -33,17 +30,17 @@ local function newChannel(self, channel)
 		for name, channel in pairs(channel) do
 			local type = find(allowed, type(channel))
 			local check = checkChannel(self, channel)
-			channels[#channels+1] = check and type and channel or nil
+			channels[#channels+1] = check and type and channel
 		end
 	elseif type2 == 'string' or type2 == 'function' then
 		local check = checkChannel(self, channel)
-		channels[#channels+1] = check and channel or nil
+		channels[#channels+1] = check and channel
 	else
 		return nil, format(warn, 'value', 'channel', type2, 'newChannel')
 	end
 
-	local chs = self._types.channels or {}
-	for i,v in pairs(channels) do chs[i] = v end; self._types.channels = chs
+	local chs = self._types.channels or {}; local len = #chs
+	for i,v in pairs(channels) do chs[i + len] = v end; self._types.channels = chs
 
 	if not self._default_channel then
 		self._default_channel = type2 == 'string' and channel

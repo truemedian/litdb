@@ -22,7 +22,7 @@
 
 return {
 	name = "Corotyest/bestore",
-	version = "0.1.2",
+	version = "0.1.3",
 	description = "Better store, fast and secure.",
 	tags = { "data-store", "lua", "discord" },
 	license = "MIT",
