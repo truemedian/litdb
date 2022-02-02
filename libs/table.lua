@@ -49,16 +49,18 @@ function self.find(self, value, deep)
 	local are = type2 == 'string'
 	local typeof = are and sfind(types, sub(value, 2)) and true
 
+	local n = 1
+
 	for key, data in pairs(self) do
 		local type3 = type(data)
 		if typeof and compare(sub(value, 2), type3) then
-			return data
+			return data, n
 		elseif compare(value, key) or compare(value, data) then
-			return value
+			return value, n
 		elseif type3 == 'table' and deep then
-			data = table.find(data, value, true)
-			if data then return data end
-		end
+			local data, _n = table.find(data, value, true)
+			if data then return data, n, _n end
+		end; n = n + 1
 	end
 
 	return nil
@@ -111,7 +113,7 @@ function self.read(self, docopy, auto_call)
 		__index = function(_, key)
 			local value = rawget(self, key)
 			if type(value) == 'function' then
-				return auto_call and value(self) or not auto_call and value
+				return auto_call and value(self) or value
 			else
 				local env = self.env
 				return value or env and env[key]
@@ -126,7 +128,7 @@ end
 ---@param self table
 ---@param s string
 ---@return any
-function table.search(self, s)
+function self.search(self, s)
 	local type1, type2 = type(self), type(s)
 	if type1 ~= 'table' then
 		return error(format(error_format, 1, 'table.search', 'table', type1))
@@ -186,7 +188,7 @@ end
 
 --! This function has a dependencie: libs/string.split
 
-function table.sinsert(self, s, value)
+function self.sinsert(self, s, value)
 	local type1, type2, type3 = type(self), type(s), type(value)
 	if type1 ~= 'table' then
 		return error(format(error_format, 1, 'table.sinsert', 'table', type1))

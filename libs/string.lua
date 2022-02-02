@@ -59,10 +59,10 @@ local function slot(s, word, sing, rem_chars)
 	end
 end
 
-local function remove_(s, word, sing, r)
-	local sn = sfind(s, word .. '(%s+)' .. sing) or sfind(s, word .. sing)
+local function remove_(s, word, sing, rem_chars)
+	local sn = sfind(s, word .. '%s+' .. sing) or sfind(s, word .. sing)
 	local value = sn and sub(s, 0, sn - 1) or s
-	return not r and value:gsub('[%p%s]+$', '')
+	return not rem_chars and value:gsub('[%p%s]+$', '') or value
 end
 
 --- Tries to extract the values located in `extract` followed by the `sing` or '=', a optional field of extract
@@ -71,17 +71,17 @@ end
 ---@param extract table
 ---@param sign? string
 ---@return table
-function self.extract(self, extract, sign)
+function self.extract(self, extract, sing)
 	local type1, type2, type3 = type(self), type(extract), type(sign)
 	if type1 ~= 'string' then
 		return error(format(error_format, 1, 'string.extract', 'string', type1))
 	elseif type2 ~= 'table' then
 		return error(format(error_format, 2, 'string.extract', 'table', type2))
-	elseif sign and type3 ~= 'string' then
+	elseif sing and type3 ~= 'string' then
 		return error(format(error_format, 3, 'string.extract', 'string', type3))
 	end
 
-	sign = sign or '='
+	sing = sing or '='
 
 	local keywords
 	for index, value in pairs(extract) do
@@ -94,12 +94,12 @@ function self.extract(self, extract, sign)
 	local base, response = {extract, keywords}, {}
 
 	local function autocomplete(key)
-		local slot = slot(self, key, sign)
+		local slot = slot(self, key, sing)
 		for _, base in pairs(base) do
 			if type(base) == 'table' then
 				for _, _key in pairs(base) do
 					if type(_key) == 'string' and _key ~= key then
-						slot = remove_(slot, key) or slot
+						slot = slot and remove_(slot, _key, sing) or slot
 					end
 				end
 			end
@@ -121,7 +121,7 @@ end
 ---@param mn number
 ---@param mx number
 ---@return string
-function string.random(len, mn, mx)
+function self.random(len, mn, mx)
 	local type1, type2, type3 = type(len), type(mn), type(mx)
 	if type1 ~= 'number' then
 		return error(format(error_format, 1, 'string.random', 'number', type1))
