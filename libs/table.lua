@@ -153,7 +153,7 @@ function self.search(self, s)
 			end
 		else
 			if attach then
-				n = table.find(attach, value)
+				local v, n = table.find(attach, value)
 				if not n then
 					return nil, format('Not finded value %s in %s', value, attach)
 				end
@@ -173,7 +173,7 @@ function self.set(self, korv)
 		return error(format(error_format, 1, 'table.set', 'table', type1))
 	end
 
-	local n = table.find(self, korv)
+	local v, n = table.find(self, korv)
 	if n then
 		local v1, v2 = self[n], self[korv]
 		if v1 and type(v1) ~= 'table' then
