@@ -16,10 +16,12 @@ function tableStream.stream:forEach(f)
 end
 
 function tableStream.stream:contains(item)
-    if self.__table[item] then
-        return true
-    else
-        return false
+    for i, v in ipairs(self.__table) do
+        if v == item then
+            return true, self.__table[item]
+        else
+            return false
+        end
     end
 end
 
