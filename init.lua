@@ -44,6 +44,13 @@ function tableStream.stream:filter(f)
     end
     for i, v in ipairs(instanceOfTable) do
         if f(v) then
+            for xi, xv in ipairs(instanceOfTable) do
+                if xv == v then
+
+                else
+                    table.remove(instanceOfTable, i)
+                end 
+            end
         else
             table.remove(instanceOfTable, i)
         end
