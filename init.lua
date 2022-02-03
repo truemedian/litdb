@@ -16,7 +16,11 @@ function tableStream.stream:forEach(f)
 end
 
 function tableStream.stream:contains(item)
-    return self.__table[item] ~= nil
+    if self.__table[item] then
+        return true
+    else
+        return false
+    end
 end
 
 function tableStream.stream:isEmpty()
