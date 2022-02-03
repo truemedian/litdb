@@ -45,7 +45,7 @@ function tableStream.stream:filter(f)
     for i, v in ipairs(self.__table) do
         if f(v) then
         else
-            table.remove(instanceOfTable, v)
+            table.remove(instanceOfTable, i)
         end
     end
     return createStream(instanceOfTable).stream
