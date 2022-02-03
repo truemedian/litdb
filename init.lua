@@ -42,7 +42,7 @@ function tableStream.stream:filter(f)
     for i, v in ipairs(self.__table) do
         table.insert(instanceOfTable, v)
     end
-    for i, v in ipairs(self.__table) do
+    for i, v in ipairs(instanceOfTable) do
         if f(v) then
         else
             table.remove(instanceOfTable, i)
