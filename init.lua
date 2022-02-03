@@ -4,9 +4,13 @@ local tableStream = table
 
 tableStream.stream = {}
 
-function stream.createTableStream(table)
-    tableStream.stream.__table = table
+local function createStream(t)
+    tableStream.stream.__table = t
     return tableStream
+end
+
+function stream.createTableStream(table)
+    return createStream(table)
 end
 
 function tableStream.stream:forEach(f)
@@ -31,6 +35,20 @@ function tableStream.stream:isEmpty()
     else
         return false
     end
+end
+
+function tableStream.stream:filter(f)
+    local instanceOfTable = {}
+    for i, v in ipairs(self.__table) do
+        table.insert(instanceOfTable, v)
+    end
+    for i, v in ipairs(self.__table) do
+        if f(v) then
+        else
+            table.remove(instanceOfTable, v)
+        end
+    end
+    return createStream(instanceOfTable).stream
 end
 
 return stream
