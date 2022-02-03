@@ -1,5 +1,8 @@
 local stream = {}
 
+-- Deps
+local trycatch = require("trycatch")
+
 local tableStream = table
 
 tableStream.stream = {}
@@ -9,8 +12,14 @@ local function createStream(t)
     return tableStream
 end
 
-function stream.createTableStream(table)
-    return createStream(table)
+function stream.createTableStream(t)
+    local _v = createStream(nil)
+    trycatch:TryCatch(function ()
+        _v = createStream(t)
+    end, function (err)
+        error(err)
+    end)
+    return _v
 end
 
 function tableStream.stream:forEach(f)
