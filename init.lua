@@ -1,11 +1,10 @@
-exports.name = "maxprojects/stream"
-exports.version = "0.0.1"
+local stream = {}
 
 local tableStream = table
 
 tableStream.stream = {}
 
-function export.createTableStream(table)
+function stream.createTableStream(table)
     tableStream.stream.__table = table
     return tableStream
 end
@@ -27,3 +26,5 @@ function tableStream.stream:isEmpty()
         return false
     end
 end
+
+return stream
