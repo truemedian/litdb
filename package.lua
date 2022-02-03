@@ -1,9 +1,9 @@
 return {
     name = "whomaxiswellprojects/stream",
     description = "A Java Stream Class Based Library",
-    version = "0.1.6",
+    version = "0.1.7",
     dependencies = {
-        "whomaxiswellprojects/trycatch@0.0.1"
+        "whomaxiswellprojects/trycatch@0.0.2"
     },
     tags = { "java", "stream", "java-stream" },
     license = "MIT",
