@@ -11,7 +11,7 @@ end
 
 function tableStream.stream:forEach(f)
     for item, value in pairs(self.__table) do
-        f(value)
+        f(value, item)
     end
 end
 
