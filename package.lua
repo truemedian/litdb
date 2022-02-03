@@ -1,4 +1,8 @@
 return {
     name = "whomaxiswellprojects/stream",
-    version = "0.0.1"
+    description = "A Java Stream Class Based Library",
+    version = "0.0.2",
+    files = {
+        "*.lua"
+    }
 }
