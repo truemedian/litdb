@@ -39,22 +39,13 @@ end
 
 function tableStream.stream:filter(f)
     local instanceOfTable = {}
-    for i, v in ipairs(self.__table) do
-        table.insert(instanceOfTable, v)
-    end
-    for i, v in ipairs(instanceOfTable) do
-        if f(v) then
-            for xi, xv in ipairs(instanceOfTable) do
-                if xv == v then
 
-                else
-                    table.remove(instanceOfTable, i)
-                end 
-            end
-        else
-            table.remove(instanceOfTable, i)
+    for k, v in pairs(self.__table) do
+        if f(v) then
+            table.insert(instanceOfTable, v)
         end
     end
+
     return createStream(instanceOfTable).stream
 end
 
