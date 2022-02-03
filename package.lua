@@ -1,6 +1,6 @@
   return {
     name = "whomaxiswellprojects/trycatch",
-    version = "0.0.1",
+    version = "0.0.2",
     description = "A Try Catch that gets the error if the function didn't successfully run",
     tags = { "trycatch" },
     license = "MIT",
