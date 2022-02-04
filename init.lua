@@ -19,6 +19,12 @@ _G.bot = {
 	connections = { }
 }
 
+client:on('voiceDisconnect', function(member)
+	if member.user.id ~= client.user.id then return end
+
+	bot.connections[member.guild.id] = nil
+end)
+
 local function compress(message)
 	local author = message.author
 	if client.user.id == author.id or author.bot then

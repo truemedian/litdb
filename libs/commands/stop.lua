@@ -8,5 +8,6 @@ return setmetatable( { 'stop' }, {
 		coroutine.wrap(function()
 			connection:stopStream()
 		end)()
+		bot.connections[data.message.guild.id] = nil
 	end
 })
