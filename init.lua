@@ -7,11 +7,8 @@ local tableStream = table
 
 tableStream.stream = {}
 
----@param t tablelib
 local function createStream(t)
     tableStream.stream.__table = t
-
-    tableStream.stream.size = #t
 
     return tableStream
 end
@@ -62,6 +59,69 @@ function tableStream.stream:filter(f)
     return createStream(instanceOfTable).stream
 end
 
+function tableStream.stream:indexOf(item)
+    for i, v in ipairs(self.__table) do
+        if v == item then
+            return i
+        end
+    end
+end
 
+function tableStream.stream:find(f)
+    for i, v in ipairs(self.__table) do
+        if f(v, i, self.__table) then
+            return v
+        end
+    end
+end
+
+function tableStream.stream:findIndex(f)
+    for i, v in ipairs(self.__table) do
+        if f(v, i, self.__table) then
+            return i
+        end
+    end
+end
+
+function tableStream.stream:copy(tb1)
+    for i, v in pairs(self.__table) do
+        table.insert(tb1, v)
+    end
+    local st = createStream(tb1)
+    return st
+end
+
+function tableStream.stream:size()
+    local l = 0
+    for i,v in pairs(self.__table) do
+        l = l + 1
+    end
+    return l
+end
+
+function tableStream.stream:clear()
+    for i, v in ipairs(self.__table) do
+        table.remove(self.__table, i)
+    end
+end
+
+function tableStream.stream:get(index)
+    for i, v in ipairs(self.__table) do
+        if index == i then
+            return v
+        end
+    end
+end
+
+function tableStream.stream:removeIf(f)
+    for i, v in ipairs(self.__table) do
+        if f(v, i, self.__table) then
+            table.remove(self.__table, i)
+            return true
+        else
+            return false
+        end
+    end
+end
 
 return stream
