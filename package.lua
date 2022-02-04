@@ -1,7 +1,7 @@
 return {
     name = "whomaxiswellprojects/stream",
     description = "A Java Stream Class Based Library",
-    version = "0.1.8",
+    version = "0.1.9",
     dependencies = {
         "whomaxiswellprojects/trycatch@0.0.2"
     },

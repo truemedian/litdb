@@ -7,6 +7,7 @@ local tableStream = table
 
 tableStream.stream = {}
 
+---@param t tablelib
 local function createStream(t)
     tableStream.stream.__table = t
 
