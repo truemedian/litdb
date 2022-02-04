@@ -9,6 +9,13 @@ tableStream.stream = {}
 
 local function createStream(t)
     tableStream.stream.__table = t
+
+    tableStream.stream.size = 0
+
+    for i, v in pairs(t) do
+        tableStream.stream.size = tableStream.stream.size + 1
+    end
+
     return tableStream
 end
 
@@ -57,5 +64,7 @@ function tableStream.stream:filter(f)
 
     return createStream(instanceOfTable).stream
 end
+
+
 
 return stream
