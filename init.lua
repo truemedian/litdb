@@ -11,11 +11,7 @@ tableStream.stream = {}
 local function createStream(t)
     tableStream.stream.__table = t
 
-    tableStream.stream.size = 0
-
-    for i, v in pairs(t) do
-        tableStream.stream.size = tableStream.stream.size + 1
-    end
+    tableStream.stream.size = #t
 
     return tableStream
 end
