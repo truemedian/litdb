@@ -2,7 +2,7 @@
 
 return {
 	name = "Corotyest/content",
-	version = "0.0.4",
+	version = "0.0.5",
 	description = "A tool for manage files in format json.",
 	tags = { "lua", "lit", "luvit" },
 	license = "MIT",

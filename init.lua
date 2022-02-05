@@ -3,7 +3,7 @@ local decode, encode = json.decode, json.encode
 
 local typeof, open, close = io.type, io.open, io.close
 
-require 'lua-extentions'()
+require 'lua-extensions'()
 
 local format, sfind, split, lower = string.format, string.find, string.split, string.lower
 local find, getn, sinsert, search = table.find, table.getn, table.sinsert, table.search
