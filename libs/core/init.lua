@@ -91,7 +91,7 @@ local function decode(table, env, _in)
 	return response, getn(errors) ~= 0 and errors or nil
 end
 
-local permissions = {'sendMessages', 'manageMessages', 'readMessages'}
+local permissions = {'sendMessages', 'readMessages'}
 
 local function getClientChannel(self, client, id)
 	local type3 = type(id)
@@ -227,6 +227,7 @@ local function getSlot(self, id, data)
 
 	if channel then
 		local messageId, _ = sf(name .. '.json', id)
+		
 		if messageId then
 			local message, error = channel:getMessage(messageId)
 			if message then

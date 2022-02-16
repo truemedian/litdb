@@ -24,14 +24,14 @@
 
 return {
 	name = "Corotyest/bestore",
-	version = "0.1.6",
+	version = "0.1.9",
 	description = "Better store, fast and secure.",
 	tags = { "data-store", "lua", "discord" },
 	license = "MIT",
 	author = { name = "Corotyest" },
 	dependencies = {
 		'SinisterRectus/discordia',
-		'Corotyest/lua-extentions',
+		'Corotyest/lua-extensions',
 		'Corotyest/content'
 	},
 	files = { '**.lua' }
