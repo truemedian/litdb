@@ -70,9 +70,10 @@ end
 ---@param self string
 ---@param extract table
 ---@param sign? string
+---@param remove? boolean
 ---@return table
-function self.extract(self, extract, sing)
-	local type1, type2, type3 = type(self), type(extract), type(sign)
+function self.extract(self, extract, sing, remove)
+	local type1, type2, type3 = type(self), type(extract), type(sing)
 	if type1 ~= 'string' then
 		return error(format(error_format, 1, 'string.extract', 'string', type1))
 	elseif type2 ~= 'table' then
@@ -94,12 +95,12 @@ function self.extract(self, extract, sing)
 	local base, response = {extract, keywords}, {}
 
 	local function autocomplete(key)
-		local slot = slot(self, key, sing)
+		local slot = slot(self, key, sing, remove)
 		for _, base in pairs(base) do
 			if type(base) == 'table' then
 				for _, _key in pairs(base) do
 					if type(_key) == 'string' and _key ~= key then
-						slot = slot and remove_(slot, _key, sing) or slot
+						slot = slot and remove_(slot, _key, sing, remove) or slot
 					end
 				end
 			end

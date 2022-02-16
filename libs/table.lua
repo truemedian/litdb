@@ -43,7 +43,7 @@ function self.find(self, value, deep)
 	if type1 ~= 'table' then
 		return error(format(error_format, 1, 'table.find', 'table', type1))
 	elseif type2 == 'nil' then
-		return error(format(error_format, 2, 'table.find', 'any', type1))
+		return error(format(error_format, 2, 'table.find', 'any', type2))
 	end
 
 	local are = type2 == 'string'
@@ -55,11 +55,11 @@ function self.find(self, value, deep)
 		local type3 = type(data)
 		if typeof and compare(sub(value, 2), type3) then
 			return data, n
-		elseif compare(value, key) or compare(value, data) then
-			return value, n
+		elseif compare(value, data) or compare(value, key) then
+			return data, n
 		elseif type3 == 'table' and deep then
-			local data, _n = table.find(data, value, true)
-			if data then return data, n, _n end
+			local data = { table.find(data, value, true) }
+			if #data ~= 0 then insert(data, 2, n); return unpack(data) end
 		end; n = n + 1
 	end
 
@@ -153,7 +153,7 @@ function self.search(self, s)
 			end
 		else
 			if attach then
-				local v, n = table.find(attach, value)
+				local _, n = table.find(attach, value)
 				if not n then
 					return nil, format('Not finded value %s in %s', value, attach)
 				end
@@ -173,7 +173,7 @@ function self.set(self, korv)
 		return error(format(error_format, 1, 'table.set', 'table', type1))
 	end
 
-	local v, n = table.find(self, korv)
+	local _, n = table.find(self, korv)
 	if n then
 		local v1, v2 = self[n], self[korv]
 		if v1 and type(v1) ~= 'table' then
