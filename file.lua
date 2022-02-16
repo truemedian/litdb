@@ -1,4 +1,11 @@
-﻿local json = require 'json'
+﻿--[[lit-meta
+	name = 'Corotyest/content'
+	version = '0.0.6'
+	description = 'File system controller oriented to Roblox users.'
+	dependencies = { 'Corotyest/lua-extensions' }
+]]
+
+local json = require 'json'
 local decode, encode = json.decode, json.encode
 
 local typeof, open, close = io.type, io.open, io.close
