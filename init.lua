@@ -1,4 +1,4 @@
---- Tries to compare self with integrants of `...` if varag is more than 1 returns table.
+--- Tries to compare self with integrants of `...`; if varag is more than 1 returns table.
 ---@param self any
 ---@vararg any
 ---@return boolean/table
@@ -21,22 +21,32 @@ local function compare(self, ...)
 end
 
 _G.compare = compare
+
 local ext = setmetatable({
 	table = require './libs/table',
 	string = require './libs/string',
 	math = require './libs/math',
-}, {__call = function(self)
-	for _, v in pairs(self) do
-		v()
+}, {
+	__call = function(self, notGlobal)
+		local env = setmetatable(self, {__index = _G})
+		for _, v in pairs(self) do
+			for i, fn in pairs(v) do
+				setfenv(fn, env)
+			end
+			if not notGlobal then v() end
+		end
+		return self
 	end
-end})
+})
 
 for n, m in pairs(ext) do
-	setmetatable(m, {__call = function(self)
-		for k, v in pairs(self) do
-			_G[n][k] = v
+	setmetatable(m, {
+		__call = function(self)
+			for k, v in pairs(self) do
+				_G[n][k] = v
+			end
 		end
-	end})
+	})
 end
 
 return ext

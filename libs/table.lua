@@ -34,9 +34,10 @@ function self.copy(self, list, indexOnly)
 	return tab
 end
 
---- Tries to find `value` in table `self`
+--- Tries to find `value` in table `self`, if `deep` is passed scan all fields of type table to find `value`.
 ---@param self table
 ---@param value any
+---@param deep? boolean
 ---@return any
 function self.find(self, value, deep)
 	local type1, type2 = type(self), type(value)
@@ -49,18 +50,21 @@ function self.find(self, value, deep)
 	local are = type2 == 'string'
 	local typeof = are and sfind(types, sub(value, 2)) and true
 
-	local n = 1
-
 	for key, data in pairs(self) do
 		local type3 = type(data)
 		if typeof and compare(sub(value, 2), type3) then
-			return data, n
+			return data, key
 		elseif compare(value, data) or compare(value, key) then
-			return data, n
+			return data, key
 		elseif type3 == 'table' and deep then
 			local data = { table.find(data, value, true) }
-			if #data ~= 0 then insert(data, 2, n); return unpack(data) end
-		end; n = n + 1
+
+			local _has = table.getn(data) > 0
+			if _has then
+				insert(data, 2, key)
+				return unpack(data)
+			end
+		end
 	end
 
 	return nil

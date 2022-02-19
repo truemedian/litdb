@@ -2,7 +2,7 @@ local self = {}
 
 local random = math.random
 local format, sfind, lower, sub, match = string.format, string.find, string.lower, string.sub, string.match
-local gmatch, char = string.gmatch, string.char
+local gmatch, char, gsub = string.gmatch, string.char, string.gsub
 local remove, insert, concat = table.remove, table.insert, table.concat
 
 local error_format = 'bad argument #%s for %s (%s expected got %s)'
@@ -10,15 +10,16 @@ local error_format = 'bad argument #%s for %s (%s expected got %s)'
 local compare = _G.compare
 
 --- Compare string `self` with string `pattern`; you can give diferent [, `level`] for those comparisions:
---- 0 or 'equal' to compare equality of `self` and `pattern`,
+--- nil, 0 or 'equal' to compare equality of `self` and `pattern`,
 --- 1 or 'lwreq' to compare lowered values of `self` and `pattern`,
 --- 2 or 'find' to find `pattern` in `self` considered as magic,
 --- 3 or 'lwrfind' to find lowered `pattern` in lowered `self`.
 ---@param self string
 ---@param pattern string
+---@param init? number @only works with levels upper to 1
 ---@param level? number/string
 ---@return boolean
-function self.compare(self, pattern, level)
+function self.compare(self, pattern, init, level)
 	local type1, type2 = type(self), type(pattern)
 	if type1 ~= 'string' then
 		return error(format(error_format, 1, 'string.compare', 'string', type1))
@@ -32,47 +33,51 @@ function self.compare(self, pattern, level)
 	elseif level == 1 or level == 'lwreq' then
 		return compare(lower(self), lower(pattern))
 	elseif level == 2 or level == 'find' then
-		return sfind(self, pattern) and true or nil
+		return sfind(self, pattern, init) and true or nil
 	elseif level == 3 or level == 'lwrfind' then
-		return sfind(lower(self), lower(pattern)) and true or nil
+		return sfind(lower(self), lower(pattern), init) and true or nil
 	end
 
 	return nil
 end
 
+-- extension functions for `string.extract`
+
+-- detect if string `s` got `word` followed by `sing`, return the value after it
 local function got_sing(s, word, sing)
 	local start, last = sfind(s, word)
 	if not start and not last then return nil end
-
-	local str = sub(s, last + 1):gsub('^[%d%s]+', '')
-	return sub(str, 1, 1) == sing, str
+	s = gsub(sub(s, last + 1), '^%s*', '')
+	return sub(s, 1, 1) == sing, s
 end
 
-local function slot(s, word, sing, rem_chars)
-	local got_sing, str = got_sing(s, word, sing)
-	if not got_sing then
+-- compact the removition of spaces and `sing`
+local function slot(s, word, sing, trim)
+	sing, s = got_sing(s, word, sing)
+	if not sing then
 		return nil
 	else
-		local val = sub(str, 2)
-		if not rem_chars then val = val:gsub('[%p%s]+$', ''):gsub('^[%s%p]+', '') end
-		return val
+		local value = sub(s, 2)
+		if trim then value = self.trim(value) end
+		return value
 	end
 end
 
-local function remove_(s, word, sing, rem_chars)
-	local sn = sfind(s, word .. '%s+' .. sing) or sfind(s, word .. sing)
+-- removes unexpected `word` followed by `sing` of string `s`
+local function remove_(s, word, sing, trim)
+	local sn = sfind(s, word .. '%s*' .. sing)
 	local value = sn and sub(s, 0, sn - 1) or s
-	return not rem_chars and value:gsub('[%p%s]+$', '') or value
+	return trim and self.trim(value) or value
 end
 
---- Tries to extract the values located in `extract` followed by the `sing` or '=', a optional field of extract
---- is keywords, insert it as first index and erases if matches some of it values.
+--- Tries to get the values in `self` contents in `extract` followed by `sing`, as optional is `trim` to remove all spaces in start
+--- and the end of any value match.
 ---@param self string
 ---@param extract table
 ---@param sign? string
----@param remove? boolean
+---@param trim? boolean
 ---@return table
-function self.extract(self, extract, sing, remove)
+function self.extract(self, extract, sing, trim)
 	local type1, type2, type3 = type(self), type(extract), type(sing)
 	if type1 ~= 'string' then
 		return error(format(error_format, 1, 'string.extract', 'string', type1))
@@ -82,25 +87,28 @@ function self.extract(self, extract, sing, remove)
 		return error(format(error_format, 3, 'string.extract', 'string', type3))
 	end
 
-	sing = sing or '='
+	sing = type(sing) == 'string' and sing or '='
 
-	local keywords
+	local fn
+	local keywords = extract[1]; keywords = type(keywords) == 'table' and keywords
 	for index, value in pairs(extract) do
-		if type(value) == 'table' then
-			if index ~= 1 then return nil, 'To remove keywords the index expected is 1.' end
-			keywords = value; remove(value, 1)
+		local type4 = type(value)
+		if type4 ~= 'string' then
+			if type4 == 'function' and not fn then fn = value end
+			extract[index] = nil
 		end
-	end
+	end -- search for any field that is not a string
 
 	local base, response = {extract, keywords}, {}
 
+	-- match value `key`, but removing `extract` contents followed by `sing`
 	local function autocomplete(key)
-		local slot = slot(self, key, sing, remove)
+		local slot = slot(self, key, sing, trim)
 		for _, base in pairs(base) do
 			if type(base) == 'table' then
 				for _, _key in pairs(base) do
 					if type(_key) == 'string' and _key ~= key then
-						slot = slot and remove_(slot, _key, sing, remove) or slot
+						slot = slot and remove_(slot, _key, sing, trim) or slot
 					end
 				end
 			end
@@ -108,16 +116,18 @@ function self.extract(self, extract, sing, remove)
 		return slot
 	end
 
-	for _, index in pairs(extract) do
+	for hash, index in pairs(extract) do
+		hash = type(hash) == 'string' and hash or index
 		if type(index) == 'string' then
-			response[index] = autocomplete(index)
+			local value = autocomplete(index)
+			response[hash] = fn and fn(value, hash) or value
 		end
 	end
 
 	return response
 end
 
---- Generates a new random string in base of length `len`, minimum `mn` and maximum `mx`.
+--- Generates a new random string in base of length `len`, char minimum `mn` and maximum `mx`.
 ---@param len number
 ---@param mn number
 ---@param mx number
