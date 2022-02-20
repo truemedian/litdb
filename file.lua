@@ -1,10 +1,9 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '0.1.0-1'
+	version = '0.2.0'
 ]]
 
 local format, rep = string.format, string.rep
-local getn = table.getn
 
 local types = {
 	['nil'] = true,
@@ -14,6 +13,14 @@ local types = {
 	['userdata'] = true,
 	['function'] = true,
 }
+
+local function getn(list)
+	local num = 0
+	for _ in next, list do
+		num = num + 1
+	end
+	return num
+end
 
 local function _format(v)
 	local type = type(v)
@@ -28,7 +35,7 @@ local function _format(v)
 	end
 end
 
-local function encode(_, list, tabs)
+local function encode(list, tabs)
 	local n = getn(list)
 
 	local response = ''
@@ -37,10 +44,10 @@ local function encode(_, list, tabs)
 	for _index, _value in next, list do
 		local isTable = type(_value) == 'table'
 
-		tabs = tabs .. format('%s[%s] = %s\n',
+		response = response .. format('%s[%s] = %s\n',
 			rep('\t', tabs),
 			_format(_index),
-			not isTable and _format(_value) or encode(nil, _value, tabs + 1)
+			not isTable and _format(_value) or encode(_value, tabs + 1)
 		)
 	end
 
@@ -55,5 +62,5 @@ return setmetatable({
 	format = _format,
 	encode = encode
 }, {
-	__call = encode
+	__call = function(_, ...) return encode(...) end
 })
