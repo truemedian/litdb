@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '1.0.0-beta'
+	version = '1.0.1-beta'
 ]]
 
 local getuserdata = debug.getuservalue
@@ -195,6 +195,8 @@ end
 
 local console = io.stdout
 
+--- Writes directly to stdout, but in a beatiful format [, set inspect `usecolors` nil to write without colors].
+---@vararg any
 function inspect.show(...)
 	for index = 1, select('#', ...) do
 		console:write(inspect.encode(select(index, ...), { usecolor = inspect.usecolors }))
@@ -203,10 +205,12 @@ function inspect.show(...)
 	console:write('\n')
 end
 
+--- Writes directly to stdout
+---@vararg any
 function inspect.print(...)
 	for index = 1, select('#', ...) do
 		local value = select(index, ...)
-		console:write(value)
+		console:write(tostring(value))
 	end
 end
 
