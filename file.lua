@@ -1,275 +1,250 @@
-﻿--[[lit-meta
+--[[lit-meta
 	name = 'Corotyest/content'
-	version = '0.0.6'
-	description = 'File system controller oriented to Roblox users.'
-	dependencies = { 'Corotyest/lua-extensions' }
+	version = '0.2.0-beta'
+	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
-local json = require 'json'
-local decode, encode = json.decode, json.encode
+local inspect = require 'inspect'
+local extensions = require 'lua-extensions'(true)
+local string, table = extensions.string, extensions.table
 
-local typeof, open, close = io.type, io.open, io.close
+local getudata, setudata = debug.getuservalue, debug.setuservalue
+local f_type, open, close = io.type, io.open, io.close
+local remove, execute = os.remove, os.execute
+local format, sfind, match, _split, sinsert = string.format, string.find, string.match, string.split, string.sinsert
+local concat = table.concat
+local _error = 'incorrect argument #%s for %s (%s expected got %s)'
 
-require 'lua-extensions'()
+local haswindows = jit and jit.arch == 'Windows' or package.path:match('\\') and true
+local prefix = haswindows and '\\' or '/'
 
-local format, sfind, split, lower = string.format, string.find, string.split, string.lower
-local find, getn, sinsert, search = table.find, table.getn, table.sinsert, table.search
-
-local execute, rm = os.execute, os.remove
-
-local error_format = 'Incorrect argument #%s for %s (%s expected got %s)'
-
---- Check if the givened `name` is a existing file, the `extention` is optional.
---- The default is json.
----@param name string
----@param extention? string
----@return boolean
-local function isExisting(name, extention)
-	local type1, type2 = type(name), type(extention)
+local function split(value)
+	local type1 = type(value)
 	if type1 ~= 'string' then
-		return nil, format(error_format, 1, 'isExisting', 'string', type1)
-	elseif extention and type2 ~= 'string' then
-		return nil, format(error_format, 2, 'isExisting', 'string', type2)
+		return nil, format(_error, 1, 'split', 'string', type1)
 	end
 
-	local file = name .. (extention or '.json')
-	return typeof(file) and true or open(file) and true or nil
+	-- different matchs for get correct values
+	local path = sfind(value, '/', 1, true); path = path and path ~= 1 and match(value, '(.*)/.*$') or nil
+	local filename = path and match(value, '.*/(.-)$') or value
+
+	return path and match(path, '%g*'), filename, match(filename, '.*%.(.-)$')
 end
 
---- Check if the givened `name` is a currently open file.
----@param name string
----@param extention? string
----@return boolean
-local function isOpen(name, extention)
-	local type1, type2 = type(name), type(extention)
+local function attach(path, ...)
+	local type1 = type(path)
 	if type1 ~= 'string' then
-		return nil, format(error_format, 1, 'isOpen', 'string', type1)
-	elseif extention and type2 ~= 'string' then
-		return nil, format(error_format, 2, 'isOpen', 'string', type2)
+		return nil, format(_error, 1, 'attach', 'string', type1)
 	end
 
-	if isExisting(name, extention) then
-		local file = typeof(name .. (extention or '.json'))
-		if file and file ~= 'closed file' then
-			return true
+	local has = sfind(path, '/', 1, true) ~= 1
+	path = has and concat(_split(path, '/'), prefix) or path
+
+	local response = { path }
+	if ... then
+		for index = 1, select('#', ...) do
+			response[#response + 1] = select(index, ...)
+		end
+	end
+
+	return concat(response, prefix)
+end
+
+local function edit_dir(self, path, deldir)
+	local type1, type2 , type3 = type(self), type(path), type(deldir)
+	if type1 ~= 'table' then
+		return nil, format(_error, 'self', 'edit_dir', type1)
+	elseif type2 ~= 'string' then
+		return nil, format(_error, 1, 'edit_dir', 'string', type2)
+	elseif deldir and type3 ~= 'boolean' then
+		return nil, format(_error, 2, 'edit_dir', 'boolean', type3)
+	end
+
+	local path = attach(path)
+
+	if path and #path ~= 0 then
+		local endpoint = format(self.request, path, prefix)
+		local response = open(endpoint, 'w')
+
+		if not response then
+			return execute(format('mkdir %s', path)) and true, 'new'
 		else
-			return nil
+			close(response); remove(endpoint)
+			return deldir and execute(format('rmdir %s', path)) or not deldir and true, 'del'
+		end
+	end
+end
+
+local function isFile(file)
+	local type1 = type(file)
+	if type1 ~= 'userdata' then
+		return false
+	end
+
+	return f_type(file) ~= nil or sfind(tostring(file), 'file', 1, true) == 1
+end
+
+local function file_info(file, data)
+	local type1 = type(file)
+	if not isFile(file) then
+		return nil, format(_error, 1, 'file_info', 'userdata', type1)
+	end
+
+	data = type(data) == 'table' and data or { __name = data }
+
+	local userdata = getudata(file)
+
+	for key, value in pairs(data) do
+		if sfind(key, '__', 1, true) ~= 1 then
+			error('cannot damage userdata integrity')
+		end
+		userdata[key] = value
+	end
+
+	return setudata(file, userdata, '__index')
+end
+
+local handles = { }
+local _handle = { }
+
+function _handle.open(self, filename)
+	filename = filename or self.filename
+
+	self.handle.input = open(filename, 'r')
+	self.handle.output = open(filename, 'w')
+
+	return self
+end
+
+function _handle.close(self)
+	return self.handle.input:close() and self.handle.output:close()
+end
+
+function _handle.content(self, ...)
+	local file = self.handle.input
+
+	local lines = { }
+	for line in file:read() do
+		lines[#lines + 1] = line
+	end
+	
+	local data = concat(lines, '\n')
+	local success, chunck = pcall(load(data, file.__name, nil, _G), ...)
+
+	return success and chunck or data
+end
+
+function _handle.write(self, ...)
+	local file = self.handle.output
+
+	return file:write(file.__extension == 'lua' and 'return ' or '', ...)
+end
+
+function _handle.apply(self, options)
+	local key, value = options.key, options.value
+
+	local module = self:content()
+
+	if type(module) == 'table' then
+		if key then
+			local response = type(key) == 'string' and sinsert(module, key, value)
+
+			if not response then
+				module[key] = value
+			end
+		else
+			module[#module + 1] = value
 		end
 	else
-		return nil, 'File not exist.'
+		module = value
 	end
+
+	return self:write(inspect(module))
 end
 
---- Check if the givened `string` is json file, a lua file.
----@param string string
----@return boolean
----@return boolean
-local function strip_type(string)
-	return sfind(string, '%json$', 1) and true, sfind(string, '%lua$', 1) and true
+local _remove = remove
+
+function _handle.remove(self)
+	self:close(); handles[self] = nil; return _remove(self.filename)
 end
 
---- Creates a path (of folders) with the givened `path`.
---- The last '/' are not taked, recognize it as the file.
----@param path string
-local function createPath(path)
-	local split, v = split(path, '/'), '.'
+local info = debug.getinfo
 
-	for n, name in pairs(split) do
-		if type(name) == 'string' then
-			if name ~= '.' and n ~= getn(split) then
-				v = v .. '\\' .. name
-			end
+local function newHandle(self, file)
+	local type1, type2 = type(self), type(file)
+	if type1 ~= 'table' then
+		return nil, format(_error, 'self', 'neHandle', 'table', type1)
+	elseif type2 ~= 'string' then
+		if not self.isFile(file) then
+			return nil, format(_error, 1, 'newHandle', 'string/userdata', type2)
 		end
 	end
 
-	if #v > 1 then
-		local test = open(v .. '\\test', 'w')
+	local pathname, filename, extension = self.split(file)
 
-		if not test then
-			execute('mkdir ' .. v)
-		else
-			close(test); rm(v .. '\\test')
-		end
-	end
-end
+	local meta = { }
+	local props = {
+		pathname = pathname,
+		filename = filename,
+		extension = extension,
+		handle = { }
+	}
 
---- The parameter `module` are explicit needed for create/import a file.
---- You can pass the key for apply a `index` in table value, if it is a `table`.
---- If `value` are not a table, only uses it as value writer.
---- If there no key and value are a table and are no scope,
---- then procced to apply to the next index in table exactly like: `#table + 1`.
----@param module string
----@param key? any
----@param value? any
----@param scope? string
----@param notmakepath? boolean
----@return boolean : code
-local function apply(module, key, value, scope, notmakepath)
-	local type1, type4 = type(module), type(scope)
-	if type1 ~= 'string' then
-		return nil, format(error_format, 1, 'apply', 'string', type1)
-	elseif scope and type4 ~= 'string' then
-		return nil, format(error_format, 4, 'apply', 'string', type4)
+	function meta.__pairs()
+		return next, _handle, nil
 	end
 
-	local isjson, islua = strip_type(module)
+	function meta.__index(self, k)
+		if not handles[self] then return error('this handle is removed', 2) end
 
-	if not islua and not isjson then
-		module = module .. '.json'
-	end
-
-	if not notmakepath and scope ~= 'break' and not isExisting(module) then
-		createPath(module)
-	end
-
-	local file = typeof(module) and module or open(module)
-
-	if file then
-		close(file)
-
-		local o = open(module, 'r')
-		local master = o and decode(o:read() or 'null')
-
-		if master then
-			if type(master) == 'table' then
-				if key then
-					local response = type(key) == 'string' and sinsert(master, key, value)
-
-					if not response then
-						master[key] = value
-					end
-				else
-					if not scope then
-						--if not find(master, value) then
-							master[#master + 1] = value
-						--end
-					else
-						master = value
-					end
+		local value = rawget(_handle, k)
+		if type(value) == 'function' then
+			return function(self, ...)
+				local type1 = type(self)
+				if type1 ~= 'table' then
+					return nil, format(_error, 'self', k, 'table', type1)
 				end
-			else
-				master = value
+				return value(self, ...)
 			end
 		else
-			master = value
-
-			if key then
-				master = { [key] = value }
-			end
-		end
-
-		file = open(module, 'w'):write(encode(master))
-
-		close(file)
-		return true
-	elseif scope then
-		if lower(scope) == 'module' and not isExisting(module) then
-			open(module, 'w')
-
-			if file then
-				close(file)
-			end
-
-			return apply(module, key, value, 'break')
-		elseif scope == 'break' then
-			return nil, 'The function was breaked.'
-		else
-			return nil, 'Givened scope are nil or invalid.'
+			return props[k]
 		end
 	end
+
+	function meta.__newindex(self, k, v)
+		local _info = info(2)
+
+		local _, name = split(_info.source)
+		if name ~= 'content.lua' then
+			return error('attempt to index a protected table', 2)
+		end
+
+		return rawset(props, k, v)
+	end
+
+	function meta.__tostring(self)
+		return self.filename
+	end
+
+	local handle = setmetatable({}, meta)
+
+	handles[handle] = true
+	return handle:open()
 end
 
---- The parameter `module` are explicit needed for create/import a file.
---- If you give `scope` module, then tries to remove the module.
----
---- If you give any key as removal tries to set the scope but not recommended.
----@param module string
----@param key? any
----@param scope? string
----@return boolean : code
-local function remove(module, key, scope)
-	local type1, type3 = type(module), type(scope)
-	if type1 ~= 'string' then
-		return nil, format(error_format, 1, 'remove', 'string', type1)
-	elseif scope and type3 ~= 'string' then
-		return nil, format(error_format, 3, 'remove', 'stirng', type3)
-	elseif not strip_type(module) then
-		return nil, 'Module must be a json file.'
-	end
-
-	local file = typeof(module) and module or open(module)
-
-	if file then
-		if scope and lower(scope) == 'module' and isExisting(module) then
-			local sucess, error = rm(module) -- pcall(rm, module .. etc)
-			if sucess and not error then
-				return true
-			else
-				return nil, error
-			end
-		end
-
-		local reader = file:read()
-
-		local value = decode(reader or 'null')
-
-		if type(value) == 'table' then
-			if type(key) == 'string' and not sinsert(value, key, scope or 'remove') then
-				value[key] = scope or nil
-			else
-				value[key] = scope or nil
-			end
-		end
-
-		file = open(module, 'w'):write(encode(value))
-
-		close(file);
-
-		return true
-	else
-		return nil, 'Invalid module/directory.'
-	end
+local function isHandle(handle)
+	return handles[handle]
 end
-
---- If there any `index` for search, then tries to return it.
---- Only if the file has a table into it.
----
---- Nothing passed: return the entire file content.
----@param module string
----@param index? any
----@return any
-local function searchFor(module, index)
-	local type1 = type(module)
-	if type1 ~= 'string' then
-		return nil, format(error_format, 1, 'searchFor', 'string', type1)
-	elseif not strip_type(module) then
-		return nil, 'Module must be a json file.'
-	end
-
-	local file = typeof(module) and module or open(module)
-	if file then
-
-		local value = decode(file:read() or 'null')
-
-		if index and type(value) == 'table' then
-			local sucess, thing = pcall(search, value, index)
-
-			return value[index] or sucess and thing or nil
-		else
-			return value
-		end
-	end
-
-	return nil, 'Invalid file/module.'
-end
-
 
 return {
-	isExisting = isExisting,
-	isOpen = isOpen,
-	stype = strip_type,
-	createPath = createPath,
-	apply = apply,
-	remove = remove,
-	searchFor = searchFor
+	prefix = prefix,
+	request = '%s%srequest',
+	haswindows = haswindows,
+	split = split,
+	isFile = isFile,
+	attach = attach,
+	edit_dir = edit_dir,
+	file_info = file_info,
+	newHandle = newHandle,
+	isHandle = isHandle
 }
