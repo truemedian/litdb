@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/content'
-	version = '0.2.0-beta'
+	version = '0.2.2-beta'
 	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
@@ -110,21 +110,36 @@ local _handle = { }
 function _handle.open(self, filename)
 	filename = filename or self.filename
 
-	self.handle.input = open(filename, 'r')
-	self.handle.output = open(filename, 'w')
+	local input = open(filename, 'r')
+	file_info(input, filename)
+
+	self.handle.input = input
+	self.handle.output = {
+		write = function(self, ...)
+			local file = open(filename, 'w')
+			local success, error = pcall(file.write, file, ...); file:close()
+
+			if success then
+				return success
+			else
+				return nil, error
+			end
+		end,
+		__name = filename
+	}
 
 	return self
 end
 
 function _handle.close(self)
-	return self.handle.input:close() and self.handle.output:close()
+	return self.handle.input:close()
 end
 
 function _handle.content(self, ...)
 	local file = self.handle.input
 
 	local lines = { }
-	for line in file:read() do
+	for line in file:lines() do
 		lines[#lines + 1] = line
 	end
 	
@@ -134,10 +149,16 @@ function _handle.content(self, ...)
 	return success and chunck or data
 end
 
-function _handle.write(self, ...)
+function _handle.write(self, options, ...)
 	local file = self.handle.output
 
-	return file:write(file.__extension == 'lua' and 'return ' or '', ...)
+	local type1 = type(options)
+	local setret = type1 == 'table' and options.setret
+
+	local base = {...}
+	if type1 ~= 'table' then table.insert(base, 1, options) end
+
+	return file:write(self.extension == 'lua' and setret and 'return ' or '', unpack(base))
 end
 
 function _handle.apply(self, options)
@@ -182,12 +203,14 @@ local function newHandle(self, file)
 
 	local pathname, filename, extension = self.split(file)
 
+	if extension ~= 'lua' then return error('currently only supporting lua files', 2) end
+
 	local meta = { }
 	local props = {
+		handle = { },
 		pathname = pathname,
 		filename = filename,
 		extension = extension,
-		handle = { }
 	}
 
 	function meta.__pairs()
