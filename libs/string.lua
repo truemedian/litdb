@@ -161,7 +161,7 @@ function self.split(self, ...)
 	if type1 ~= 'string' then
 		return error(format(error_format, 1, 'string.split', 'string', type1))
 	elseif not ... then
-		return error(format(error_format, 'varag', 'string.split', 'any', nil))
+		return error(format(error_format, 'vararg', 'string.split', 'any', nil))
 	end
 
 	local sformat = format('([^%q]+)', concat({...}, '%'))
