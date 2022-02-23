@@ -33,7 +33,8 @@ local ext = setmetatable({
 			for i, fn in pairs(v) do
 				setfenv(fn, env)
 			end
-			if not notGlobal then v() end
+			
+			v(notGlobal)
 		end
 		return self
 	end
@@ -41,9 +42,10 @@ local ext = setmetatable({
 
 for n, m in pairs(ext) do
 	setmetatable(m, {
-		__call = function(self)
+		__index = _G[n],
+		__call = function(self, notGlobal)
 			for k, v in pairs(self) do
-				_G[n][k] = v
+				_G[n][k] = not notGlobal and v
 			end
 		end
 	})
