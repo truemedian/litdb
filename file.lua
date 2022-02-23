@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/content'
-	version = '0.2.2-1beta'
+	version = '0.2.2-2-beta'
 	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
@@ -261,14 +261,14 @@ local function isHandle(handle)
 end
 
 return {
-	prefix = prefix,
-	request = '%s%srequest',
-	haswindows = haswindows,
 	split = split,
 	isFile = isFile,
 	attach = attach,
+	prefix = prefix,
+	request = '%s%srequest',
+	isHandle = isHandle,
 	edit_dir = edit_dir,
 	file_info = file_info,
 	newHandle = newHandle,
-	isHandle = isHandle
+	haswindows = haswindows,
 }
