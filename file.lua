@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/content'
-	version = '0.2.2-beta'
+	version = '0.2.2-1beta'
 	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
@@ -186,7 +186,8 @@ end
 local _remove = remove
 
 function _handle.remove(self)
-	self:close(); handles[self] = nil; return _remove(self.filename)
+	local filename = self.filename
+	self:close(); handles[self] = nil; return _remove(filename)
 end
 
 local info = debug.getinfo
