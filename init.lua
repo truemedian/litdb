@@ -28,6 +28,10 @@ local ext = setmetatable({
 	math = require './libs/math',
 }, {
 	__call = function(self, notGlobal)
+		if self._active then
+			return self
+		end
+
 		local env = setmetatable(self, {__index = _G})
 		for _, v in pairs(self) do
 			for i, fn in pairs(v) do
@@ -36,6 +40,8 @@ local ext = setmetatable({
 			
 			v(notGlobal)
 		end
+
+		self._active = true
 		return self
 	end
 })
