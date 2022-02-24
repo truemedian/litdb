@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/content'
-	version = '0.2.2-3-beta'
+	version = '0.2.2-4-beta'
 	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
@@ -111,7 +111,7 @@ function _handle.open(self, filename)
 	filename = filename or self.filename
 
 	local input = open(filename, 'r')
-	if not input then return error('input file is nil', 2) end
+	if not input then input = input(filename, 'w') end
 
 	file_info(input, filename)
 
@@ -212,7 +212,7 @@ local function newHandle(self, file)
 	local props = {
 		handle = { },
 		pathname = pathname,
-		filename = filename,
+		filename = (pathname .. filename),
 		extension = extension,
 	}
 
