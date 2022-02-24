@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '1.0.4-beta'
+	version = '1.0.4-9-beta'
 ]]
 
 local getuserdata = debug.getuservalue
@@ -84,9 +84,9 @@ end
 
 local function __get(index, options)
 	local v = gsub(index, '_', '')
-	index = _format(nil, index, options)
-	local f = format('[%s]', index)
-	return type(index) == 'string' and sfind(v, '[%p%s]') and f or type(index) == 'number' and f or index
+	local i = _format(nil, index, options)
+	local f = format('[%s]', i)
+	return type(index) == 'string' and sfind(v, '[%p%s]') and f or type(index) == 'number' and f or i
 end
 
 local function field(self, index, value, options)
@@ -216,6 +216,8 @@ function inspect.show(...)
 end
 
 _G.show = inspect.show
+
+show({[0]=0})
 
 --- Writes directly to stdout
 ---@vararg any
