@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/content'
-	version = '0.2.2-4-beta'
+	version = '0.2.2-5-beta'
 	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
@@ -111,7 +111,7 @@ function _handle.open(self, filename)
 	filename = filename or self.filename
 
 	local input = open(filename, 'r')
-	if not input then input = input(filename, 'w') end
+	if not input then if open(filename, 'w') then input = open(filename, 'r') end end
 
 	file_info(input, filename)
 
