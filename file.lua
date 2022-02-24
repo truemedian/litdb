@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/content'
-	version = '0.2.2-2-beta'
+	version = '0.2.2-3-beta'
 	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
@@ -111,6 +111,8 @@ function _handle.open(self, filename)
 	filename = filename or self.filename
 
 	local input = open(filename, 'r')
+	if not input then return error('input file is nil', 2) end
+
 	file_info(input, filename)
 
 	self.handle.input = input
