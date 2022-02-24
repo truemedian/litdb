@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '1.0.1-beta'
+	version = '1.0.2-beta'
 ]]
 
 local getuserdata = debug.getuservalue
@@ -62,7 +62,7 @@ local function _format(self, value, options)
 	local usecolor = options and options.usecolor and options.usecolor == true
 
 	if type1 == 'table' then
-		local _, v = self.encode(value)
+		local _, v = self.encode(value, options)
 		return _ or v == 'last' and (options and options.recycle_udata and 'userdata: self' or 'table: self')
 	elseif type1 == 'userdata' then
 		if options then options.recycle_udata = true end
@@ -168,6 +168,8 @@ function inspect.encode(value, options)
 	last = value
 
 	options = options or {} -- skip errors
+	local tabs = options.tabs
+	options.tabs = tabs and tabs + 1 or tabs ~= false and 1
 
 	local content = getn(value)
 	if content == 0 then return setcolor('{}', 'nil') end
@@ -186,11 +188,11 @@ function inspect.encode(value, options)
 		end
 	end
 
-	return format('{\n%s}', format('%s%s%s',
+	return format('{\n%s%s}', format('%s%s%s',
 		#methods ~= 0 and concat(methods, ',\n') .. '\n\n' or '',
 		concat(response, ',\n'),
 		#response > 0 and '\n' or ''
-	))
+	), tabs ~= nil and tabs ~= false and options.tabs > 1 and rep('\t', tabs) or '')
 end
 
 local console = io.stdout
@@ -204,6 +206,8 @@ function inspect.show(...)
 	end
 	console:write('\n')
 end
+
+_G.show = inspect.show
 
 --- Writes directly to stdout
 ---@vararg any
