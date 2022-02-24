@@ -1,10 +1,10 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '1.0.3-beta'
+	version = '1.0.4-beta'
 ]]
 
 local getuserdata = debug.getuservalue
-local sfind, format, rep = string.find, string.format, string.rep
+local sfind, format, rep , gsub = string.find, string.format, string.rep, string.gsub
 local concat, sort = table.concat, table.sort
 
 local colors = {
@@ -82,6 +82,13 @@ local function _format(self, value, options)
 	end
 end
 
+local function __get(index, options)
+	local v = gsub(index, '_', '')
+	index = _format(nil, index, options)
+	local f = format('[%s]', index)
+	return type(index) == 'string' and sfind(v, '[%p%s]') and f or type(index) == 'number' and f or index
+end
+
 local function field(self, index, value, options)
 	local type1, type3 = type(index), type(options)
 	if type1 ~= 'string' then
@@ -97,7 +104,8 @@ local function field(self, index, value, options)
 
 	plat = format(plat, tabs or '', '%s', '%s')
 	
-	return isplat and format(plat, _format(self, value, options)) or format(plat, _format(self, index, options), _format(self, value, options))
+	return isplat and format(plat, _format(self, value, options)) or
+		format(plat, __get(index, options), _format(self, value, options))
 end
 
 local seen = { }
@@ -146,7 +154,7 @@ local inspect = {
 	join = join,
 	order = order,
 	plat0 = '%s%s',
-	plat1 = '%s[%s] = %s',
+	plat1 = '%s%s = %s',
 	field = field,
 	quote = quote,
 	format = format,
