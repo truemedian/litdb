@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '1.0.4-9-beta'
+	version = '1.0.4-10-beta'
 ]]
 
 local getuserdata = debug.getuservalue
@@ -216,8 +216,6 @@ function inspect.show(...)
 end
 
 _G.show = inspect.show
-
-show({[0]=0})
 
 --- Writes directly to stdout
 ---@vararg any
