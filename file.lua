@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '1.0.2-beta'
+	version = '1.0.3-beta'
 ]]
 
 local getuserdata = debug.getuservalue
@@ -172,7 +172,7 @@ function inspect.encode(value, options)
 	options.tabs = tabs and tabs + 1 or tabs ~= false and 1
 
 	local content = getn(value)
-	if content == 0 then return setcolor('{}', 'nil') end
+	if content == 0 then return options.usecolor == true and setcolor('{}', 'nil') or '{}' end
 
 	local methods = { }
 	local response = { }
