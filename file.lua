@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/content'
-	version = '0.2.2-5-beta'
+	version = '0.2.2-7-beta'
 	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
@@ -182,7 +182,7 @@ function _handle.apply(self, options)
 		module = value
 	end
 
-	return self:write(inspect(module))
+	return self:write(options, inspect.encode(module))
 end
 
 local _remove = remove
@@ -212,7 +212,7 @@ local function newHandle(self, file)
 	local props = {
 		handle = { },
 		pathname = pathname,
-		filename = (pathname .. filename),
+		filename = (pathname .. self.prefix .. filename),
 		extension = extension,
 	}
 
@@ -241,7 +241,7 @@ local function newHandle(self, file)
 		local _info = info(2)
 
 		local _, name = split(_info.source)
-		if name ~= 'content.lua' then
+		if self[k] and name ~= 'content.lua' then
 			return error('attempt to index a protected table', 2)
 		end
 
