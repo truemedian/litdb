@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/content'
-	version = '0.2.2-7-beta'
+	version = '0.2.2-8-beta'
 	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
@@ -11,8 +11,8 @@ local string, table = extensions.string, extensions.table
 local getudata, setudata = debug.getuservalue, debug.setuservalue
 local f_type, open, close = io.type, io.open, io.close
 local remove, execute = os.remove, os.execute
-local format, sfind, match, _split, sinsert = string.format, string.find, string.match, string.split, string.sinsert
-local concat = table.concat
+local format, sfind, match, _split = string.format, string.find, string.match, string.split
+local concat, sinsert = table.concat, table.sinsert
 local _error = 'incorrect argument #%s for %s (%s expected got %s)'
 
 local haswindows = jit and jit.arch == 'Windows' or package.path:match('\\') and true
