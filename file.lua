@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '1.0.4-10-beta'
+	version = '1.0.5[-beta'
 ]]
 
 local getuserdata = debug.getuservalue
@@ -83,10 +83,13 @@ local function _format(self, value, options)
 end
 
 local function __get(index, options)
-	local v = gsub(index, '_', '')
-	local i = _format(nil, index, options)
-	local f = format('[%s]', i)
-	return type(index) == 'string' and sfind(v, '[%p%s]') and f or type(index) == 'number' and f or i
+	local type1 = type(index)
+	local form = _format(nil, index, options)
+	if type1 == 'string' and sfind(gsub(index, '_', ''), '[%p%s]+') then
+		return format('[%s]', form) or form
+	else
+		return type1 == 'number' and format('[%s]', form) or index
+	end
 end
 
 local function field(self, index, value, options)
