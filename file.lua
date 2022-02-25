@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '1.0.5[-beta'
+	version = '1.0.5-1[-beta'
 ]]
 
 local getuserdata = debug.getuservalue
@@ -121,15 +121,16 @@ local function sortFn(_in, out)
 	if type(value1) == 'table' and not seen[value1] then
 		sort(value1, sortFn); seen[value] = true
 	end
-	seen[value] = seen[value] and nil; seen[value1] = seen[value1] and nil
+
+	if value then seen[value] = seen[value] and nil end; if value1 then seen[value1] = seen[value1] and nil end
 
 	local index, index1 = _in[1], out[1]
 	local i, i1 = type(index), type(index1)
 
 	if i == 'number' then
-		return index and i1 == 'number' and index < index1 or i1 ~= 'number' and index > #index1
+		return i1 == 'number' and index < index1 or index1 and i1 ~= 'number' and index > #index1
 	else
-		return i1 ~= 'number' and #index < #index1
+		return i1 ~= 'number' and (index and index1) and #index < #index1
 	end
 end
 
@@ -174,7 +175,7 @@ function inspect.encode(value, options)
 		return nil, 'argument #2 must be table'
 	end
 
-	if last == value then return nil, 'last' end
+	if last == value then return value, 'last' end
 
 	last = value
 
