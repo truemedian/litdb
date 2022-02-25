@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/content'
-	version = '0.2.2-8-beta'
+	version = '0.2.2-9-beta'
 	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
@@ -137,6 +137,12 @@ function _handle.close(self)
 	return self.handle.input:close()
 end
 
+function _handle.reboot(self)
+	if self:close() then
+		return self:open()
+	end
+end
+
 function _handle.content(self, ...)
 	local file = self.handle.input
 
@@ -148,7 +154,7 @@ function _handle.content(self, ...)
 	local data = concat(lines, '\n')
 	local success, chunck = pcall(load(data, file.__name, nil, _G), ...)
 
-	return success and chunck or data
+	return success and chunck or data, self:reboot()
 end
 
 function _handle.write(self, options, ...)
@@ -179,7 +185,7 @@ function _handle.apply(self, options)
 			module[#module + 1] = value
 		end
 	else
-		module = value
+		module = key and { [key] = value } or value
 	end
 
 	return self:write(options, inspect.encode(module))
