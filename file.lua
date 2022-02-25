@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '1.0.5-1[-beta'
+	version = '1.1.0'
 ]]
 
 local getuserdata = debug.getuservalue
@@ -57,6 +57,23 @@ local function setcolor(value, special)
 	return '\27[' .. (colors[special] or '0') .. 'm' .. value .. '\27[0m'
 end
 
+local controls = {
+	['\t'] = 't',
+	['\r'] = 'r',
+	['\f'] = 'f',
+	['\\'] = '\\',
+	['\a'] = 'a',
+	["\'"] = "'",
+	['\n'] = 'n',
+	['\"'] = '"',
+	['\v'] = 'v',
+	['\b'] = 'b'
+}
+
+local function escape(value)
+	return '\\' .. (controls[value] or '')
+end
+
 local function _format(self, value, options)
 	local type1 = type(value)
 	local usecolor = options and options.usecolor and options.usecolor == true
@@ -66,13 +83,12 @@ local function _format(self, value, options)
 		return _ or v == 'last' and (options and options.recycle_udata and 'userdata: self' or 'table: self')
 	elseif type1 == 'userdata' then
 		if options then options.recycle_udata = true end
-
 		local _, v = self.encode(getuserdata(value), options or {recycle_udata = true})
 		return _ or v == 'last' and 'userdata: self'
 	elseif type1 == 'number' then
 		return usecolor and setcolor(value, type1) or value
 	elseif type1 == 'string' then
-		value = join(nil, tostring(value))
+		value = join(nil, gsub(tostring(value), '[%c\128-\255]', escape))
 		return usecolor and setcolor(value, type1) or value
 	elseif type1 == 'boolean' or type1 == 'nil' then
 		return usecolor and setcolor(tostring(value), type1) or tostring(value)
@@ -84,6 +100,7 @@ end
 
 local function __get(index, options)
 	local type1 = type(index)
+	index = gsub(index, '[%c\\\128-\255]', escape)
 	local form = _format(nil, index, options)
 	if type1 == 'string' and sfind(gsub(index, '_', ''), '[%p%s]+') then
 		return format('[%s]', form) or form
@@ -100,7 +117,8 @@ local function field(self, index, value, options)
 		return nil
 	end
 
-	local tabs = options and options.tabs ~= false and rep('\t', options and options.tabs or 1)
+	local spaces = options and options.spaces == true
+	local tabs = options and (spaces and ' ' or options.tabs ~= false and rep('\t', options and options.tabs or 1))
 
 	local isplat = type1 == 'number' and index > 0
 	local plat = isplat and self.plat0 or type1 == 'string' and self.plat1 or self.plat1
@@ -174,14 +192,13 @@ function inspect.encode(value, options)
 	elseif options and type2 ~= 'table' then
 		return nil, 'argument #2 must be table'
 	end
-
-	if last == value then return value, 'last' end
-
+	
+	if last == value then last = nil; return nil, 'last' end
 	last = value
 
 	options = options or {} -- skip errors
-	local tabs = options.tabs
-	options.tabs = tabs and tabs + 1 or tabs ~= false and 1
+	local tabs = not options.spaces and options.tabs
+	options.tabs = tabs and tabs + 1 or tabs ~= false and 1; tabs = options.tabs
 
 	local content = getn(value)
 	if content == 0 then return options.usecolor == true and setcolor('{}', 'nil') or '{}' end
@@ -200,26 +217,35 @@ function inspect.encode(value, options)
 		end
 	end
 
-	return format('{\n%s%s}', format('%s%s%s',
-		#methods ~= 0 and concat(methods, ',\n') .. '\n\n' or '',
-		concat(response, ',\n'),
-		#response > 0 and '\n' or ''
-	), tabs ~= nil and tabs ~= false and options.tabs > 1 and rep('\t', tabs) or '')
+	local spaces = options and options.spaces == true
+
+	local consumer = spaces and ' ' or tabs ~= nil and tabs ~= false and tabs ~= 1 and rep('\t', tabs - 1) or ''
+	local concatenate = #response ~= 0 and (spaces and ' ' or '\n') or ''
+
+	methods = #methods ~= 0 and (spaces and concat(methods, ', ') or concat(methods, ',\n')) or ''
+	response = #response ~= 0 and (spaces and concat(response, ', ') or concat(response, ',\n')) or ''
+
+	return format('{%s%s%s}', spaces and ' ' or '\n', format('%s%s%s',
+		methods,
+		response,
+		concatenate
+	), consumer)
 end
 
 local console = io.stdout
 
---- Writes directly to stdout, but in a beatiful format [, set inspect `usecolors` nil to write without colors].
+--- Writes directly to stdout, but in a beatiful format [, set inspect `usecolors` nil to write without colors] [, set inspect `spaces`
+--- to use spaces instead tabs].
 ---@vararg any
-function inspect.show(...)
+function _G.show(...)
 	for index = 1, select('#', ...) do
-		console:write(inspect.encode(select(index, ...), { usecolor = inspect.usecolors }))
-		console:write'    '
+		console:write(inspect.encode(select(index, ...), { usecolor = inspect.usecolors, spaces = inspect.spaces }))
+		console:write'\t'
 	end
-	console:write('\n')
+	console:write'\n'
 end
 
-_G.show = inspect.show
+inspect.show = show
 
 --- Writes directly to stdout
 ---@vararg any
@@ -227,7 +253,9 @@ function inspect.print(...)
 	for index = 1, select('#', ...) do
 		local value = select(index, ...)
 		console:write(tostring(value))
+		console:write'\t'
 	end
+	console:write'\n'
 end
 
 return inspect
