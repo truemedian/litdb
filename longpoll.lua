@@ -1,94 +1,60 @@
-local Class = require("vk-luvit.utils.class")
-local http = require("simple-http")
+local Class = require('./utils/class')
+local logger = require('./utils/logger')
+local http = require('simple-http')
 
 
-local LongPoll = Class()
+local LongPoll = Class{}
 
-  function LongPoll:init(api, group_id, wait, error_handler)
-    self.handlers = {} -- {event = {handler1, handler2}, all={...}}
-    self.error_handler = error_handler
-    self.running = false
-
-    self.api = api
-    self.group_id = group_id or api.groups.get_by_id()[1].id
-
+  --- Create LongPoll object
+  -- @param vk (table) - vk object
+  -- @param group_id (number|nil)
+  -- @param wait (number)
+  function LongPoll:init(vk, group_id, wait)
+    self.vk = vk
+    self.group_id = group_id or vk:request('groups.getById')[1].id
     self.wait = wait or 25
   end
 
+  --- Set longpoll server
   function LongPoll:set_server()
-    local server = self.api.groups.getLongPollServer({group_id=self.group_id})
-    self.server = server.server
-    self.key = server.key
-    self.ts = server.ts
+    local server, err = self.vk:request('groups.getLongPollServer',
+                                        {group_id=self.group_id})
+    if server then
+      self.server = server.server
+      self.key = server.key
+      self.ts = server.ts
+      return true
+    end
+    self.server = nil
+    self.key = nil
+    self.ts = nil
+    return false, err
   end
 
-  function LongPoll:get_events()
-    local url = "%s?act=a_check&key=%s&ts=%s&wait=%s"
-    url = url:format(self.server, self.key, self.ts, self.wait)
-    return http.request("GET", url)
-  end
-
-  function LongPoll:run()
+  --- Get group events (updates)
+  -- @return events (table) event list
+  function LongPoll:get_updates()
     if not self.server then
+      local success, err = self:set_server()
+      if not success then
+        logger:error(err)
+        return {}
+      end
+    end
+
+    local url = '%s?act=a_check&key=%s&ts=%s&wait=%s'
+    url = url:format(self.server, self.key, self.ts, self.wait)
+    local event, err = http.request('GET', url)
+    if not event then
+      logger:error(err)
+      return {}
+    end
+    if event.failed then
       self:set_server()
+      return {}
     end
-
-    local events, err
-    self.running = true
-    while self.running do
-      events, err = self:get_events()
-      if events then
-        if events.failed then
-          self:set_server()
-        else
-          self.ts = events.ts
-          for _, event in ipairs(events.updates) do
-            self:handle_event(event)
-          end
-        end
-      else
-        if self.error_handler then
-          self.error_handler(err)
-        end
-      end
-    end
-  end
-
-  function LongPoll:stop()
-    self.running = false
-  end
-
-  function LongPoll:add_handler(event, handler)
-    if not self.handlers[event] then
-      self.handlers[event] = {}
-    end
-    table.insert(self.handlers[event], handler)
-  end
-
-  function LongPoll:delete_handler(event, handler)
-    for i, sub_handler in ipairs(self.handlers[event] or {}) do
-      if handler == sub_handler then
-        table.remove(i)
-        break
-      end
-    end
-    if #(self.handlers[event] or {}) == 0 then
-      self.handlers[event] = nil
-    end
-  end
-
-  function LongPoll:handle_event(event)
-    local ev_type, event_obj = event.type, event.object
-    if self.handlers[ev_type] then
-      for _, handler in ipairs(self.handlers[ev_type]) do
-        coroutine.wrap(handler)(event_obj)
-      end
-    end
-    if self.handlers["all"] then
-      for _, handler in ipairs(self.handlers["all"]) do
-        coroutine.wrap(handler)(ev_type, event_obj)
-      end
-    end
+    self.ts = event.ts
+    return event.updates
   end
 
 return LongPoll
