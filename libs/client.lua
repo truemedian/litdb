@@ -180,6 +180,7 @@ function Client:Request (Method,Endpoint,Tags,Headers,Body)
     local B = nil
     if Body then
         B = json.encode (Body)
+        H["Content-Length"] = #B
     end
     local HR,BR = MakeRequest (Method,Endpoint,H,B)
     if HR["x-csrf-token"] ~= nil then
