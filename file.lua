@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = "TohruMKDM/color-print"
-    version = "1.0.0"
+    version = "1.0.1"
     dependencies = {}
     description = "Write text in terminal with colors"
     tags = { "colors", "print", "color" }
