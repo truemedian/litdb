@@ -8,7 +8,7 @@ local root, class_api, instance_api 					= {}, {}, {};
 local orcus 											= {
 	MAX_CONSTRUCTOR_LINK 								= 1;
 	_DESCRIPTION 										= 'object orientation implementation in Lua';
-	_VERSION 											= 'v0.0.2';
+	_VERSION 											= 'v0.0.3';
 	_URL 												= 'http://github.com/alphafantomu/orcus';
 	_LICENSE 											= 'MIT LICENSE <http://www.opensource.org/licenses/mit-license.php>'
 };
@@ -55,19 +55,21 @@ end;
 
 local newClass = function(class_name, attributes, constructor, base_class)
 	assert(base_class == nil or type(base_class) == 'table' and isClass(base_class), 'can only extend from a class');
-	local class = setmetatable(deepCopy(class_api, nil, true),
+	local copy = deepCopy(attributes, nil, true);
+	local class = setmetatable(deepCopy(class_api, copy, true),
 	{
 		__type = CLASS;
 		__name = class_name;
 		__constructor = constructor;
 		__super = base_class;
 		__mixins = {};
+		--__cast = nil; --for casting, self, casting class
 
 		__index = root.__index;
 		__call = root.__call;
 		__tostring = root.__tostring;
 	});
-	class.name, class.init = class_name, constructor;
+	class.name, class.init = class.name or class_name, constructor;
 	return class;
 end;
 
@@ -109,13 +111,32 @@ end;
 root.__index = function(self, index)
 	local meta = getmetatable(self);
 	local ot = meta.__type;
-	local reference = ot == INSTANCE and meta.__class or ot == CLASS and meta.__super or nil;
-	--check mixins too
-	if (reference) then
-		local value = reference[index];
+	if (ot == INSTANCE) then
+		local value = meta.__class[index];
 		if (value ~= nil) then
-			rawset(self, index, value);
-			return value;
+			if (type(value) == 'table' and value.isA ~= nil and value:isA('getter')) then
+				return value:call(self);
+			else
+				rawset(self, index, value);
+				return value;
+			end;
+		end;
+	elseif (ot == CLASS) then --class attributes do not trigger __index here
+		--mixins -> superclasses
+		local __mixins, __super = meta.__mixins, meta.__super;
+		local n = #__mixins;
+		for i = 1, n do
+			local mixin_class = __mixins[i];
+			local value = mixin_class[index];
+			if (value ~= nil) then
+				return value;
+			end;
+		end;
+		if (__super ~= nil) then
+			local value = __super[index];
+			if (value ~= nil) then
+				return value;
+			end;
 		end;
 	end;
 end;
@@ -182,8 +203,14 @@ end;
 instance_api.cast = function(self, class)
 	if (class) then
 		local m = getmetatable(self);
+		local cc = m.__class;
+		if (cc) then
+			local cast_init = getmetatable(cc).__cast;
+			if (cast_init) then
+				cast_init(self, class);
+			end;
+		end;
 		m.__class = class;
-		--check for casting function?
 	end;
 end;
 
