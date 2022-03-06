@@ -1,7 +1,6 @@
 --[[lit-meta
 	name = "TohruMKDM/color-print"
-    version = "1.0.1"
-    dependencies = {}
+    version = "1.0.2"
     description = "Write text in terminal with colors"
     tags = { "colors", "print", "color" }
     license = "MIT"
@@ -32,13 +31,13 @@ return function(...)
             fg = fg ~= '-' and fg
             if not fg and bg then
                 gen1 = gmatch(bg, '[^, ]+')
-                args[i] = format(stmtBG, gen1() or 0, gen1() or 0, gen1() or 0, str)
+                args[i] = format(stmtBG, gen1() or 0, gen1() or 0, gen1() or 0, sub(str, 2, -2))
             elseif fg and not bg then
                 gen1 = gmatch(fg, '[^, ]+')
-                args[i] = format(stmtFG, gen1() or 0, gen1() or 0, gen1() or 0, str)
+                args[i] = format(stmtFG, gen1() or 0, gen1() or 0, gen1() or 0, sub(str, 2, -2))
             else
                 gen1, gen2 = gmatch(fg, '[^, ]+'), gmatch(bg, '[^, ]+')
-                args[1] = format(stmtFGBG, gen1() or 0, gen1() or 0, gen1() or 0, gen2() or 0, gen2() or 0, gen2() or 0, str)
+                args[1] = format(stmtFGBG, gen1() or 0, gen1() or 0, gen1() or 0, gen2() or 0, gen2() or 0, gen2() or 0, sub(str, 2, -2))
             end
         end
     end
