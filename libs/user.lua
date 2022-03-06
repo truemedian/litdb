@@ -163,7 +163,7 @@ function User.__call (_,Client,UserId,Data)
     if type(UserId) == "number" then
         self.Id = UserId
     elseif type(UserId) == "string" then
-        local Success,Body = self.Client:Request("POST","https://users.roblox.com/v1/usernames/users",{},{usernames={UserId},excludeBannedUsers=true})
+        local Success,Body = self.Client:Request("POST","https://users.roblox.com/v1/usernames/users",{},{},{usernames={UserId},excludeBannedUsers=true})
         if Success then
             Success = false
             for _,v in pairs(Body["data"]) do
