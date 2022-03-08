@@ -19,7 +19,7 @@ function formatter.bold(...)
     for i = 1, n do
         args[i] = tostring(args[i])
     end
-    return format(bold, concat(args))
+    return format(bold, concat(args, '\t'))
 end
 
 function formatter.faint(...)
@@ -28,7 +28,7 @@ function formatter.faint(...)
     for i = 1, n do
         args[i] = tostring(args[i])
     end
-    return format(faint, concat(args))
+    return format(faint, concat(args, '\t'))
 end
 
 function formatter.underline(...)
@@ -37,7 +37,7 @@ function formatter.underline(...)
     for i = 1, n do
         args[i] = tostring(args[i])
     end
-    return format(underline, concat(args))
+    return format(underline, concat(args, '\t'))
 end
 
 function formatter.blink(...)
@@ -46,7 +46,7 @@ function formatter.blink(...)
     for i = 1, n do
         args[i] = tostring(args[i])
     end
-    return format(blink, concat(args))
+    return format(blink, concat(args, '\t'))
 end
 
 return formatter
