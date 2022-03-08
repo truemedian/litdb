@@ -1,6 +1,6 @@
 return {
     name = 'TohruMKDM/color-print',
-    version = '2.0.1',
+    version = '2.0.2',
     description = 'Write text in terminal with colors and formatting',
     tags = {'colors', 'print', 'tty', 'formatting'},
     license = 'MIT',

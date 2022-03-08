@@ -7,7 +7,11 @@ local faint = '\027[2m%s\027[0m'
 local underline = '\027[4m%s\027[0m'
 local blink = '\027[5m%s\027[0m'
 
-local formatter = {}
+local formatter = setmetatable({}, {
+    __call = function(self, fmt, ...)
+        return self[fmt](...)
+    end
+})
 
 function formatter.bold(...)
     local n = select('#', ...)
