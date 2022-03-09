@@ -1,6 +1,6 @@
   return {
     name = "alphafantomu/mime-db",
-    version = "0.0.1",
+    version = "0.0.2",
     description = "bad port of nodejs mime-db in lua",
     tags = { "lua", "lit", "mime", "database" },
     license = "MIT",
@@ -9,6 +9,7 @@
     dependencies = {},
     files = {
       "**.lua",
+      "db.json",
       "!test*"
     }
   }
