@@ -1,6 +1,6 @@
   return {
     name = "alphafantomu/mime-types",
-    version = "0.0.1",
+    version = "0.0.2",
     description = "lua content-type utility",
     tags = { "lua", "luvit" },
     license = "MIT",
