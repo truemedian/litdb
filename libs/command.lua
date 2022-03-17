@@ -1,8 +1,9 @@
 local parseArgs = require('parser').args
-local format = string.format
-local sort, sorter = table.sort, function(a, b) return b.default ~= nil end
+local format, sub = string.format, string.sub
+local concat, sort, sorter = table.concat, table.sort, function(a, b) return b.default ~= nil end
 local helpFormat = '%s\n\nUsage:\n\n    %s\n\n    Option arguments that do not have a defined default value are mandatory.'
 local paramFormat = '\n\n    %s\n        %s'
+local errFormat = 'Error: %s\nYou can run \'%s --help\' if you need some help'
 
 local command = {}
 command.__index = command
@@ -19,10 +20,14 @@ local function convert(default)
     return type(default) == 'table' and concat(default, ' ') or tostring(default)
 end
 
+function command:error(message)
+    print(format(errFormat, message, self.parent.name..' '..self.name))
+end
+
 function command:parse(args)
     local arguments, options = parseArgs(self, args)
     if arguments then
-        local success, err = pcall(self.execute, arguments, options)
+        local success, err = pcall(self.execute, self, arguments, options)
         if not success then
             print('Error: '..err..'\nContact the distributor of this application for more assistance')
         end

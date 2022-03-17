@@ -4,6 +4,7 @@ local remove, concat = table.remove, table.concat
 local sort, sorter = table.sort, function(a, b) return b.default ~= nil end
 local helpFormat = '%s\n\nUsage:\n\n    %s\n\n    Option arguments that do not have a defined default value are mandatory.'
 local paramFormat = '\n\n    %s\n        %s'
+local errFormat = 'Error: %s\nYou can run \'%s --help\' if you need some help'
 
 local program = {}
 program.__index = program
@@ -39,15 +40,22 @@ end
 
 function program:parse(args)
     if next(self.commands) then
-        return parser.commands(self, args)
+        local command, arguments = parser.commands(self, args)
+        if command then
+            return command:parse(arguments)
+        end
     end
     local arguments, options = parser.args(self, args)
     if arguments then
-        local success, err = pcall(self.execute, arguments, options)
+        local success, err = pcall(self.execute, self, arguments, options)
         if not success then
             print('Error: '..err..'\nContact the distributor of this application for more assistance')
         end
     end
+end
+
+function program:error(message)
+    print(format(errFormat, message, self.name))
 end
 
 function program:setDescription(description)
@@ -119,7 +127,7 @@ function program:getHelp()
         name = name..'--'..option.name
         if optionArg then
             name = name..'='..optionArg.name.. ' <'..optionArg.type..'>'
-            description = optionArg.default and description..' (default: '..convert(argument.default)..')' or description
+            description = optionArg.default and description..' (default: '..convert(optionArg.default)..')' or description
         end
         help = help..format(paramFormat, name, description)
     end
@@ -138,6 +146,15 @@ function program:getHelp()
         end
     end
     return print(help)
+end
+
+function program:getUsage()
+    local argString = ''
+    for i = 1, #self.arguments do
+        local argument = self.arguments[i]
+        argString = argString..argument.name..(argument.many and '... ' or ' ')
+    end
+    return self.name..' [options...] '..argString
 end
 
 function program:init(name)

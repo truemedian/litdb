@@ -33,6 +33,11 @@ function argument:setMany()
     return self
 end
 
+function argument:setFallback(fb)
+    self.fallback = fb
+    return self
+end
+
 function argument:init(name)
     return setmetatable(makeArgument(name), self)
 end

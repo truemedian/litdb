@@ -1,16 +1,9 @@
-local luvit, luvi
-local success, package = pcall(require, 'bundle:/package.lua')
-if success and type(package) == 'table' then
-    if package == 'luvit/luvit' then
-        luvit = true
-    else
-        luvi = true
-    end
+if not args then
+    package.path = debug.getinfo(1).short_src:gsub('init.lua', 'libs\\?.lua;')..package.path
 end
-
 return {
-    command = require(luvit and 'command' or 'command'),
-    argument = require(luvit and 'argument' or 'argument'),
-    program = require(luvit and 'program' or 'program'),
-    option = require(luvit and 'option' or 'option')
+    command = require('command'),
+    argument = require('argument'),
+    program = require('program'),
+    option = require('option')
 }
