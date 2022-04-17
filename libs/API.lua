@@ -29,7 +29,7 @@ function API:request(method, endpoint, body)
 
     local headers = {
         {'User-Agent', self._userAgent},
-        {'Authorization', self._token},
+		{'Authorization', self._token},
         {'Content-Type', "application/json"},
     }
 
@@ -55,6 +55,16 @@ function API:request(method, endpoint, body)
 	return json.parse(data)
 end
 
+function API:postMeChannel(channel_id)
+	local endpoint = endpoints.ME_CHANNELS
+	return self:request("POST", endpoint, json.encode({recipient_id = channel_id}))
+end
+
+function API:postChannelMessage(channel_id, content)
+	local endpoint = f(endpoints.CHANNEL_MESSAGES, channel_id)
+	return self:request("POST", endpoint, json.encode({content = content}))
+end
+
 function API:getCurrentUser()
 	local endpoint = endpoints.ME
 	return self:request("GET", endpoint)
@@ -68,6 +78,36 @@ end
 function API:getUser(user_id)
 	local endpoint = f(endpoints.USER, user_id)
 	return self:request("GET", endpoint)
+end
+
+function API:getChannel(channel_id)
+	local endpoint = f(endpoints.CHANNEL, channel_id)
+	return self:request("GET", endpoint)
+end
+
+function API:getGuilds()
+	local endpoint = endpoints.GUILDS
+	return self:request("GET", endpoint)
+end
+
+function API:getGuild(guild_id)
+	local endpoint = f(endpoints.GUILD, guild_id)
+	return self:request("GET", endpoint)
+end
+
+function API:getGuildsWebhook(guild_id)
+	local endpoint = f(endpoints.GUILD_WEBHOOKS, guild_id)
+	return self:request("GET", endpoint)
+end
+
+function API:getGuildChannels(guild_id)
+	local endpoint = f(endpoints.GUILD_CHANNELS, guild_id)
+	return self:request("GET", endpoint)
+end
+
+function API:deleteGuild(guild_id)
+	local endpoint = f(endpoints.GUILD, guild_id)
+	return self:request("DELETE", endpoint)
 end
 
 return API

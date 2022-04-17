@@ -1,5 +1,7 @@
 return {
 	package = require('./package.lua'),
 	API = require('API'),
-	User = require('classes/User')
+	Webhook = require('Webhook/Webhook'),
+	User = require('classes/User'),
+	Guild = require('classes/Guild'),
 }
