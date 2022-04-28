@@ -3,31 +3,50 @@ local assert, getmetatable, setmetatable, type, next 	= assert, getmetatable, se
 local table 											= table;
 local table_insert, table_remove 						= table.insert, table.remove;
 local CLASS, INSTANCE 									= 0, 1;
-local root, class_api, instance_api 					= {}, {}, {};
+
+local root = {};
+---@class OrcusClassAPI
+local class_api = {};
+---@class OrcusInstanceAPI
+local instance_api = {};
 
 local orcus 											= {
 	MAX_CONSTRUCTOR_LINK 								= 1;
 	_DESCRIPTION 										= 'object orientation implementation in Lua';
-	_VERSION 											= 'v0.0.3';
+	_VERSION 											= 'v0.0.4';
 	_URL 												= 'http://github.com/alphafantomu/orcus';
 	_LICENSE 											= 'MIT LICENSE <http://www.opensource.org/licenses/mit-license.php>'
 };
+
+---@class OrcusBase
+---@class OrcusClass : OrcusBase, OrcusClassAPI
+---@class OrcusInstance : OrcusClass, OrcusInstanceAPI
 
 local deepCopy; deepCopy = function(t, base, deep)
 	if (type(t) ~= 'table') then
 		return t;
 	end;
 	local copy = base or {};
+	local meta = getmetatable(t);
 	for name, value in next, t do
 		local t_value = type(value);
 		copy[name] = copy[name] ~= value and t_value == 'table' and deep and deepCopy(value) or value;
 	end;
+	if (meta ~= nil and deep) then
+		setmetatable(copy, deepCopy(meta, nil, deep));
+	end;
 	return copy;
 end;
 
-local isClass, isInstance = function(self)
+---@param self OrcusInstance|OrcusClass
+---Determines if `self` is a class
+local isClass = function(self)
 	return getmetatable(self).__type == CLASS;
-end, function(self)
+end
+
+---@param self OrcusInstance|OrcusClass
+---Determines if `self` is a instance
+local isInstance = function(self)
 	return getmetatable(self).__type == INSTANCE;
 end;
 
@@ -41,6 +60,10 @@ local getClassData = function(class)
 	return type(class) == 'table' and class:isClass() and getmetatable(class) or nil;
 end;
 
+---@param self OrcusInstance|OrcusClass
+---@param class OrcusClass|string
+---@return boolean isOfClass
+---Determines if `self` is of `class`
 local isA = function(self, class)
 	class = assert(type(self) == 'table' and classToName(class), 'class expected for comparison');
 	local current_class = getmetatable((self:isInstance() and getmetatable(self).__class) or self);
@@ -148,15 +171,25 @@ root.__tostring = function(self)
 	return 'orcus '..(is_class and 'class' or is_instance and 'instance' or 'unknown')..' <'..(is_class and meta.__name or is_instance and getmetatable(meta.__class).__name or 'unknown')..'>';
 end;
 
+---@param self OrcusClass
+---@param class_name string
+---@param attributes? table
+---@param constructor? function
+---Creates a subclass `OrcusClass` of the extended class with specified parameters
 class_api.extend = function(self, class_name, attributes, constructor)
 	return newClass(class_name, attributes, constructor, self);
 end;
 
+---@param self OrcusClass
+---@return OrcusInstance
+---Creates a new `OrcusInstance` based off of the `OrcusClass`, 6 arguments max for the constructor
 class_api.create = function(self, a, b, c, d, e, f)
 	return newInstance(self, a, b, c, d, e, f);
 end;
 
-class_api.with = function(self, a, b, c, d, e, f) --actual class required
+---@param self OrcusClass
+---Adds a class as a mixin for the `OrcusClass`, 6 arguments max for the constructor
+class_api.with = function(self, a, b, c, d, e, f)
 	local mixins = getmetatable(self).__mixins;
 	local ma, mb, mc, md, me, mf = getClassData(a), getClassData(b), getClassData(c), getClassData(d), getClassData(e), getClassData(f);
 	if (ma) then
@@ -174,6 +207,9 @@ class_api.with = function(self, a, b, c, d, e, f) --actual class required
 	end;
 end;
 
+---@param self OrcusClass
+---@param class OrcusClass|string
+---Removes a class from `OrcusClass`'s mixin table
 class_api.without = function(self, class)
 	class = classToName(class);
 	if (class) then
@@ -187,6 +223,10 @@ class_api.without = function(self, class)
 	end;
 end;
 
+---@param self OrcusClass
+---@param class OrcusClass|string
+---@return boolean hasAsMixin
+---Checks if the `OrcusClass` has the `class` as a mixin
 class_api.includes = function(self, class)
 	class = classToName(class);
 	if (class) then
@@ -200,6 +240,9 @@ class_api.includes = function(self, class)
 	return false;
 end;
 
+---@param self OrcusInstance
+---@param class OrcusInstance|string
+---Casts the instance of a class to `class`
 instance_api.cast = function(self, class)
 	if (class) then
 		local m = getmetatable(self);
