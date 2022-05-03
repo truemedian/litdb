@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'TohruMKDM/bytes'
-	version = '1.0.1'
+	version = '1.0.2'
 	homepage = 'https://github.com/TohruMKDM/bytes'
 	description = 'Utility to parse a string bytes (ex: 1TB) to bytes (1099511627776) and vice-versa.'
 	tags = {'byte', 'bytes', 'utility', 'parse', 'parser', 'convert', 'converter'}
@@ -99,7 +99,7 @@ function bytes.parse(value)
     if tonumber(value) then
         return value
     end
-    local number, unit = match(value, '(%-?%d+)(%a%a)')
+    local number, unit = match(value, '(%-?%d+%.?%d*)(%a%a)')
     if not number or not map[lower(unit)] then
         return nil
     end
