@@ -1,2 +1,2 @@
 
-print("--- dragons ---")
+print("-- dragons --")
