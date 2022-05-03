@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'TohruMKDM/bytes'
-	version = '1.0.0'
+	version = '1.0.1'
 	homepage = 'https://github.com/TohruMKDM/bytes'
 	description = 'Utility to parse a string bytes (ex: 1TB) to bytes (1099511627776) and vice-versa.'
 	tags = {'byte', 'bytes', 'utility', 'parse', 'parser', 'convert', 'converter'}
@@ -36,14 +36,17 @@ local function round(n, i)
 end
 
 ---Default export function. Delegates to either `bytes.format` or `bytes.parse` based on the type of value.
----@overload fun(value: string | number, options: formatOptions): string | number | nil
+---@overload fun(value: string | number, options?: formatOptions): string | number | nil
 local bytes = {}
 
 ---Format the given value in bytes into a string. If the value is negative, it is kept as such. If it is a float, it is rounded.
 ---@param value number Value in bytes
 ---@param options? formatOptions Conversion options
----@return string
+---@return string | nil
 function bytes.format(value, options)
+    if not tonumber(value) then
+        return nil
+    end
     local opts = {}
     for i, v in pairs(default) do
         opts[i] = options and options[i] or v
@@ -103,4 +106,13 @@ function bytes.parse(value)
     return floor(number * map[lower(unit)])
 end
 
-return bytes
+return setmetatable(bytes, {
+    __call = function(_, value, options)
+        if tonumber(value) then
+            return bytes.format(value, options)
+        elseif type(value) == 'string' then
+            return bytes.parse(value)
+        end
+        return nil
+    end
+})
