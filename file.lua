@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'TohruMKDM/bytes'
-	version = '1.0.2'
+	version = '1.0.3'
 	homepage = 'https://github.com/TohruMKDM/bytes'
 	description = 'Utility to parse a string bytes (ex: 1TB) to bytes (1099511627776) and vice-versa.'
 	tags = {'byte', 'bytes', 'utility', 'parse', 'parser', 'convert', 'converter'}
@@ -22,9 +22,9 @@ local gsub, match = string.gsub, string.match
 
 local map = {
     b = 1,
-    kb = lshift(1, 10),
-    mb = lshift(1, 20),
-    gb = lshift(1, 30),
+    kb = pow(1024, 1),
+    mb = pow(1024, 2),
+    gb = pow(1024, 3),
     tb = pow(1024, 4),
     pb = pow(1024, 5)
 }
