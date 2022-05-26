@@ -1,6 +1,6 @@
 return {
     name = "alphafantomu/orcus",
-    version = "0.0.4",
+    version = "0.0.5",
     description = "object oriented handler in lua",
     tags = { "lua", "luvit", "oop", "handler", "lightweight" },
     license = "MIT",

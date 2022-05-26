@@ -10,10 +10,16 @@ local class_api = {};
 ---@class OrcusInstanceAPI
 local instance_api = {};
 
+---@class orcus
+---@field metamethod_emitter any
+---@field fx_bind function|nil
+---A class handler with external dependency capabilities
+---
+---You can find more information at [github](https://github.com/alphafantomu/orcus)
 local orcus 											= {
 	MAX_CONSTRUCTOR_LINK 								= 1;
 	_DESCRIPTION 										= 'object orientation implementation in Lua';
-	_VERSION 											= 'v0.0.4';
+	_VERSION 											= 'v0.0.5';
 	_URL 												= 'http://github.com/alphafantomu/orcus';
 	_LICENSE 											= 'MIT LICENSE <http://www.opensource.org/licenses/mit-license.php>'
 };
@@ -30,7 +36,7 @@ local deepCopy; deepCopy = function(t, base, deep)
 	local meta = getmetatable(t);
 	for name, value in next, t do
 		local t_value = type(value);
-		copy[name] = copy[name] ~= value and t_value == 'table' and deep and deepCopy(value) or value;
+		copy[name] = copy[name] ~= value and t_value == 'table' and deep and deepCopy(value, nil, deep) or value;
 	end;
 	if (meta ~= nil and deep) then
 		setmetatable(copy, deepCopy(meta, nil, deep));
@@ -76,6 +82,43 @@ local isA = function(self, class)
 	return false;
 end;
 
+local getSuperclasses = function(self)
+	assert(isClass(self), 'class expected to initialize');
+	local classes = {};
+	local current_class = self;
+	while (getmetatable(current_class)) do
+		table_insert(classes, current_class);
+		current_class = getmetatable(current_class).__super;
+	end;
+	return classes;
+end;
+
+local compressSuperAttributes; compressSuperAttributes = function(self, base, mixins)
+	assert(isClass(self), 'class expected to initialize');
+	local self_metatable = getmetatable(self);
+	local superclasses = getSuperclasses(self);
+	local __attributes = self_metatable.__attributes;
+	local n = #superclasses;
+	local compressed_attributes = __attributes and deepCopy(__attributes, base, true) or {};
+	for i = n, 1, -1 do
+		local class = superclasses[i];
+		local class_metatable = getmetatable(class);
+		local class__attributes = class_metatable.__attributes;
+		if (class__attributes) then
+			deepCopy(class__attributes, compressed_attributes, true);
+		end;
+	end;
+	if (mixins) then
+		local __mixins = self_metatable.__mixins;
+		local ne = #__mixins;
+		for i = 1, ne do
+			local mixin_class = __mixins[i];
+			compressed_attributes = compressSuperAttributes(mixin_class, compressed_attributes, true);
+		end;
+	end;
+	return compressed_attributes;
+end;
+
 local newClass = function(class_name, attributes, constructor, base_class)
 	assert(base_class == nil or type(base_class) == 'table' and isClass(base_class), 'can only extend from a class');
 	local copy = deepCopy(attributes, nil, true);
@@ -86,6 +129,7 @@ local newClass = function(class_name, attributes, constructor, base_class)
 		__constructor = constructor;
 		__super = base_class;
 		__mixins = {};
+		__attributes = attributes;
 		--__cast = nil; --for casting, self, casting class
 
 		__index = root.__index;
@@ -100,7 +144,7 @@ local newInstance = function(self, a, b, c, d, e, f)
 	assert(isClass(self), 'can only instantiate a class');
 	local class_data = getmetatable(self);
 	local constructor = self.init or class_data.__constructor or nil;
-	local instance = setmetatable(deepCopy(instance_api, nil, true),
+	local instance = setmetatable(deepCopy(instance_api, compressSuperAttributes(self, nil, true), true),
 	{
 		__type = INSTANCE;
 		__class = self;
@@ -161,6 +205,20 @@ root.__index = function(self, index)
 				return value;
 			end;
 		end;
+	end;
+end;
+
+root.__newindex = function(self, index, value)
+	local metamethod_emitter, fx_bind = orcus.metamethod_emitter, orcus.fx_bind;
+	if (metamethod_emitter and metamethod_emitter.isA ~= nil and metamethod_emitter:isA('EventEmitter')) then
+		local meta = getmetatable(self);
+		local ot = meta.__type;
+		if (ot == INSTANCE) then
+			metamethod_emitter:emit('__newindex', self, index, value);
+		end;
+	end;
+	if (fx_bind) then
+		rawset(self, index, fx_bind(value));
 	end;
 end;
 
@@ -240,6 +298,16 @@ class_api.includes = function(self, class)
 	return false;
 end;
 
+---@param self OrcusClass
+---@return string|nil
+---Gets the class name of the class
+class_api.getName = function(self)
+	local m = getmetatable(self);
+	if (m) then
+		return m.__name;
+	end;
+end;
+
 ---@param self OrcusInstance
 ---@param class OrcusInstance|string
 ---Casts the instance of a class to `class`
@@ -254,6 +322,17 @@ instance_api.cast = function(self, class)
 			end;
 		end;
 		m.__class = class;
+	end;
+end;
+
+---@param self OrcusInstance
+---@return string|nil
+---Gets the class name of the instance
+instance_api.getName = function(self)
+	local m = getmetatable(self);
+	local cc = getmetatable(m.__class);
+	if (cc) then
+		return cc.__name;
 	end;
 end;
 
