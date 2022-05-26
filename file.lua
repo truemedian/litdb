@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'TohruMKDM/bytes'
-	version = '1.0.3'
+	version = '1.0.4'
 	homepage = 'https://github.com/TohruMKDM/bytes'
 	description = 'Utility to parse a string bytes (ex: 1TB) to bytes (1099511627776) and vice-versa.'
 	tags = {'byte', 'bytes', 'utility', 'parse', 'parser', 'convert', 'converter'}
@@ -15,7 +15,6 @@
 ---@field public unit string | nil The unit in which the result will be returned (B/KB/MB/GB/TB). Default value to `''` (which means auto detect).
 ---@field public unitSeparator string | nil Separator to use between number and unit. Default value to `''`.
 
-local lshift = bit.lshift
 local pow, abs, floor = math.pow, math.abs, math.floor
 local lower, reverse = string.lower, string.reverse
 local gsub, match = string.gsub, string.match
@@ -28,7 +27,14 @@ local map = {
     tb = pow(1024, 4),
     pb = pow(1024, 5)
 }
-local default = {decimalPlaces = 2, fixedDecimals = false, thousandsSeparator = '', unit = '', unitSeparator = ''}
+
+local defaultOptions = {
+    decimalPlaces = 2,
+    fixedDecimals = false,
+    thousandsSeparator = '',
+    unit = '',
+    unitSeparator = ''
+}
 
 local function round(n, i)
 	local m = 10 ^ (i or 0)
@@ -41,17 +47,20 @@ local bytes = {}
 
 ---Format the given value in bytes into a string. If the value is negative, it is kept as such. If it is a float, it is rounded.
 ---@param value number Value in bytes
----@param options? formatOptions Conversion options
+---@param customOptions? formatOptions Conversion options
 ---@return string | nil
-function bytes.format(value, options)
+function bytes.format(value, customOptions)
     if not tonumber(value) then
         return nil
     end
-    local opts = {}
-    for i, v in pairs(default) do
-        opts[i] = options and options[i] or v
+    local options = {}
+    for i, v in pairs(defaultOptions) do
+        if customOptions then
+            options[i] = customOptions[i]
+        else
+            options[i] = v
+        end
     end
-    options = opts
     local mag = abs(value)
     if options.unit == '' or not map[lower(options.unit)] then
         if mag >= map.pb then
@@ -71,7 +80,7 @@ function bytes.format(value, options)
     local result = round(value / map[lower(options.unit)], options.decimalPlaces)
     if options.thousandsSeparator ~= '' then
         local negative,  number, decimal = match(result, '(%-?)(%d+)(%.?%d*)')
-        number = gsub(reverse(number), '(%d%d%d)(%d)', '%1'..options.thousandsSeparator..'%2')
+        number = gsub(reverse(number), '(%d%d%d)(%d)', '%1'..reverse(options.thousandsSeparator)..'%2')
         result = negative..reverse(number)..decimal
     end
     return result..options.unitSeparator..options.unit
