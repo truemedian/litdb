@@ -1,6 +1,6 @@
 return {
     name = "alphafantomu/lua-emitter",
-    version = "0.0.1",
+    version = "0.0.2",
     description = "event emitter in Lua with basic functionality",
     tags = { "event", "luvit", "lua" },
     license = "MIT",
