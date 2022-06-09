@@ -1,6 +1,6 @@
 return {
 	name = "kaisei-kto/luvit-luawl",
-	version = "1.0.2",
+	version = "1.0.3",
 	description = "luaGuard package",
 	tags = {
 		"api",
@@ -8,7 +8,7 @@ return {
 	},
 	license = "MIT",
 	author = {
-		name = "ayoko",
+		name = "Kaisei",
 		email = "keshsenpai@gmail.com"
 	},
 	homepage = "https://github.com/kaisei-kto/luvit-luawl",
