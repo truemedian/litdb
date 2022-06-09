@@ -1,6 +1,6 @@
 return {
 	name = "kaisei-kto/luvit-luawl",
-	version = "1.0.1",
+	version = "1.0.2",
 	description = "luaGuard package",
 	tags = {
 		"api",
