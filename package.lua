@@ -3,7 +3,7 @@ return {
     name = 'TohruMKDM/discordia-text',
     description = 'A discordia library extension that adds support for text channels in voice channels',
     homepage = 'https://github.com/TohruMKDM/discordia-text',
-    version = '1.0.0',
+    version = '1.0.1',
     license = 'MIT',
     author = {
         name = 'Tohru~ (トール)',

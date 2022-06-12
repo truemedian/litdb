@@ -6,4 +6,6 @@ do
     client._events.MESSAGE_CREATE = EventHandler.MESSAGE_CREATE
 end
 
+require('GuildVoiceChannel')
+
 return true
