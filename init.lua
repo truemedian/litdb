@@ -117,4 +117,8 @@ function modules:get_logs(discord_id_or_key_or_hwid)
 	return send_post("getLogs", { wl_key = discord_id_or_key_or_hwid, discord_id = discord_id_or_key_or_hwid, HWID = discord_id_or_key_or_hwid })
 end
 
+function modules:get_buyer_role()
+	return send_post("getBuyerRole", {})
+end
+
 return modules
