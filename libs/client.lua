@@ -7,8 +7,12 @@ function client:initialize()
 end
 
 function client:login(token)
-    self._token = token
-    self.api:login(token)
+    self.token = token
+    self.api:login(self.token)
+end
+
+function client:add_user(user)
+    self.user = user
 end
 
 return client
