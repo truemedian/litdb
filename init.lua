@@ -121,4 +121,14 @@ function modules:get_buyer_role()
 	return send_post("getBuyerRole", {})
 end
 
+function modules:add_key_tags(discord_id_or_key_or_hwid, tags)
+	assert(type(tags) == "table", ('`tags` must be a table (got `%s`)'):format(type(tags)))
+	return send_post("addKeyTags", {
+		wl_key = discord_id_or_key_or_hwid,
+		discord_id = discord_id_or_key_or_hwid,
+		HWID = discord_id_or_key_or_hwid,
+		tags = tags
+	})
+end
+
 return modules
