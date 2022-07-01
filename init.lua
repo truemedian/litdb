@@ -93,20 +93,20 @@ function modules:disable_user_key(discord_id_or_key)
 	return send_post("disableKey", { discord_id = discord_id_or_key, wl_key = discord_id_or_key })
 end
 
-function modules:is_on_cooldown(discord_id)
-	return send_post("isOnCooldown", { discord_id = discord_id })
+function modules:is_on_cooldown(discord_id_or_key)
+	return send_post("isOnCooldown", { discord_id = discord_id_or_key, wl_key = discord_id_or_key })
 end
 
-function modules:remove_cooldown(discord_id)
-	return send_post("removeCooldown", { discord_id = discord_id })
+function modules:remove_cooldown(discord_id_or_key)
+	return send_post("removeCooldown", { discord_id = discord_id_or_key, wl_key = discord_id_or_key })
 end
 
 --[[
 	key_status: 'Assigned'|'Unassigned'|'Disabled'|'Active'
 ]]
-function modules:update_key_status(discord_id, key_status)
+function modules:update_key_status(discord_id_or_key, key_status)
 	assert(table.find(key_statuses, tostring(key_status), ('Invalid key status, valid key status are: %s'):format(table.concat(key_statuses, ', '))))
-	return send_post("updateKeyStatus", { discord_id = discord_id, status = key_status })
+	return send_post("updateKeyStatus", { discord_id = discord_id_or_key, wl_key = discord_id_or_key, status = key_status })
 end
 
 function modules:get_scripts()
