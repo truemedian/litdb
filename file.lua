@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'TohruMKDM/fs-watcher'
-	version = '1.0.0'
+	version = '1.0.1'
 	homepage = 'https://github.com/TohruMKDM/fs-watcher'
 	description = 'Utility to allow callbacks to be assigned to fs operations such file creation, deletion, and modification.'
 	tags = {'utility', 'watcher', 'fs'}
@@ -41,7 +41,7 @@ local function getInfo(directory, recursive, output)
     return output
 end
 
---- @alias watcher_callback_names
+--- @alias watcher_callback_events
 --- Fired when a file is modified
 ---|'update'
 --- Fired when a file is created
@@ -54,7 +54,7 @@ end
 --- Creates a new watcher to monitor the given directory for changes
 --- @param directory string The directory you want to monitor
 --- @param recursive boolean Whether or not to monitor changes recursively
---- @param callback fun(name: watcher_callback_names, filepath: string)
+--- @param callback fun(event: watcher_callback_events, filepath: string)
 --- @return uv_fs_event_t
 local function watch(directory, recursive, callback)
     if type(directory) ~= 'string' then
@@ -109,6 +109,9 @@ end
 --- @param directory string The directory you want to stop monitoring
 --- @return boolean success, string? err_msg
 local function stop(directory)
+    if type(directory) ~= 'string' then
+        error(error_format:format(1, 'stop', 'string', type(directory)), 2)
+    end
     local watcher = watchers[directory]
     if watcher then
         local success, err = watcher:stop()
