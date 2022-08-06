@@ -22,39 +22,25 @@ end
 
 _G.compare = compare
 
-local ext = setmetatable({
+return setmetatable({
+	math = require './libs/math',
 	table = require './libs/table',
 	string = require './libs/string',
-	math = require './libs/math',
 }, {
 	__call = function(self, notGlobal)
-		if self._active then
+		if self._active then return self end
+		if notGlobal then
 			return self
 		end
 
-		local env = setmetatable(self, {__index = _G})
-		for _, v in pairs(self) do
-			for i, fn in pairs(v) do
-				setfenv(fn, env)
+		for key, tab in pairs(self) do
+			if not _G[key] then
+				_G[key] = tab
+			else
+				for name, fn in pairs(tab) do 
+					_G[key][name] = fn
+				end
 			end
-			
-			v(notGlobal)
 		end
-
-		self._active = true
-		return self
 	end
 })
-
-for n, m in pairs(ext) do
-	setmetatable(m, {
-		__index = _G[n],
-		__call = function(self, notGlobal)
-			for k, v in pairs(self) do
-				_G[n][k] = not notGlobal and v
-			end
-		end
-	})
-end
-
-return ext
