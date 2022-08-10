@@ -29,18 +29,22 @@ return setmetatable({
 }, {
 	__call = function(self, notGlobal)
 		if self._active then return self end
-		if notGlobal then
-			return self
-		end
 
 		for key, tab in pairs(self) do
-			if not _G[key] then
+			if not _G[key] and not notGlobal then
 				_G[key] = tab
-			else
-				for name, fn in pairs(tab) do 
+			elseif _G[key] and not notGlobal then
+				for name, fn in pairs(tab) do
 					_G[key][name] = fn
+				end
+			else
+				local lib = _G[key] or { }
+				for k, v in pairs(lib) do
+					tab[k] = v
 				end
 			end
 		end
+
+		return self
 	end
 })
