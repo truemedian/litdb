@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/content'
-	version = '0.2.2-9-beta'
+	version = '0.2.3'
 	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
@@ -218,7 +218,7 @@ local function newHandle(self, file)
 	local props = {
 		handle = { },
 		pathname = pathname,
-		filename = (pathname .. self.prefix .. filename),
+		filename = pathname and (pathname .. self.prefix .. filename) or filename,
 		extension = extension,
 	}
 
