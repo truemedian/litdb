@@ -28,6 +28,7 @@ local function remove(self, prop, index)
 	return self
 end
 
+local osean
 osean = {
 	iter = function()
 		local index, value

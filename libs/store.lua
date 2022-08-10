@@ -1,6 +1,7 @@
 local getn = require 'inspect'.getn
 local content = require 'content'
 
+local _handle = content:newHandle()
 
 local function save(self)
 	local handle = self:getHandle()

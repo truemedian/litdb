@@ -8,11 +8,11 @@ store.props = props
 -- Implement error detection
 
 function bestore:load(...)
-	return
+	return store:load(...)
 end
 
 function bestore:save(...)
-	return
+	return store:save(...)
 end
 
 local defaults = {
