@@ -1,0 +1,5 @@
+return {
+	this = {
+		this = 'self'
+	}
+}
