@@ -1,5 +1,0 @@
-return {
-	this = {
-		this = 'self'
-	}
-}
