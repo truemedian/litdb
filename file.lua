@@ -1,7 +1,9 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '1.1.0'
+	version = '1.3.0'
 ]]
+
+-- upgraded, minor changes.
 
 local getuserdata = debug.getuservalue
 local sfind, format, rep , gsub = string.find, string.format, string.rep, string.gsub
@@ -102,10 +104,10 @@ local function __get(index, options)
 	local type1 = type(index)
 	index = gsub(index, '[%c\\\128-\255]', escape)
 	local form = _format(nil, index, options)
-	if type1 == 'string' and sfind(gsub(index, '_', ''), '[%p%s]+') then
+	if type1 == 'string' and sfind(gsub(index, '_', ''), '[%d%p%s]+') then
 		return format('[%s]', form) or form
 	else
-		return type1 == 'number' and format('[%s]', form) or index
+		return (type1 == 'number' or tonumber(index)) and format('[%s]', form) or index
 	end
 end
 
@@ -120,11 +122,11 @@ local function field(self, index, value, options)
 	local spaces = options and options.spaces == true
 	local tabs = options and (spaces and ' ' or options.tabs ~= false and rep('\t', options and options.tabs or 1))
 
-	local isplat = type1 == 'number' and index > 0
+	local isplat = type1 == 'number'
 	local plat = isplat and self.plat0 or type1 == 'string' and self.plat1 or self.plat1
 
 	plat = format(plat, tabs or '', '%s', '%s')
-	
+
 	return isplat and format(plat, _format(self, value, options)) or
 		format(plat, __get(index, options), _format(self, value, options))
 end
@@ -192,7 +194,7 @@ function inspect.encode(value, options)
 	elseif options and type2 ~= 'table' then
 		return nil, 'argument #2 must be table'
 	end
-	
+
 	if last == value then last = nil; return nil, 'last' end
 	last = value
 
