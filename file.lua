@@ -1,8 +1,8 @@
 --[[lit-meta
 	name = 'TohruMKDM/unzip'
-	version = '1.0.0'
+	version = '1.0.1'
 	homepage = 'https://github.com/TohruMKDM/lua-unzip'
-	description = 'Utility to allow callbacks to be assigned to fs operations such file creation, deletion, and modification.'
+	description = 'zlib-compressed file depacking library in Lua.'
 	tags = {'decompression', 'deflation', 'zlib'}
 	license = 'MIT'
 	author = {name = 'Tohru~ (トール)', email = 'admin@ikaros.pw'}
@@ -22,12 +22,12 @@ local counts = {144, 112, 24, 8}
 local depthsTable = {8, 9, 7, 8}
 local distMap = {5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5}
 
-local flushBits = function(stream, number)
+local function flushBits(stream, number)
     stream.count = stream.count - number
     stream.bits = rshift(stream.bits, number)
 end
 
-local peekBits = function(stream, number)
+local function peekBits(stream, number)
     while stream.count < number do
         stream.bits = stream.bits + lshift(byte(stream.buffer, stream.position), stream.count)
         stream.position = stream.position + 1
@@ -36,14 +36,14 @@ local peekBits = function(stream, number)
     return band(stream.bits, lshift(1, number) - 1)
 end
 
-local getBits = function(stream,  number)
+local function getBits(stream,  number)
     local result = peekBits(stream, number)
     stream.count = stream.count - number
     stream.bits = rshift(stream.bits, number)
     return result
 end
 
-local getElement = function(stream, hufftable, number)
+local function getElement(stream, hufftable, number)
     local element = hufftable[peekBits(stream, number)]
     local length = band(element, 15)
     local result = rshift(element, 4)
@@ -52,7 +52,7 @@ local getElement = function(stream, hufftable, number)
     return result
 end
 
-local huffman = function(depths)
+local function huffman(depths)
     local size = #depths
     local bits, code = 1, 0
     local blocks, codes, hufftable = {}, {}, {}
@@ -86,7 +86,7 @@ local huffman = function(depths)
     return hufftable, bits
 end
 
-local loop = function(output, stream, litTable, litCount, distTable, distCount)
+local function loop(output, stream, litTable, litCount, distTable, distCount)
     local lit
     repeat
         lit = getElement(stream, litTable, litCount)
@@ -122,7 +122,7 @@ local loop = function(output, stream, litTable, litCount, distTable, distCount)
     until lit == 256
 end
 
-local uncompressed = function(output, stream)
+local function uncompressed(output, stream)
     flushBits(stream, band(stream.count, 7))
     local length = getBits(stream, 16); getBits(stream, 16)
     local buffer = stream.buffer
@@ -133,7 +133,7 @@ local uncompressed = function(output, stream)
     stream.position = position + length
 end
 
-local static = function(output, stream)
+local function static(output, stream)
     local litDepths = {}
     for i = 1, 4 do
         local depth = depthsTable[i]
@@ -146,7 +146,7 @@ local static = function(output, stream)
     loop(output, stream, litTable, litCount, distTable, distCount)
 end
 
-local dynamic = function(output, stream)
+local function dynamic(output, stream)
     local lit, dist, length = 257 + getBits(stream, 5), 1 + getBits(stream, 5), 4 + getBits(stream, 4)
     local depths = {}
     for i = 1, length do
@@ -187,7 +187,7 @@ local dynamic = function(output, stream)
     loop(output, stream, litTable, litCount, distTable, distCount)
 end
 
-local newStream = function(data)
+local function newStream(data)
     local start = find(data, 'PK\5\6')
     if start then
         data = sub(data, 1, start + 19)..'\0\0'
@@ -195,7 +195,7 @@ local newStream = function(data)
     return {buffer = data}
 end
 
-local inflate = function(stream, offset)
+local function inflate(stream, offset)
     local output, buffer = {}, {}
     local last, typ
     stream.position = offset
@@ -212,17 +212,17 @@ local inflate = function(stream, offset)
     return concat(buffer)
 end
 
-local int2le = function(data, position)
+local function int2le(data, position)
     local a, b = byte(data, position, position + 1)
     return b * 256 + a
 end
 
-local int4le = function(data, position)
+local function int4le(data, position)
     local a, b, c, d = byte(data, position, position + 3)
     return ((d * 256 + c) * 256 + b) * 256 + a
 end
 
-local iterate = function(data)
+local function iterate(data)
     local i = int4le(data, (#data - 21) + 16) + 1
     return function()
         if int4le(data, i) ~= 33639248 then
@@ -237,7 +237,7 @@ local iterate = function(data)
     end
 end
 
-local getFiles = function(stream, unzip)
+local function getFiles(stream, unzip)
     local data = stream.buffer
     if unzip then
         local iterator = iterate(data)
