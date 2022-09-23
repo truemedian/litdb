@@ -1,6 +1,6 @@
   --[[lit-meta
     name = "UrNightmaree/dotenv"
-    version = "1.0.1"
+    version = "1.0.2"
     dependencies = {
       'luvit/fs@2.0.3',
       'truemedian/extensions@1.0.0'
@@ -46,7 +46,9 @@ dotenv.config = function(path)
   end
 
   local data = assert(fs.readFileSync(path),'Invalid path!')
-  debug.env = parser(data)
+  os.env = parser(data)
 end
+
+dotenv.parse = parser
 
 return dotenv
