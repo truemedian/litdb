@@ -1,6 +1,6 @@
   --[[lit-meta
     name = "UrNightmaree/dotenv"
-    version = "1.0"
+    version = "1.0.1"
     dependencies = {
       'luvit/fs@2.0.3',
       'truemedian/extensions@1.0.0'
@@ -8,7 +8,7 @@
     description = "A .env parser for Luvit runtime"
     tags = { "luvit", "env", "dotenv" }
     license = "MIT"
-    author = { name = "UrNightmaree", email = " " }
+    author = "UrNightmaree"
     homepage = "https://github.com/UrNightmaree/dotenv-lua"
   ]]
 
@@ -21,12 +21,16 @@ local function parser(src)
   local tbl = {}
 
   for _,var in pairs(strext.split(src,'\n')) do
-    local linevar = strext.split(var,'=')
+    local linevar = strext.split(src,'=')
 
     local vname = linevar[1]
     local val = linevar[2]
 
     if val then
+      if linevar[3] then
+        val = table.concat(linevar,'=',2):gsub('%s+$','')
+      end
+
       local noquote = val:gsub('^[\'"]',''):gsub('[\'"]$','')
       tbl[vname] = noquote
     end
