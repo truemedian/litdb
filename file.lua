@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "UrNightmaree/tluvit"
-  version = "1.3"
+  version = "1.3.1"
   description = "A Teal (.tl) runner for the Luvit runtime"
   tags = { "luvit", "teal" }
   license = "MIT"
@@ -26,8 +26,7 @@ tluvit.tlpath = ';'..HOME..'/.luarocks/share/lua/5.1/?.lua;'..HOME..'/.luarocks/
 
 
 local checktl = function()
-  package.path = package.path..';'..tluvit.loadpath
-
+  package.path = package.path..';'..tluvit.tlpath
   local exist,tl = pcall(lua_require,'tl')
 
   if not exist then
