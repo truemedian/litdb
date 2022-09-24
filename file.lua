@@ -1,8 +1,11 @@
 --[[lit-meta
   name = "UrNightmaree/tluvit"
-  version = "1.3.1"
+  version = "1.3.2"
   description = "A Teal (.tl) runner for the Luvit runtime"
   tags = { "luvit", "teal" }
+  dependencies = {
+    'truemedian/import'
+  }
   license = "MIT"
   author = "UrNightmaree"
   homepage = "https://github.com/UrNightmaree/tluvit"
