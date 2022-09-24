@@ -1,6 +1,6 @@
   --[[lit-meta
     name = "UrNightmaree/dotenv"
-    version = "1.0.2"
+    version = "1.0.3"
     dependencies = {
       'luvit/fs@2.0.3',
       'truemedian/extensions@1.0.0'
@@ -20,8 +20,8 @@ local dotenv = {}
 local function parser(src)
   local tbl = {}
 
-  for _,var in pairs(strext.split(src,'\n')) do
-    local linevar = strext.split(src,'=')
+  for _,var in pairs(strext.split(src,'\n+')) do
+    local linevar = strext.split(var,'=')
 
     local vname = linevar[1]
     local val = linevar[2]
