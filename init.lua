@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "tbmale/luvi-ffi"
-    version = "0.0.1"
+    version = "0.0.2"
     dependencies = {}
     description = "search ffi in luvi bundle trying to follow arch-os-name convention"
     tags = { "luvi ffi bundle" }
@@ -27,8 +27,8 @@ local function load(name)
     local archosname = luvi.path.join(luvi.path.joinparts("", splitname),
                                       ffi.arch .. "-" .. ffi.os .. "-" ..
                                           filename)
-    local _, err = bundle.stat(archosname) or bundle.stat(name)
-    if (err) then
+    local inbundle = bundle.stat(archosname) and true or bundle.stat(name) and true or false
+    if (not inbundle) then
         return uv.fs_stat(archosname) and ffi.load(archosname) or ffi.load(name)
     else
         local fdata = bundle.stat(archosname) and bundle.readfile(archosname) or
