@@ -1,6 +1,6 @@
   --[[lit-meta
     name = "UrNightmaree/dotenv"
-    version = "1.2"
+    version = "1.2.1"
     dependencies = {
       'luvit/fs@2.0.3',
       'truemedian/extensions@1.0.0'
@@ -17,6 +17,12 @@ local fs = require 'fs'
 
 local dotenv = {}
 
+--[[
+<s>
+Parses .env syntax into Lua table
+]]
+---@param src string The .env syntax to parse
+---@return table The result of parsing src
 local function parser(src)
   local tbl = {}
 
@@ -45,26 +51,21 @@ local function parser(src)
  return tbl
 end
 
+--[[
+<s>
+Configure dotenv. Load environment variable from *.env to os.env
+]]
+---@param path? string The path to *.env
 dotenv.config = function(path)
   path = path or './.env'
   if not path:find('.env') then
     error('Must be a .env file!')
   end
 
-  local data = assert(fs.readFileSync(path),'Invalid path!')
+  local data = assert(fs.readFileSync(path),'Invalid path: "'..path..'"')
   os.env = parser(data)
 end
 
 dotenv.parse = parser
-
-local result = parser([[
-# environment variable w/o quote
-NOQUOTE=hi hello
-# environment variable w/ quote
-QUOTE="hi hello"
-]])
-
-print(result.NOQUOTE)
-print(result.QUOTE)
 
 return dotenv
