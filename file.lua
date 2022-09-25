@@ -1,6 +1,6 @@
   --[[lit-meta
     name = "UrNightmaree/dotenv"
-    version = "1.0.3"
+    version = "1.2"
     dependencies = {
       'luvit/fs@2.0.3',
       'truemedian/extensions@1.0.0'
@@ -27,6 +27,12 @@ local function parser(src)
     local val = linevar[2]
 
     if val then
+      local sepd = strext.split(var,' ')
+
+      if sepd and not val:find '^[\'"].+[\'"]$' then
+        val = strext.split(sepd[1],'=')[2]
+      end
+
       if linevar[3] then
         val = table.concat(linevar,'=',2):gsub('%s+$','')
       end
@@ -50,5 +56,15 @@ dotenv.config = function(path)
 end
 
 dotenv.parse = parser
+
+local result = parser([[
+# environment variable w/o quote
+NOQUOTE=hi hello
+# environment variable w/ quote
+QUOTE="hi hello"
+]])
+
+print(result.NOQUOTE)
+print(result.QUOTE)
 
 return dotenv
