@@ -17,17 +17,33 @@ end
 
 local json = require("json")
 local request = require("coro-http").request
+local hasattr = function(table, key) return type(rawget(table, key)) ~= 'nil' end
+local delattr = function(table, key) rawset(table, key, nil) end
 
 local modules = {}
 local key = nil
 local url = ("https://api.luawl.com/%s.php")
 local key_statuses = {'Assigned','Unassigned','Disabled','Active'}
+local len = string.len
 
 local function send_post(href, body)
 	body.token = key
 
+	if hasattr(body, 'HWID') and len(body.HWID) <= 40 then
+		delattr(body, 'HWID')
+	end
+
+	if hasattr(body, 'discord_id') and len(body.discord_id) >= 20 then
+		delattr(body, 'discord_id')
+	end
+
+	if hasattr(body, 'wl_key') and len(body.wl_key) ~= 40 then
+		delattr(body, 'wl_key')
+	end
+
 	local header, response = request("POST", url:format(href), {
-		["Content-Type"] = "application/json"
+		{ "Content-Type", "application/json" },
+		{ "User-Agent", "node-fetch" }
 	}, json.stringify(body))
 
 	return table.pack(json.parse(response))[1]
@@ -129,6 +145,33 @@ function modules:add_key_tags(discord_id_or_key, tags, wl_script_id)
 		tags = tags,
 		wl_script_id = wl_script_id
 	})
+end
+
+function modules:get_account_stats()
+	local data = send_post("getAccountStats", {})
+
+	if (type(data) == "table") then
+		for key, value in next, data do
+			if (type(value) == "string") then
+				local values = table.pack(value:match('(%d+)-(%d+)-(%d+) (%d+):(%d+):(%d+)'))
+				if (#values == 6) then
+					data[key] = os.date("!*t", os.time({
+						year = table.remove(values, 1),
+						month = table.remove(values, 1),
+						day = table.remove(values, 1),
+						hour = table.remove(values, 1),
+						min = table.remove(values, 1),
+						sec = table.remove(values, 1)
+					}))
+				else
+					local n = tonumber(value)
+					data[key] = type(n) ~= "number" and value or n
+				end
+			end
+		end
+	end
+
+	return data
 end
 
 return modules
