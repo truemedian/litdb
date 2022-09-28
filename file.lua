@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "UrNightmaree/tluvit"
-  version = "1.3.2"
+  version = "1.3.3"
   description = "A Teal (.tl) runner for the Luvit runtime"
   tags = { "luvit", "teal" }
   dependencies = {
@@ -61,7 +61,7 @@ tluvit.loadtl = function(path)
   if not ok and mdl then
     print '\27[1;31mAn error has occurred while running the .tl!\n'
     print 'The error:\27[0m'
-    print('\27[37;41m'..err..'\27[0m')
+    print('\27[37;41m'..mdl..'\27[0m')
     os.exit(1)
   elseif ok and mdl then
     return mdl
