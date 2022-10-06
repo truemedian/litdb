@@ -15,5 +15,10 @@ return {
 		Lexer = require("Lexers/Lexer"),
 	},
 
+	Generators = {
+		Base = require("Generators/Base"),
+		Generator = require("Generators/Generator"),
+	},
+
 	TokenList = require("TokenList"),
 }

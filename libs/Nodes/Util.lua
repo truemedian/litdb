@@ -1,4 +1,4 @@
-local Node = require("./Node")
+local Node = require("Nodes/Node")
 
 local Pair = Node.Node:extend()
 

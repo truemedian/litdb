@@ -1,4 +1,4 @@
-local Lexer = require("./lexer"):new()
+local Lexer = require("Lexers/Lexer"):new()
 
 Lexer:Keyword("and", "And")
 Lexer:Keyword("or", "Or")

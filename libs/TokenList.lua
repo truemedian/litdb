@@ -1,9 +1,20 @@
 local Object = require("core").Object
 
 local TokenList = Object:extend()
+local TokenObject = Object:extend()
+
+function TokenObject:initialize(Values)
+	for i, v in pairs(Values) do
+		self[i] = v
+	end
+end
 
 function TokenList:initialize(String, Lexer)
-	self.Source = String .. "\n"
+	if String:match("\n$") then
+		self.Source = String
+	else
+		self.Source = String .. "\n"
+	end
 
 	local Position, Line, Col = 1, 1, 0
 	local Tokens = {}
@@ -11,13 +22,13 @@ function TokenList:initialize(String, Lexer)
 	while Position <= #self.Source do
 		local Token, Output = Lexer:Match(self.Source, Position)
 
-		table.insert(Tokens, {
+		table.insert(Tokens, TokenObject:new({
 			Start = Position,
 			End = Position + #Output,
 			Token = Token,
 			Value = Output,
 			Location = ("%d:%d"):format(Line, Col),
-		})
+		}))
 
 		Position = Position + #Output
 

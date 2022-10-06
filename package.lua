@@ -1,6 +1,6 @@
 return {
 	name = "luna-lua/lunar",
-	version = "0.0.1",
+	version = "0.1.0",
 	description = "A lua parser",
 	tags = { "lua", "luna", "parser", "tokenizer", "ast" },
 	license = "MIT",

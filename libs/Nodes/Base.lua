@@ -1,4 +1,4 @@
-local Node = require("./Node")
+local Node = require("Nodes/Node")
 
 local Block = Node.Node:extend()
 
@@ -51,7 +51,7 @@ function ElseIf:initialize(Options)
 	self.ElseIf = Options.ElseIf
 	self.Condition = Options.Condition
 	self.Then = Options.Then
-	self.Block = Options.Block
+	self.Body = Options.Body
 end
 
 local If = Node.Node:extend()
@@ -60,10 +60,10 @@ function If:initialize(Options)
 	self.If = Options.If
 	self.Condition = Options.Condition
 	self.Then = Options.Then
-	self.Block = Options.Block
+	self.Body = Options.Body
 	self.ElseIfs = Options.ElseIfs
 	self.Else = Options.Else
-	self.ElseBlock = Options.ElseBlock
+	self.ElseBody = Options.ElseBody
 	self.End = Options.End
 end
 
@@ -79,7 +79,7 @@ function While:initialize(Options)
 	self.While = Options.While
 	self.Condition = Options.Condition
 	self.Do = Options.Do
-	self.Block = Options.Block
+	self.Body = Options.Body
 	self.Breaks = Options.Breaks
 	self.End = Options.End
 end
@@ -88,7 +88,7 @@ local Repeat = Node.Node:extend()
 
 function Repeat:initialize(Options)
 	self.Repeat = Options.Repeat
-	self.Block = Options.Block
+	self.Body = Options.Body
 	self.Breaks = Options.Breaks
 	self.Until = Options.Until
 	self.Condition = Options.Condition
@@ -112,7 +112,7 @@ local MethodCall = Node.Node:extend()
 function MethodCall:initialize(Options)
 	self.Colon = Options.Colon
 	self.Name = Options.Name
-	self.Arguments = Options.Arguments
+	self.Args = Options.Args
 end
 
 local Call = Node.Enum:new({
