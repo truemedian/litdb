@@ -205,7 +205,7 @@ local function close() -- luacheck: ignore
 end
 ---- debugging
 
-function VoiceConnection:_play(stream, duration, starter)
+function VoiceConnection:_play(stream, duration, cb)
 
 	self:stopStream()
 	self:_setSpeaking(true)
@@ -222,7 +222,7 @@ function VoiceConnection:_play(stream, duration, starter)
 
 	local start = hrtime()
 	local reason
-	if starter then starter() end
+	if cb then cb() end
 
 	while elapsed < duration do
 
@@ -345,18 +345,18 @@ time elapsed while streaming and the returned string is a message detailing the
 reason why the stream stopped. For more information about using FFmpeg,
 see the [[voice]] page.
 ]=]
-function VoiceConnection:playFFmpeg(path, duration, extraArgs, starter)
+function VoiceConnection:playFFmpeg(path, duration, seek, cb)
 
 	if not self._ready then
 		return nil, 'Connection is not ready'
 	end
 
-	local stream = FFmpegProcess(path, SAMPLE_RATE, CHANNELS, extraArgs)
+	local stream = FFmpegProcess(path, SAMPLE_RATE, CHANNELS, seek)
 
-	local elapsed, reason = self:_play(stream, duration, starter)
+	local elapsed, reason = self:_play(stream, duration, cb)
 	stream:close()
-	
 	return elapsed, reason
+
 end
 
 --[=[

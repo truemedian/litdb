@@ -16,29 +16,14 @@ local fmt = setmetatable({}, {
 
 local FFmpegProcess = require('class')('FFmpegProcess')
 
-function FFmpegProcess:__init(path, rate, channels, extraArgs)
+function FFmpegProcess:__init(path, rate, channels, seek)
 
 	local stdout = uv.new_pipe(false)
 
-	local argsInsertPosition
 	local args = {'-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5', '-i', path, "-filter:a", "volume=0.1", '-ar', rate, '-ac', channels, '-f', 's16le', 'pipe:1', '-loglevel', 'fatal'}
-	if extraArgs and type(extraArgs) == 'table' then
-		for _, v in pairs(extraArgs) do
-			if v[3] ~= nil then
-				argsInsertPosition = v[3]
-			end
-
-			for i = 1, 2, 1 do
-				if argsInsertPosition ~= nil then
-					table.insert(args, argsInsertPosition, v[i])
-					argsInsertPosition = argsInsertPosition + 1
-				else
-					table.insert(args, v[i])
-				end
-			end
-
-			argsInsertPosition = nil
-		end
+	if seek then
+		table.insert(args, 7, seek)
+		table.insert(args, 7, "-ss")
 	end
 
 	self._child = assert(uv.spawn('ffmpeg', {
