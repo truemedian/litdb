@@ -7,6 +7,12 @@ local yield, resume, running = coroutine.yield, coroutine.resume, coroutine.runn
 
 local function onExit() end
 
+local function insertArgs(args, add, pos)
+	for i = #add, 1, -1 do
+		table.insert(args, pos, add[i])
+	end
+end
+
 local fmt = setmetatable({}, {
 	__index = function(self, n)
 		self[n] = '<' .. rep('i2', n)
@@ -16,15 +22,16 @@ local fmt = setmetatable({}, {
 
 local FFmpegProcess = require('class')('FFmpegProcess')
 
-function FFmpegProcess:__init(path, rate, channels, seek)
+function FFmpegProcess:__init(path, rate, channels, pre, post)
+
+	pre = pre or {}
+	post = post or {}
+
+	local args = {'-i', path, '-ar', rate, '-ac', channels, '-f', 's16le', 'pipe:1', '-loglevel', 'warning'}
+	insertArgs(args, pre, 1)
+	insertArgs(args, post, 3 + #pre)
 
 	local stdout = uv.new_pipe(false)
-
-	local args = {'-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5', '-i', path, "-filter:a", "volume=0.1", '-ar', rate, '-ac', channels, '-f', 's16le', 'pipe:1', '-loglevel', 'fatal'}
-	if seek then
-		table.insert(args, 7, seek)
-		table.insert(args, 7, "-ss")
-	end
 
 	self._child = assert(uv.spawn('ffmpeg', {
 		args = args,

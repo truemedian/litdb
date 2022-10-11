@@ -222,7 +222,7 @@ function VoiceConnection:_play(stream, duration, cb)
 
 	local start = hrtime()
 	local reason
-	if cb then cb() end
+	if cb then coroutine.wrap(cb)() end
 
 	while elapsed < duration do
 
@@ -345,13 +345,13 @@ time elapsed while streaming and the returned string is a message detailing the
 reason why the stream stopped. For more information about using FFmpeg,
 see the [[voice]] page.
 ]=]
-function VoiceConnection:playFFmpeg(path, duration, seek, cb)
+function VoiceConnection:playFFmpeg(path, duration, cb, ...)
 
 	if not self._ready then
 		return nil, 'Connection is not ready'
 	end
 
-	local stream = FFmpegProcess(path, SAMPLE_RATE, CHANNELS, seek)
+	local stream = FFmpegProcess(path, SAMPLE_RATE, CHANNELS, ...)
 
 	local elapsed, reason = self:_play(stream, duration, cb)
 	stream:close()
