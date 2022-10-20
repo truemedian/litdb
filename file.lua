@@ -1,11 +1,22 @@
+--[[lit-meta
+	name = "alphafantomu/lua-emitter"
+    version = "0.0.3"
+    description = "event emitter in Lua with basic functionality"
+    tags = { "event", "luvit", "lua" }
+    license = "MIT"
+    author = { name = "Ari Kumikaeru"}
+    homepage = "https://github.com/alphafantomu/lua-emitter"
+    dependencies = {"alphafantomu/orcus"}
+    files = {"**.lua"}
+]]
 
 local require, assert, tostring, type = require, assert, tostring, type;
 local table = table;
 local table_insert, table_remove, table_sort = table.insert, table.remove, table.sort;
 
----@class utility.emitter : OrcusClass
+---@class EventEmitter : OrcusClass
 ---@field _events table
----@field _maxListeners number
+---@field _maxListeners integer
 ---A event emitter class meant to handle registering and removal of events and callbacks
 local emitter = require('orcus')('EventEmitter', {
 	_events = {};
@@ -39,20 +50,20 @@ end;
 ---@param event_name string
 ---@param callback function
 ---@param weight? number
----@return utility.emitter
+---@return EventEmitter
 ---Creates an event with the specified callback
 emitter.on = function(self, event_name, callback, weight)
 	weight = weight or 1;
 	local events, max_listeners = self._events, self._maxListeners;
 	local callbacks = events[event_name];
 	local callback_address = tostring(callback);
-	assert(type(callback) == 'function', illya.ferror(callback_address..' is not a function'));
+	assert(type(callback) == 'function', callback_address..' is not a function');
 	if not (callbacks) then
 		callbacks = {};
 		events[event_name] = callbacks;
 	end;
-	assert(max_listeners == -1 or (#callbacks < max_listeners), illya.ferror('Max listeners ('..tostring(max_listeners)..') for event "'..event_name..'" is reached!'));
-	assert(not _has(self, event_name, callback), illya.ferror('Event "'..tostring(event_name)..'" already has the callback '..callback_address..'.'));
+	assert(max_listeners == -1 or (#callbacks < max_listeners), 'Max listeners ('..tostring(max_listeners)..') for event "'..event_name..'" is reached!');
+	assert(not _has(self, event_name, callback), 'Event "'..tostring(event_name)..'" already has the callback '..callback_address..'.');
 	table_insert(callbacks, {callback, weight});
 	table_sort(callbacks, _sortWeight);
 	return self;
@@ -61,7 +72,7 @@ end;
 ---@param event_name string
 ---@param callback function
 ---@param weight? number
----@return utility.emitter
+---@return EventEmitter
 ---Creates an event with the specified callback for the first call, afterward it is removed
 emitter.once = function(self, event_name, callback, weight)
 	weight = weight or 1;
@@ -74,7 +85,7 @@ end;
 
 ---@param event_name string
 ---@param callback function
----@return utility.emitter
+---@return EventEmitter
 ---Removes an event with the specified callback
 emitter.off = function(self, event_name, callback)
 	local has, i = _has(self, event_name, callback);
@@ -86,7 +97,7 @@ emitter.off = function(self, event_name, callback)
 end;
 
 ---@param event_name string
----@return utility.emitter
+---@return EventEmitter
 ---Fires the event with the specified `event_name`
 emitter.emit = function(self, event_name, arg_a, arg_b, arg_c, arg_d, arg_e, arg_f)
 	local callbacks = self._events[event_name];
