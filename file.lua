@@ -1,3 +1,13 @@
+--[[lit-meta
+	name = "alphafantomu/array-flatten"
+    version = "0.0.2"
+    description = "flatten nested arrays in lua"
+    tags = { "lua", "array", "utility" }
+    license = "MIT"
+    author = { name = "Ari Kumikaeru"}
+    homepage = "https://github.com/alphafantomu/array-flatten"
+    files = {"**.lua"}
+]]
 
 local type = type;
 local setNshiftUp, flattenArray;
