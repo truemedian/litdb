@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "alphafantomu/discordia-extensions"
-  version = "0.0.3"
+  version = "0.0.4"
   homepage = "https://github.com/alphafantomu/discordia-extensions"
   description = "seperate package of discordia's extension module"
   tags = { "discordia", "stand-alone", "luvit", "utility", "copy" }
