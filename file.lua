@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = "alphafantomu/orcus"
-    version = "0.0.6"
+    version = "0.0.7"
     description = "object oriented handler in lua"
     tags = { "lua", "luvit", "oop", "handler", "lightweight" }
     license = "MIT"
