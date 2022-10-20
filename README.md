@@ -9,7 +9,7 @@ seperate package for discordia's extension module
 
 ## Installation
 - This package uses the lit package manager, run `lit install alphafantomu/discordia-extensions`
-- If you're using this in a self-contained binary through [Luvi](https://github.com/luvit/luvi), you may include it inside `package.lua` as well
+- If you're using this in a self-contained binary through [Luvi](https://github.com/luvit/luvi), you may include it inside `package.lua` as well `alphafantomu/discordia-extensions`
 - You can reference the library using `require('discordia-extensions')`
 
 ## Documentation

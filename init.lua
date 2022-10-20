@@ -1,10 +1,11 @@
 --[[lit-meta
   name = "alphafantomu/discordia-extensions"
-  version = "0.0.2"
+  version = "0.0.3"
   homepage = "https://github.com/alphafantomu/discordia-extensions"
   description = "seperate package of discordia's extension module"
   tags = { "discordia", "stand-alone", "luvit", "utility", "copy" }
   author = { name = "Ari Kumikaeru"}
+  files = {"**.lua"}
   license = "MIT"
 ]]
 
