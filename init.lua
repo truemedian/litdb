@@ -64,7 +64,7 @@ function modules:add_whitelist(discord_id, trial_hours, wl_script_id)
 end
 
 function modules:delete_whitelist(discord_id)
-	return send_post("deleteKey", { discord_id = discord_id })
+	return send_post("deleteKey", { discord_id = discord_id, wl_key = discord_id })
 end
 
 function modules:reset_hwid(discord_id_or_key)
