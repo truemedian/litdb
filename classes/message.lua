@@ -1,76 +1,89 @@
+local http = require("coro-http")
 
-local User = require("discord.lua/classes/user")
-local Guild = require("discord.lua/classes/guild")
-local Channel = require("discord.lua/classes/channel")
-local Object = require("discord.lua/classes/class")
-local Interaction = require("discord.lua/classes/interaction")
+local json = require("json")
 
-local message = Object:extend()
+local timer = require("timer")
 
-function message:new(d)
+local class = require("./object.lua")
+local User = require("./user.lua")
+local main = class:extend()
 
-    if not d then return end
+local API = "https://discord.com/api/v9/"
 
-    self.d = d
+--TODO : Add more properties
 
-    self.api = require("discord.lua/libs/api").get()
-    self.client = self.api.client
-    
-    self.content = self.d["content"]
-    self.id = self.d["id"]
-    self.author = User(self.d["author"])
-    self.guild = Guild(self.d)
-    self.channel = Channel(self.d)
-    self.mention_everyone = self.d["mention_everyone"]
-    self.mentions = {}
-
-    for i,user in ipairs(self.d["mentions"]) do
-        table.insert(self.mentions,i,User(user))
-    end
-
-    p(self.mentions)
-
-    self.pinned = self.d["pinned"]
-    self.type = self.d["type"]
-    if self.d["interaction"] then
-        self.interaction = Interaction(self.d["interaction"])
-    end
-
-    return self
-end
-
-function message:reply(content)
-    local payload = {}
-
-    if type(content) == "string" then
-        payload.content = content
-    elseif type(content) == "table" then
-        payload = content
-    end
-
-    payload.message_reference = {
-        message_id = self.id
+function main:new(client,data)
+    self.rawData = data
+    self.client = client
+    self.headers = {
+        {"Content-Type", "application/json"},
+        {"Authorization", string.format("Bot %s",self.client.token)}
     }
-
-    if not self.channel.id then return end
-
-    local body = self.api:request("POST","channels/" .. self.channel.id .. "/messages",payload)
-
-    return message(self.client,body)
+    self.id = self.rawData.id
+    self.channelId = self.rawData.channel_id
+    self.content = self.rawData.content
+    self.author = User(self.client,self.rawData.author)
 end
 
-function message:edit(content)
-    local payload = {}
+function main:reply(content)
+    local cont = nil
 
     if type(content) == "string" then
-        payload.content = content
+        cont = {
+            content = content
+        }
     elseif type(content) == "table" then
-        payload = content
+        cont = content
     end
 
-    if not self.channel.id then return end
+    if cont == nil then
+        error("content must be string or table")
+    end
 
-    local body = self.api:request("PATCH","channels/" .. self.channel.id .. "/messages/" .. self.id,payload)
+    cont.message_reference = {
+        message_id = self.id,
+        fail_if_not_exists = false
+    }
+    local _,body = nil,nil
+    coroutine.wrap(function()
+        local _,body = http.request("POST",string.format("%s/channels/%s/messages",API,self.channelId),self.headers,json.stringify(cont))
+        return json.parse(body)
+    end)()
+
+    while not body do
+        timer.sleep(1)
+    end
+
+    local data = json.parse(body)
+    local msg = main(self.client,data)
+
+    return msg
 end
 
-return message
+function main:edit(content)
+    local cont = nil
+
+    if type(content) == "string" then
+        cont = {
+            content = content
+        }
+    elseif type(content) == "table" then
+        cont = content
+    end
+
+    if cont == nil then
+        error("content must be string or table")
+    end
+
+    coroutine.wrap(function()
+        local res,body = http.request("PATCH",string.format("%s/channels/%s/messages/%s",API,self.channelId,self.id),self.headers,json.stringify(cont))
+    end)()
+end
+
+function main:delete()
+    coroutine.wrap(function()
+        http.request("DELETE",string.format("%s/channels/%s/messages/%s",API,self.channelId,self.id),self.headers)
+    end)()
+end
+
+return main

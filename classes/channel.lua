@@ -1,35 +1,42 @@
-local Object = require("discord.lua/classes/class")
-local Guild = require("discord.lua/classes/guild")
-local Message = require("discord.lua/classes/message")
+local http = require("coro-http")
 
-local channel = Object:extend()
+local json = require("json")
 
-function channel:new(d)
+local class = require("./object.lua")
+local main = class:extend()
 
-    if not d then return end
+local API = "https://discord.com/api/v9/"
 
-    self.d = d
-
-    self.id = d["channel_id"]
-    self.guild = Guild(self.d)
-    self.api = require("discord.lua/libs/api").get()
-    self.client = self.api.client
-
-    return self
+function main:new(client,data)
+    self.rawData = data
+    self.client = client
+    self.id = self.rawData.id
+    self.guildId = self.rawData.guild_id
 end
 
-function channel:send(content)
-    local payload = {}
+function main:send(content)
+    local cont = nil
 
     if type(content) == "string" then
-        payload.content = content
+        cont = {
+            content = content
+        }
     elseif type(content) == "table" then
-        payload = content
+        cont = content
     end
 
-    local body = self.api:request("POST","channels/" .. self.channel.id .. "/messages",payload)
+    if cont == nil then
+        error("content must be string or table")
+    end
 
-    return Message(self.client,body)
+    local headers = {
+        {"Content-Type", "application/json"},
+        {"Authorization", string.format("Bot %s",self.client.token)}
+    }
+
+    coroutine.wrap(function()
+        http.request("POST",string.format("%s/channels/%s/messages",API,self.id),headers,json.stringify(cont))
+    end)()
 end
 
-return channel
+return main

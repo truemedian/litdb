@@ -1,61 +1,79 @@
+local http = require("coro-http")
+local json = require("json")
 
-local Object = require("discord.lua/classes/class")
+local API = "https://discord.com/api/v9/"
 
-local Guild = require("discord.lua/classes/guild")
+local class = require("./object.lua")
+local main = class:extend()
 
-local Message = require("discord.lua/classes/message")
-
-local Channel = require("discord.lua/classes/channel")
-
-local interaction = Object:extend()
-
-function interaction:new(d)
-
-    if not d then return end
-
-    self.d = d
-
-    self.api = require("discord.lua/libs/api").get()
-    self.client = self.api.client
-    
-    self.custom_id = self.d["data"]["custom_id"]
-    self.id = self.d["id"]
-    self.token = self.d["token"]
-    self.guild = Guild(self.d)
-    self.channel = Channel(self.d)
-    self.message = Message(self.d["message"])
-
-    return self
+function main:new(client,data)
+    self.rawData = data
+    self.client = client
+    self.headers = {
+        {"Content-Type", "application/json"},
+        {"Authorization", string.format("Bot %s",self.client.token)}
+    }
+    self.id = self.rawData.id
+    self.applicationId = self.rawData.id
+    self.type = self.rawData.type
+    self.id = self.rawData.id
+    self.guildId = self.rawData.guild_id
+    self.channelId = self.rawData.channel_id
+    self.applicationId = self.rawData.application_id
+    self.token = self.rawData.token
+    if self.rawData.data ~= nil then
+        self.data = self.rawData.data
+    end
 end
 
-function interaction:reply(content)
-    local payload = {}
-    payload.type = 4
-    payload.data = {}
+function main:reply(content)
+    local cont = nil
 
     if type(content) == "string" then
-        payload.data.content = content
+        cont = {
+            content = content
+        }
     elseif type(content) == "table" then
-        payload.data = content
+        cont = content
     end
 
-    local body = self.api:request("POST","interactions/" .. self.id .. "/" .. self.token .. "/callback",payload)
+    if cont == nil then
+        error("content must be string or table")
+    end
+
+    local res = {
+        type = 4,
+        data = cont
+    }
+
+    coroutine.wrap(function()
+        http.request("POST",string.format("%s/interactions/%s/%s/callback",API,self.id,self.token),self.headers,json.stringify(res))
+    end)()
 end
 
-function interaction:defer()
-    local payload = {}
-    payload.type = 5
-    payload.data = {}
+function main:createFollowup(content)
+    local cont = nil
 
-    local body = self.api:request("POST","interactions/" .. self.id .. "/" .. self.token .. "/callback",payload)
+    if type(content) == "string" then
+        cont = {
+            content = content
+        }
+    elseif type(content) == "table" then
+        cont = content
+    end
+
+    if cont == nil then
+        error("content must be string or table")
+    end
+
+    local res = {
+        type = 4,
+        data = cont
+    }
+
+    coroutine.wrap(function()
+        http.request("POST",string.format("%s/webhooks/%s/%s",API,self.applicationId,self.token),self.headers,json.stringify(res))
+    end)()
 end
 
-function interaction:defer_edit()
-    local payload = {}
-    payload.type = 6
-    payload.data = {}
-
-    local body = self.api:request("POST","interactions/" .. self.id .. "/" .. self.token .. "/callback",payload)
-end
-
-return interaction
+return main

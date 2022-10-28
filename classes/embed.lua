@@ -1,42 +1,52 @@
-local Object = require("discord.lua/classes/class")
+local class = require("./object.lua")
+local main = class:extend()
 
-local embed = Object:extend()
-
-embed.Field = require("discord.lua/classes/field")
-embed.Image = require("discord.lua/classes/embed_image")
-
-function embed:new()
+function main:new()
+    self.title = ""
+    self.description = ""
+    self.url = ""
+    self.footer = nil
+    self.image = nil
+    self.thumbnail = nil
+    self.video = nil
+    self.author = nil
     self.fields = {}
-
-    return self
 end
 
-function embed:set_title(title)
-    self.title = title
-end
-function embed:set_description(description)
-    self.description = description
-end
-function embed:set_url(url)
-    self.url = url
-end
-function embed:set_color(color)
-    self.color = color
-end
-function embed:set_description(description)
-    self.description = description
-end
-function embed:set_timestamp(timestamp)
-    self.timestamp = timestamp
-end
-function embed:set_image(image)
-    self.image = image
-end
-function embed:set_thumbnail(image)
-    self.thumbnail = image
-end
-function embed:add_field(field)
-    table.insert(self.fields,field)
+function main:setTitle(str)
+    self.title = str
 end
 
-return embed
+function main:setDescription(str)
+    self.description = str
+end
+
+function main:setUrl(str)
+    self.url = str
+end
+
+function main:setFooter(tbl)
+    self.footer = tbl
+end
+
+function main:setImage(tbl)
+    self.image = tbl
+end
+
+function main:setThumbnail(tbl)
+    self.thumbnail = tbl
+end
+
+function main:setVideo(tbl)
+    self.video = tbl
+end
+
+function main:setAuthor(tbl)
+    self.author = tbl
+end
+
+function main:addField(tbl)
+    table.insert(self.fields,tbl)
+end
+
+return main
