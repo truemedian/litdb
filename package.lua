@@ -18,8 +18,8 @@ SOFTWARE.]]
 
 return {
 	name = 'RealJace/discord.lua',
-	version = '1.1.0',
-	homepage = 'https://github.com/SinisterRectus/Discordia',
+	version = '1.2.0',
+	homepage = 'https://github.com/RealJace/discord.lua',
 	dependencies = {
 		'creationix/coro-http@3.1.0',
 		'creationix/coro-websocket@3.1.0',
