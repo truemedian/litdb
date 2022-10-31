@@ -1,7 +1,6 @@
-
 --[[lit-meta
 	name = "alphafantomu/kagura-mea"
-    version = "0.0.3"
+    version = "0.0.4"
     description = "A lightweight async function binder meant to mimick libuv async functions"
     tags = { "luvit", "reference", "async", "callbacks", "lua", "work", "thread" }
     license = "MIT"
