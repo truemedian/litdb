@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = "alphafantomu/lua-emitter"
-    version = "0.0.3"
+    version = "0.0.5"
     description = "event emitter in Lua with basic functionality"
     tags = { "event", "luvit", "lua" }
     license = "MIT"
@@ -14,6 +14,8 @@ local require, assert, tostring, type = require, assert, tostring, type;
 local table = table;
 local table_insert, table_remove, table_sort = table.insert, table.remove, table.sort;
 
+local has_event = love and love.event and love.handlers and true or false; ---@diagnostic disable-line
+
 ---@class EventEmitter : OrcusClass
 ---@field _events table
 ---@field _maxListeners integer
@@ -21,9 +23,7 @@ local table_insert, table_remove, table_sort = table.insert, table.remove, table
 local emitter = require('orcus')('EventEmitter', {
 	_events = {};
 	_maxListeners = -1;
-}, function(self, max_listeners)
-	self._maxListeners = max_listeners or self._maxListeners or -1;
-end);
+});
 
 local _sortWeight = function(a, b)
 	return a[2] > b[2];
@@ -47,6 +47,11 @@ local _has = function(self, event_name, callback)
 	return false;
 end;
 
+---@param max_listeners integer
+emitter.init = function(self, max_listeners)
+	self._maxListeners = max_listeners or self._maxListeners or -1;
+end;
+
 ---@param event_name string
 ---@param callback function
 ---@param weight? number
@@ -58,7 +63,7 @@ emitter.on = function(self, event_name, callback, weight)
 	local callbacks = events[event_name];
 	local callback_address = tostring(callback);
 	assert(type(callback) == 'function', callback_address..' is not a function');
-	if not (callbacks) then
+	if (not callbacks) then
 		callbacks = {};
 		events[event_name] = callbacks;
 	end;
@@ -66,6 +71,11 @@ emitter.on = function(self, event_name, callback, weight)
 	assert(not _has(self, event_name, callback), 'Event "'..tostring(event_name)..'" already has the callback '..callback_address..'.');
 	table_insert(callbacks, {callback, weight});
 	table_sort(callbacks, _sortWeight);
+	if (has_event) then
+		love.handlers[callback_address] = function(a, b, c, d, e, f) ---@diagnostic disable-line
+			callback(a, b, c, d, e, f);
+		end;
+	end;
 	return self;
 end;
 
@@ -91,7 +101,9 @@ emitter.off = function(self, event_name, callback)
 	local has, i = _has(self, event_name, callback);
 	if (has) then
 		table_remove(self._events[event_name], i);
-		--self:off(event_name, callback);
+		if (has_event) then
+			love.handlers[tostring(callback)] = nil; ---@diagnostic disable-line
+		end;
 	end;
 	return self;
 end;
@@ -107,7 +119,11 @@ emitter.emit = function(self, event_name, arg_a, arg_b, arg_c, arg_d, arg_e, arg
 		for i = 1, max_listeners do
 			local custom = callbacks[i];
 			if (custom) then
-				custom[1](arg_a, arg_b, arg_c, arg_d, arg_e, arg_f);
+				local callback = custom[1];
+				if (has_event) then
+					love.event.push(tostring(callback), arg_a, arg_b, arg_c, arg_d, arg_e, arg_f);
+				else callback(arg_a, arg_b, arg_c, arg_d, arg_e, arg_f);
+				end;
 			else break;
 			end;
 		end;
