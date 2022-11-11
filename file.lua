@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '2.0.0'
+	version = '2.0.1'
 ]]
 
 -- Reworked, enjoy!
@@ -126,19 +126,17 @@ local function encode(value, tabs)
 		local key, value = data[1], data[2]
 
 		local type2 = type(value)
-		local encoded, status
-		if type2 ~= 'table' or getn(value) ~= 0 then
-			encoded, status = encode(value, tabs + 1)
-		end
+		local encoded, status = encode(value, tabs + 1)
+        encoded = status ~= 'last' and encoded or status == 'last' and cycled(value, type2)
 
-		encoded = status ~= 'last' and encoded or status == 'last' and cycled(value, type2)
+        if encoded then
+			local field = formatIndex(key, encoded, tabs)
 
-		local field = formatIndex(key, encoded, tabs)
-
-		if isMethod(key) then
-			methods[#methods + 1] = field
-		else
-			response[#response + 1] = field
+			if isMethod(key) then
+				methods[#methods + 1] = field
+			else
+				response[#response + 1] = field
+			end
 		end
 	end
 
