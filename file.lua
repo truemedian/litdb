@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '2.0.1'
+	version = '2.0.2'
 ]]
 
 -- Reworked, enjoy!
@@ -8,7 +8,7 @@
 local console = io.output()
 local userdata = debug.getuservalue
 local concat, sort = table.concat, table.sort
-local format, sfind, rep = string.format, string.find, string.rep
+local format, sfind, rep, gsub = string.format, string.find, string.rep, string.gsub
 
 local function getn(self)
 	local response = 0
@@ -37,10 +37,8 @@ end
 
 local function getIndex(value)
 	local type1 = type(value)
-	local index = type1 == 'string' and quote(value) or value
-
-	if type1 == 'number' or type1 == 'string' and sfind(index, '[%c%d%p%s%w%x]+') then
-		return format('[%s]', index)
+	if type1 == 'number' or type1 == 'string' and sfind(gsub(value, '_', ''), '[%c%p%s]+') then
+		return format('[%s]', type1 ~= 'number' and quote(value) or value)
 	end
 
 	return value
