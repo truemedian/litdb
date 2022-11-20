@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = "alphafantomu/orcus-getter"
-	version = "0.0.2"
+	version = "0.0.3"
 	description = "a orcus extension for getter attributes in classes"
 	tags = {"oop", "lua", "luvit", "extension"}
 	license = "MIT"
@@ -11,9 +11,15 @@
 ]]
 local require, type, assert = require, type, assert;
 
-local getter = require('orcus')('getter');
+local getter = require('orcus')('getter', {
+	cache = true;
+});
 
-getter.init = function(self, method)
+getter.init = function(self, method, cache)
+	if (cache == nil) then
+		cache = self.cache;
+	end;
+	self.cache = cache;
 	if (method) then
 		self:setMethod(method);
 	end;
