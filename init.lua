@@ -23,7 +23,7 @@ local function fetch (book, chapter, ranges, translation)
   local res, data = request("GET", url)
 
   if res.code == 200 then
-    return json.parse(data).verses
+    return (json.parse(data)).verses
   else
     error("Failed to retrieve verse", 2)
   end
