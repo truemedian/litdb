@@ -1,6 +1,6 @@
   return {
   name = "4keef/pastor",
-  version = "0.0.2",
+  version = "0.0.3",
   description = "Fetch bible verses from api",
   tags = { "lua", "lit", "luvit", "bible", "api", "http" },
   license = "MIT",
