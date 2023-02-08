@@ -1,4 +1,4 @@
-local main = require 'lua-extentions'()
+local main = require 'lua-extensions'()
 local client = require 'discordia'.Client()
 
 local cache = {

@@ -1,14 +1,13 @@
 return {
 	name = "Corotyest/Mixcordia",
-	version = "1.0.2",
+	version = "1.1.0",
 	description = "A bot to play your favorite songs.",
-	tags = { "music", "discordia", "coro", "youtube-dl" },
+	tags = { "music", "discordia", "youtube-dl" },
 	license = "MIT",
-	author = { name = "Quichk", email = "nil" },
-	homepage = "https://github.com/Corotyest/Mixcordia",
+	homepage = "https://github.com/Corotyest/Mixcordia", -- unavailable at the moment
 	dependencies = {
 		'SinisterRectus/discordia',
-		'Corotyest/lua-extentions'
+		'Corotyest/lua-extensions'
 	},
 	files = {
 		"**.lua"
