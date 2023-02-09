@@ -53,7 +53,7 @@ local function compress(message)
 	if client.user.id == author.id or author.bot then
 		return nil
 	end
-	
+
 	if table.getn(cache._master) < 2 then
 		message:reply 'The bot is initing all of it content. Please wait a little.'
 	end

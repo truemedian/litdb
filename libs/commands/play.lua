@@ -51,7 +51,7 @@ return setmetatable({ 'play', alias = 'p' }, {
 
 		local content = message.content
 		if not url.protocol and split[1] then
-			decodMsg = message:reply '> We\'re currently decoding your search (or URL).\n> This won\'t take a lot, please wait.'
+			decodMsg = message:reply '> Sending requestes... Decoding your search (or URL).\n> This shouldn\'t take a lot, please wait.'
 
 			local _, _end = content:find(data.command)
 			local search = content:sub(_end + 1)
