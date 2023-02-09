@@ -1,10 +1,14 @@
-require 'lua-extentions'()
+require 'lua-extensions'()
 
 local spawn = require 'coro-spawn'
 local parse = require 'url'.parse
 
 local wrap = coroutine.wrap
 local format = string.format
+
+if not spawn ('youtube-dl', { }) then
+	error 'YOUTUBE-DL WAS NOT FOUND'
+end
 
 --- This process need to be called in a coroutine or wraped in one, the `option` is optional, and you can pass
 --- `url` as "nil", but the callback is explicit needed.

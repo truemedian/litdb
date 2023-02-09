@@ -4,7 +4,7 @@ local client = require 'discordia'.Client()
 local cache = {
 	_core = { },
 	_master = require 'commands',
-	_prefix = '!' -- default prefix
+	_prefix = 'dr!' -- default prefix
 }
 
 for name, fn in pairs(require 'core' ) do
@@ -19,6 +19,14 @@ _G.bot = {
 	connections = { }
 }
 
+client:on('ready', function()
+	-- local guilds = client.guilds
+
+	-- for gremio in guilds:iter() do
+	-- 	p(gremio.me:deafen())
+	-- end
+end)
+
 client:on('voiceDisconnect', function(member)
 	if member.user.id ~= client.user.id then return end
 
@@ -29,6 +37,10 @@ local function compress(message)
 	local author = message.author
 	if client.user.id == author.id or author.bot then
 		return nil
+	end
+	
+	if table.getn(cache._master) < 2 then
+		message:reply 'The bot is initing all of it content. Please wait a little.'
 	end
 
 	local content = message.content

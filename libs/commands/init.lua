@@ -1,5 +1,6 @@
 local modules = {}
-local where = './music/libs/commands/'
+local where = './%s/libs/commands/'
+where = string.format(where, args[1])
 
 local function resolve(what, name)
 	local type1 = type(what)
@@ -21,7 +22,7 @@ local function resolve(what, name)
 end
 
 require 'fs'.readdir(where, function(_, files)
-	if _ then return nil end
+	if _ then p 'Failed because:'; p(_); return nil end
 	for i,v in pairs(files) do
 		if not v:find('init') then
 			v = v:gsub('.lua', '')
