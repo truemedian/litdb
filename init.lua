@@ -1,5 +1,20 @@
+local random = math.random
+
 local main = require 'lua-extensions'()
-local client = require 'discordia'.Client()
+
+local discordia = require 'discordia'
+local color = discordia.Color
+local client = discordia.Client()
+
+local nbase = 3
+function _G.randomColor()
+	local base = { }
+	for index = 1, nbase do
+		base[index] = random(0, 255)
+	end
+
+	return color.fromRGB(unpack(base))
+end
 
 local cache = {
 	_core = { },
