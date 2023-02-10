@@ -1,6 +1,6 @@
 return {
 	name = "Corotyest/Mixcordia",
-	version = "1.3.1",
+	version = "1.3.2",
 	description = "A bot to play your favorite songs.",
 	tags = { "music", "discordia", "youtube-dl" },
 	license = "MIT",

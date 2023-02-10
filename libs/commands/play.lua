@@ -35,7 +35,7 @@ return setmetatable({ 'play', alias = 'p' }, {
 							title = string.format('NOW Playing: %s', response.title),
 							description = string.format('\n**Duration: %s**', response.duration),
 							color = randomColor()._value,
-							image = { url = response.thumbnail },
+							thumbnail = { url = response.thumbnail },
 							footer = {
 								text = '→ *Deafened for your comfort*.'
 							}
