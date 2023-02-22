@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/content'
-	version = '1.0.0'
+	version = '1.0.1'
 	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
@@ -301,7 +301,7 @@ return {
 	attach = attach,
 	isFile = isFile,
 	prefix = prefix,
-	editDir = editDir,
+	editDir = editDir, edit_dir = editDir,
 	isHandle = isHandle,
 	newHandle = newHandle,
 
