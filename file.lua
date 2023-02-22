@@ -1,13 +1,13 @@
 --[[lit-meta
 	name = 'Corotyest/content'
-	version = '1.0.1'
+	version = '1.0.2'
 	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
 -- Semi-Rework. Next to generate a documentation.
 
 local inspect = require 'inspect'
-local extensions = require 'lua-extensions' ()
+local extensions = require 'lua-extensions' (true)
 local string, table = extensions.string or string, extensions.table or table
 
 local remove, execute = os.remove, os.execute
