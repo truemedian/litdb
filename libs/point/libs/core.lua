@@ -25,7 +25,18 @@ local function setSlot(self, id, value)
 
 		local success, error = handle:apply({ key = id, setret = true, value = value })
 		if success then
-			if self.cacheData == true then cache[id] = value end; return self
+			if self.cacheData == true then
+				if not cache[self] then
+					cache[self] = {
+						[id] = value
+					}
+
+					return self
+				end
+
+				cache[self][id] = value
+			end
+			return self
 		else
 			return nil, error
 		end
@@ -44,17 +55,20 @@ local function getSlot(self, id, enviroment)
 		return nil, format(_error, 2, 'getSlot', 'table', type3)
 	end
 
-	local isCached = cache[id] and true -- not not value
-	if isCached then
-		self.cacheData = true; return cache[id]
+	local cache = cache[self]
+	if cache and cache[id] then
+		-- self.cacheData = true
+		return cache[id]
 	end
 
 	local handle = self:getHandle()
 
 	if handle then
 		local content, error = handle:content()
-		if content[1] then
-			content = particle.decode(content, enviroment or _G)
+
+		local type3 = type(content)
+		if type3 ~= 'nil' and not error then
+			return type3 == 'table' and table.search(content, id) or content
 		else
 			return nil, error or format('Id: —%s— not exists, in —%s—.', id, self.name)
 		end
@@ -77,8 +91,10 @@ local function quitSlot(self, id)
 	local handle = self:getHandle()
 
 	if handle then
-		if cache[id] then cache[id] = nil end
-		
+		if cache[self] then
+			cache[self][id] = nil
+		end
+
 		return self, handle:apply({ key = id, setret = true, value = nil})
 	end
 end
@@ -86,8 +102,9 @@ end
 local function getHandle(self)
 	if not self.handle then
 		local handle = self.props:get('path', 'store{}')
+		local success = content:edit_dir(handle)
 
-		if content:edit_dir(handle) then
+		if success then
 			self.handle = content:newHandle(handle .. self.name .. '.lua')
 		end
 	end

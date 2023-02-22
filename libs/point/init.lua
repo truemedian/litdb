@@ -14,16 +14,20 @@ local function getStoreSlot(self, name, options)
 	slots[name] = true
 	local new = { name = name }
 
-	for key, name in next, options or {} do
+	options = options or { }
+	for name, value in pairs(core) do
+		if options[name] == nil then
+			options[name] = value
+		end
+	end
+
+	for key, name in next, options do
 		new[key] = not new[key] and name or nil
 	end
 
-	local slot = setmetatable(core, {
-		__index = function(core, key)
-			return new[key] or self[key]
-		end,
-		__newindex = function(_, k, v)
-			if not new[k] then new[k] = v end
+	local slot = setmetatable(new, {
+		__index = function(_, key)
+			return rawget(new, key) or self[key]
 		end,
 		__tostring = function()
 			return 'Slot @' .. name
