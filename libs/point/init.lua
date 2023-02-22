@@ -11,7 +11,6 @@ local function getStoreSlot(self, name, options)
 		return slots[name]
 	end
 
-	slots[name] = true
 	local new = { name = name }
 
 	options = options or { }
@@ -34,11 +33,12 @@ local function getStoreSlot(self, name, options)
 		end
 	})
 
+	slot[name] = slot
 	return slot
 end
 
 local function isA(object)
-	return slots[object and object.name or object]
+	return slots[object and object.name or object] and true
 end
 
 return {
