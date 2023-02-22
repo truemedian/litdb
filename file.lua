@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = 'Corotyest/content'
-	version = '1.0.2'
+	version = '1.1.0'
 	dependencies = { 'Corotyest/lua-extensions', 'Corotyest/inspect' }
 ]]
 
@@ -165,6 +165,8 @@ local function content(self, ...)
 	return success and chunck or data
 end
 
+local events = { }
+
 local function write(self, options, ...)
 	local file = self.handle.output
 
@@ -173,6 +175,8 @@ local function write(self, options, ...)
 
 	local base = {...}
 	if type1 ~= 'table' then table.insert(base, 1, options) end
+
+	emitEvent(self, 'onUpdate', base)
 
 	return file:write(self.extension == 'lua' and setret and 'return ' or '', unpack(base))
 end
@@ -212,6 +216,39 @@ local function delete(self)
 	return remove(filename)
 end
 
+-- Adds function to be called.
+-- New from version 1.1.0
+function emitEvent(t, name, ...)
+	local event = events[t]
+	if not event then return nil end
+
+	for index, callback in pairs(event[name]) do
+		local success, error = pcall(callback, ...)
+		if not success then
+			print '[ERROR] FROM CONTENT\n'
+			print(error)
+		end
+	end
+end
+
+local function onUpdate(self, callback)
+	if type(callback) ~= 'function' then
+		return nil
+	end
+
+	local event = events[self]
+	if not event then
+		event = { }; events[self] = event
+	end
+
+	event = event.onUpdate or { }
+	event[#event + 1] = callback
+
+	events[self].onUpdate = event
+
+	return self
+end
+
 local function newHandle(self, file)
 	local type1, type2 = type(self), type(file)
 	if type1 ~= 'table' then
@@ -243,6 +280,7 @@ local function newHandle(self, file)
 		delete = delete,
 		reboot = reboot,
 		content = content,
+		onUpdate = onUpdate
 	}
 
 	function meta.__pairs()
