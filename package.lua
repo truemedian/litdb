@@ -1,6 +1,6 @@
 return {
 	name = "Corotyest/lua-extensions",
-	version = "2.2.4",
+	version = "2.3.0",
 	license = "MIT",
 	description = "Useful functions for the Lua programming language."
 }

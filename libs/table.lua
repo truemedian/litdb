@@ -142,7 +142,7 @@ function self.search(self, s)
 
 	local split = string.split(s, '.')
 
-	local num = table.get(split)
+	local num = table.getn(split)
 	if num == 0 then
 		return self[s]
 	end

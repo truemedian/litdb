@@ -164,10 +164,14 @@ function self.split(self, ...)
 		return error(format(error_format, 'vararg', 'string.split', 'any', nil))
 	end
 
-	local sformat = format('([^%q]+)', concat({...}, '%'))
+	local sformat = format('([^%%%s]+)', concat({...}, '%'))
 
 	local response = {}
-	for split in gmatch(self, sformat) do response[#response + 1] = split end
+	for split in gmatch(self, sformat) do
+		if split ~= self then
+			response[#response + 1] = split
+		end
+	end
 	return response
 end
 
