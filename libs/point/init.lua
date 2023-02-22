@@ -8,7 +8,7 @@ local function getStoreSlot(self, name, options)
 	elseif type2 ~= 'string' then
 		return nil, 'argument #1 is not a string'
 	elseif self.isA(name) then
-		return nil, 'argument #2 is a existing slot'
+		return slots[name]
 	end
 
 	slots[name] = true
