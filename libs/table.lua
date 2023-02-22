@@ -150,10 +150,11 @@ function self.search(self, s)
 	local attach
 	for n, value in pairs(split) do
 		if n ~= num then
+			local nvalue = tonumber(value)
 			if not attach then
-				attach = self[value]
+				attach = self[value] or self[nvalue]
 			else
-				attach = attach[value]
+				attach = attach[value] or attach[nvalue]
 			end
 		else
 			if attach then
@@ -162,6 +163,7 @@ function self.search(self, s)
 					return nil, format('Not finded value %s in %s', value, attach)
 				end
 
+				p(attach, value, n)
 				return attach[value] or attach[n]
 			end
 		end
