@@ -157,15 +157,15 @@ function self.search(self, s)
 				attach = attach[value] or attach[nvalue]
 			end
 		else
-			if attach then
-				local _, n = table.find(attach, value)
-				if not n then
-					return nil, format('Not finded value %s in %s', value, attach)
-				end
-
-				p(attach, value, n)
-				return attach[value] or attach[n]
+			if not attach then
+				attach = self
 			end
+			local _, n = table.find(attach, value)
+			if not n then
+				return nil, format('Not finded value %s in %s', value, attach)
+			end
+
+			return attach[value] or attach[n]
 		end
 	end
 end
