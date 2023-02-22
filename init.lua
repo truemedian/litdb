@@ -45,6 +45,7 @@ return setmetatable({
 			end
 		end
 
+		self._active = true
 		return self
 	end
 })
