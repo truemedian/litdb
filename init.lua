@@ -27,6 +27,10 @@ local key_statuses = {'Assigned','Unassigned','Disabled','Active'}
 local len = string.len
 
 local function send_post(href, body)
+	if (type(body) ~= 'table') then
+		body = {}
+	end
+
 	body.token = key
 
 	if hasattr(body, 'HWID') and len(body.HWID) <= 40 then
@@ -172,6 +176,36 @@ function modules:get_account_stats()
 	end
 
 	return data
+end
+
+function modules:update_key_expiration(discord_id_or_key, expiry_hours)
+	assert(type(expiry_hours) == 'number', ('`expiry_hours` must be a number (got `%s`)'):format(type(expiry_hours)))
+
+	return send_post("updateKeyExpiration", {
+		wl_key = discord_id_or_key,
+		discord_id = discord_id_or_key,
+		expiryHours = expiry_hours
+	})
+end
+
+function modules:transfer_keys_to_new_script(old_script_id, new_script_id)
+	assert(type(old_script_id) == 'number', ('`old_script_id` must be a number (got `%s`)'):format(type(old_script_id)))
+	assert(type(new_script_id) == 'number', ('`new_script_id` must be a number (got `%s`)'):format(type(new_script_id)))
+
+	return send_post("bulkUpdateKeyWLScript", {
+		old_wl_script_id = old_script_id,
+		new_wl_script_id = new_script_id
+	})
+end
+
+function modules:transfer_key_to_new_script(discord_id_or_key, new_script_id)
+	assert(type(new_script_id) == 'number', ('`new_script_id` must be a number (got `%s`)'):format(type(new_script_id)))
+
+	return send_post("updateKeyWLScript", {
+		wl_key = discord_id_or_key,
+		discord_id = discord_id_or_key,
+		wl_script_id = new_script_id
+	})
 end
 
 return modules
