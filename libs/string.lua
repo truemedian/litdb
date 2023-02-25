@@ -7,7 +7,7 @@ local remove, insert, concat = table.remove, table.insert, table.concat
 
 local error_format = 'bad argument #%s for %s (%s expected got %s)'
 
-local compare = _G.compare
+local compare, resolve = _G.compare, _G.resolve
 
 --- Compare string `self` with string `pattern`; you can give diferent [, `level`] for those comparisions:
 --- nil, 0 or 'equal' to compare equality of `self` and `pattern`,
@@ -27,14 +27,15 @@ function self.compare(self, pattern, init, level)
 		return error(format(error_format, 2, 'string.compare', 'string/number/table', type2))
 	end
 
-	pattern = tostring(pattern)
+	pattern = resolve(pattern)
+	local ptrn = type2 == 'string' and lower(pattern)
 	if not level or level == 0 or level == 'equal' then
 		return compare(self, pattern)
 	elseif level == 1 or level == 'lwreq' then
 		return compare(lower(self), lower(pattern))
-	elseif level == 2 or level == 'find' then
+	elseif ptrn and (level == 2 or level == 'find') then
 		return sfind(self, pattern, init) and true or nil
-	elseif level == 3 or level == 'lwrfind' then
+	elseif ptrn and (level == 3 or level == 'lwrfind') then
 		return sfind(lower(self), lower(pattern), init) and true or nil
 	end
 
@@ -129,8 +130,8 @@ end
 
 --- Generates a new random string in base of length `len`, char minimum `mn` and maximum `mx`.
 ---@param len number
----@param mn number
----@param mx number
+---@param mn? number
+---@param mx? number
 ---@return string
 function self.random(len, mn, mx)
 	local type1, type2, type3 = type(len), type(mn), type(mx)

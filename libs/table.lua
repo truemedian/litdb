@@ -214,7 +214,6 @@ function self.sinsert(self, s, value)
 
 	local attach
 	for n, str in pairs(split) do
-		str = tonumber(str) or str
 		if n ~= num then
 			if not attach then
 				table.set(self, str); attach = self[str]
@@ -222,13 +221,10 @@ function self.sinsert(self, s, value)
 				table.set(attach, str); attach = attach[str]
 			end
 		else
-			if attach then
-				attach[str] = value
+			attach = attach or self
+			attach[str] = value
 
-				return attach[str] == value and true or nil
-			end
-
-			return nil
+			return attach[str] == value and true or nil
 		end
 	end
 end

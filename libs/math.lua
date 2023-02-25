@@ -1,6 +1,6 @@
 local self = {}
 
---- Returns the minimum value of the max value of n.
+--- Returns the minimum value of the maximum value of n.
 ---@param n number
 ---@param mn number
 ---@param mx number
