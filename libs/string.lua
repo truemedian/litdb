@@ -1,24 +1,32 @@
+--[[
+	author = 'Corotyest'
+	version = '1.0.0-bw'
+]]
+
 local self = {}
 
+-- local strlib, tablib, mathlib = nil, require './table', require './math'
+local utils = require 'utils'
+local compare, resolve = utils.compare, utils.resolve
+
 local random = math.random
+local insert, concat = table.insert, table.concat
 local format, sfind, lower, sub, match = string.format, string.find, string.lower, string.sub, string.match
-local gmatch, char, gsub = string.gmatch, string.char, string.gsub
-local remove, insert, concat = table.remove, table.insert, table.concat
+local gmatch, char = string.gmatch, string.char
 
 local error_format = 'bad argument #%s for %s (%s expected got %s)'
 
-local compare, resolve = _G.compare, _G.resolve
 
---- Compare string `self` with string `pattern`; you can give diferent [, `level`] for those comparisions:
---- nil, 0 or 'equal' to compare equality of `self` and `pattern`,
---- 1 or 'lwreq' to compare lowered values of `self` and `pattern`,
---- 2 or 'find' to find `pattern` in `self` considered as magic,
---- 3 or 'lwrfind' to find lowered `pattern` in lowered `self`.
+--- Compares the string `self` with the string `pattern`; you can give diferent [, `level`] for those comparisions: <br>
+--- → nil, 0 or 'equal' to compare equality of `self` and `pattern`, <br>
+--- → 1 or 'lwreq' to compare lowered values of `self` and `pattern`, <br>
+--- → 2 or 'find' to find `pattern` in `self` considered as magic, <br>
+--- → 3 or 'lwrfind' to find lowered `pattern` in lowered `self`. <br>
 ---@param self string
 ---@param pattern string
 ---@param init? number @only works with levels upper to 1
----@param level? number/string
----@return boolean
+---@param level? number | string
+---@return true | nil
 function self.compare(self, pattern, init, level)
 	local type1, type2 = type(self), type(pattern)
 	if type1 ~= 'string' then
@@ -27,7 +35,7 @@ function self.compare(self, pattern, init, level)
 		return error(format(error_format, 2, 'string.compare', 'string/number/table', type2))
 	end
 
-	pattern = resolve(pattern)
+	pattern = resolve(pattern, 'string')
 	local ptrn = type2 == 'string' and lower(pattern)
 	if not level or level == 0 or level == 'equal' then
 		return compare(self, pattern)
@@ -42,93 +50,79 @@ function self.compare(self, pattern, init, level)
 	return nil
 end
 
--- extension functions for `string.extract`
+--- Remaking this documentation.
 
--- detect if string `s` got `word` followed by `sing`, return the value after it
-local function got_sing(s, word, sing)
-	local start, last = sfind(s, word)
-	if not start and not last then return nil end
-	s = gsub(sub(s, last + 1), '^%s*', '')
-	return sub(s, 1, 1) == sing, s
-end
+--- Possibly add those local functions to the `string` library.
 
--- compact the removition of spaces and `sing`
-local function slot(s, word, sing, trim)
-	sing, s = got_sing(s, word, sing)
-	if not sing then
+local extractForm = '%s[%s]*[%s]'
+
+local function join(f, ...)
+	local base = {...}
+	if #base == 0 then
 		return nil
-	else
-		local value = sub(s, 2)
-		if trim then value = self.trim(value) end
-		return value
-	end
-end
-
--- removes unexpected `word` followed by `sing` of string `s`
-local function remove_(s, word, sing, trim)
-	local sn = sfind(s, word .. '%s*' .. sing)
-	local value = sn and sub(s, 0, sn - 1) or s
-	return trim and self.trim(value) or value
-end
-
---- Tries to get the values in `self` contents in `extract` followed by `sing`, as optional is `trim` to remove all spaces in start
---- and the end of any value match.
----@param self string
----@param extract table
----@param sign? string
----@param trim? boolean
----@return table
-function self.extract(self, extract, sing, trim)
-	local type1, type2, type3 = type(self), type(extract), type(sing)
-	if type1 ~= 'string' then
-		return error(format(error_format, 1, 'string.extract', 'string', type1))
-	elseif type2 ~= 'table' then
-		return error(format(error_format, 2, 'string.extract', 'table', type2))
-	elseif sing and type3 ~= 'string' then
-		return error(format(error_format, 3, 'string.extract', 'string', type3))
+	elseif not f then
+		f = '%%%s'
 	end
 
-	sing = type(sing) == 'string' and sing or '='
+	local str = ''
+	for _, value in pairs(base) do
+		str = str .. (type(value) == 'table' and join(f, unpack(value)) or format(f, value))
+	end
+	return str
+end
 
-	local fn
-	local keywords = extract[1]; keywords = type(keywords) == 'table' and keywords
-	for index, value in pairs(extract) do
-		local type4 = type(value)
-		if type4 ~= 'string' then
-			if type4 == 'function' and not fn then fn = value end
-			extract[index] = nil
-		end
-	end -- search for any field that is not a string
-
-	local base, response = {extract, keywords}, {}
-
-	-- match value `key`, but removing `extract` contents followed by `sing`
-	local function autocomplete(key)
-		local slot = slot(self, key, sing, trim)
-		for _, base in pairs(base) do
-			if type(base) == 'table' then
-				for _, _key in pairs(base) do
-					if type(_key) == 'string' and _key ~= key then
-						slot = slot and remove_(slot, _key, sing, trim) or slot
-					end
-				end
+local function revoke(s, track, symbol, ignore)
+	for i, value in pairs(track) do
+		if i ~= ignore and value ~= ignore then
+			local _, start, f = s:extract(value, symbol)
+			if f and start then
+				s = sub(s, 1, start - 1)
 			end
 		end
-		return slot
 	end
 
-	for hash, index in pairs(extract) do
-		hash = type(hash) == 'string' and hash or index
-		if type(index) == 'string' then
-			local value = autocomplete(index)
-			response[hash] = fn and fn(value, hash) or value
+	return s
+end
+
+
+function self.extract(self, extract, symbol, init, trim)
+	local type1, type2, type3 = type(self), type(extract), type(symbol)
+	if type1 ~= 'string' then
+		return error(format(error_format, 1, 'string.extract', 'string', type1))
+	elseif type2 ~= 'string' and type2 ~= 'table' then
+		return error(format(error_format, 2, 'string.extract', 'string/table', type2))
+	elseif symbol and (type3 ~= 'string' and type3 ~= 'table') then
+		return error(format(error_format, 3, 'string.extract', 'string/table?', type3))
+	end
+
+	if type2 == 'table' and #extract == 0 then
+		return nil, 'argument #2 is a `table` but has no index values.'
+	elseif type3 == 'table' and #symbol == 0 then
+		return nil, 'argument #3 is a `table` but has no index values.'
+	end
+
+	symbol = join(nil, symbol) or '%='
+
+	if type2 == 'string' then
+		local s, f = sfind(self, format(extractForm, extract, '%s', symbol), init)
+		local value = f and sub(self, f + 1)
+		return value and (trim == true and value:trim() or value), s, f
+	end
+
+	local extracts = { }
+	for _, value in ipairs(extract) do
+		if type(value) == 'string' then
+			local content = self:extract(value, symbol, nil, trim)
+			content = revoke(content, extract, symbol, value)
+			extracts[value] = trim == true and content:trim() or content
 		end
 	end
 
-	return response
+	return extracts
 end
 
---- Generates a new random string in base of length `len`, char minimum `mn` and maximum `mx`.
+--- Generates a new random string in base of length `len` (width), minimum `mn` and maximum `mx` character of the string.
+--- Returns the *"pseudo"* string.
 ---@param len number
 ---@param mn? number
 ---@param mx? number
@@ -153,7 +147,7 @@ function self.random(len, mn, mx)
 	return concat(ret)
 end
 
---- Tries to split string `self` in base to `...`.
+--- Cuts the string `self` as the passed through vararg `...` and return the *split* in a `table`.
 ---@param self string
 ---@vararg string
 ---@return table
@@ -167,7 +161,7 @@ function self.split(self, can, ...)
 
 	local base = {...}
 	if type2 == 'string' then base[#base + 1] = can end
-	local sformat = format('([^%%%s]+)', concat(base, '%'))
+	local sformat = format('([^%%%s]*)', concat(base, '%'))
 
 	local response = {}
 	for split in gmatch(self, sformat) do
@@ -178,7 +172,7 @@ function self.split(self, can, ...)
 	return response
 end
 
---- Tries to trim string `self`.
+--- Cuts the spaces that the string `self` got in, and return string.
 ---@param self string
 ---@return string
 function self.trim(self)
