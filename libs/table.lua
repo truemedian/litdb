@@ -218,7 +218,7 @@ function self.sinsert(list, s, value)
 		value = nil
 	end
 
-	local split = split(s, '.')
+	local split = split(s, false, '.')
 
 	local num = self.getn(split)
 	if num == 0 then

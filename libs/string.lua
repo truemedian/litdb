@@ -161,7 +161,7 @@ function self.split(self, can, ...)
 
 	local base = {...}
 	if type2 == 'string' then base[#base + 1] = can end
-	local sformat = format('([^%%%s]*)', concat(base, '%'))
+	local sformat = format('([^%%%s]+)', concat(base, '%'))
 
 	local response = {}
 	for split in gmatch(self, sformat) do

@@ -1,6 +1,6 @@
 return {
     name = "Corotyest/lua-extensions",
-    version = "3.0.01-bw",
+    version = "3.0.2-bw",
     description = "Useful functions for the Lua programming language.",
     tags = { "lua", "lit", "luvit" },
     license = "MIT",
