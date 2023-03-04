@@ -1,14 +1,13 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '2.0.2'
+	version = '2.0.3'
 ]]
-
--- Reworked, enjoy!
 
 local console = io.output()
 local userdata = debug.getuservalue
 local concat, sort = table.concat, table.sort
 local format, sfind, rep, gsub = string.format, string.find, string.rep, string.gsub
+
 
 local function getn(self)
 	local response = 0
@@ -37,7 +36,7 @@ end
 
 local function getIndex(value)
 	local type1 = type(value)
-	if type1 == 'number' or type1 == 'string' and sfind(gsub(value, '_', ''), '[%c%p%s]+') then
+	if type1 == 'number' or type1 == 'string' and (#value == 0 or sfind(gsub(value, '_', ''), '[%c%p%s]+')) then
 		return format('[%s]', type1 ~= 'number' and quote(value) or value)
 	end
 
@@ -145,7 +144,7 @@ local function encode(value, tabs)
 end
 
 local function highPrint(...)
-    local base = { ... }
+    local base = {...}
 	for _, value in pairs(base) do
         console:write(encode(value))
 		console:write '\t'
