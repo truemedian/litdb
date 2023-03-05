@@ -26,7 +26,7 @@ version: 2.0.0bw
 
 return {
 	name = 'Corotyest/bestore',
-	version = '1.5.0',
+	version = '1.5.1',
 	dependencies = {
 		'Corotyest/content',
 		'Corotyest/format'

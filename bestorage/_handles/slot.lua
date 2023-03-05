@@ -1,3 +1,0 @@
-return {
-	KEY = 'value-long'
-}
