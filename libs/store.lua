@@ -1,37 +1,41 @@
-local getn = require 'inspect'.getn
 local content = require 'content'
+
+local function getn(table)
+	local n = 0
+	for _ in pairs(table) do
+		n = n + 1
+	end
+	return n
+end
 
 local function save(self)
 	local handle = self:getHandle()
 	if not handle then return nil end
 
-	local value = {}
+	local value = self:getPathNames()
 
-	for k, v in self.props.osean.iter() do
-		value[k] = v
-	end
 
-	return handle:apply({
+	return handle:apply {
 		key = 'props',
 		value = value,
 		setret = true
-	})
+	}
 end
 
 local function load(self)
 	local handle = self:getHandle()
 
-	local content = handle and handle:content()
-	content = content and (type(content) ~= 'table' or getn(content) == 0)
-
-	if type(content) == 'table' then
-		local boat = self.props
+	local lines = handle and handle:content()
+	if type(lines) == 'table' and getn(lines) ~= 0 then
 		local response = { }
 
-		for k, data in pairs(content) do
-			for index, value in pairs(data) do
-				response[#response + 1] = { boat:set(k, index, value), index, k }
-			end
+		for index, value in pairs(lines.props) do
+			local path = self[index]
+			path:rem 'default'
+
+			response[#response + 1] = {
+				path:set(value), index, value == path:get()
+			}
 		end
 
 		return response
@@ -40,7 +44,10 @@ end
 
 local function getHandle(self)
 	if not self.handle then
-		local handle = self.props:get('path', 'handle')
+		local handle = self.storage:get(self.__name)
+		if not handle then
+			return nil, 'not path found'
+		end
 
 		if content:edit_dir(handle) then
 			self.handle = content:newHandle(handle .. 'save.lua')
