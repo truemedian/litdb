@@ -125,7 +125,7 @@ function self.read(list, docopy, auto_call)
 
 	return setmetatable(copy, {
 		__index = function(_, key)
-			local value = rawget(list, key)
+			local value = list[key]
 			if type(value) == 'function' then
 				return auto_call and value(list) or value
 			else
