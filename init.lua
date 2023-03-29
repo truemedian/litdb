@@ -208,4 +208,8 @@ function modules:transfer_key_to_new_script(discord_id_or_key, new_script_id)
 	})
 end
 
+function modules:get_all_keys()
+	return send_post("getAllKeys")
+end
+
 return modules
