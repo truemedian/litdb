@@ -1,6 +1,6 @@
   --[[lit-meta
     name = "lil-evil/table-watcher"
-    version = "1.0.1"
+    version = "1.0.2"
     dependencies = {}
     description = "An event based table watcher"
     tags = { "table", "watcher", "observe", "event" }
@@ -14,7 +14,7 @@
 ---@module table-watcher
 
 local watcher = {
-    package = require"./package"
+    package = {version = "1.0.2"}
 }
 
 --forward declaration
