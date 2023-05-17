@@ -1,6 +1,6 @@
   --[[lit-meta
     name = "lil-evil/table-watcher"
-    version = "1.0.2"
+    version = "1.0.3"
     dependencies = {}
     description = "An event based table watcher"
     tags = { "table", "watcher", "observe", "event" }
@@ -14,13 +14,14 @@
 ---@module table-watcher
 
 local watcher = {
-    package = {version = "1.0.2"}
+    package = {version = "1.0.3"}
 }
 
 --forward declaration
 local watcher_metatable
 
--- no key overwrite
+-- no key overwrite or ugly __my__not__so__hiden__property__
+-- let user full choice of keys, with no overwriting problems
 local watcher_data, watcher_origin, watcher_events = {}, {}, {}
 
 -- https://gist.github.com/tylerneylon/81333721109155b2d244
@@ -39,30 +40,22 @@ end
 
 watcher_metatable = {
     __index = function(t, k)
-        --filter get
-        if type(t[watcher_events].fget) == "function" then
-            local state, ret = t[watcher_events].fget(t[watcher_data], k)
-            if state then return ret end
-        end
         --get callback
         if type(t[watcher_events].get) == "function" then
-            t[watcher_events].get(t[watcher_data], k)
+            local block, val = t[watcher_events].get(t[watcher_data], k, t[watcher_events])
+            if block == t[watcher_events].block then return val end
         end
         if type(t[watcher_data][k]) == "table" then
             return setmetatable({[watcher_data] = t[watcher_data][k], [watcher_events] = t[watcher_events], [watcher_origin] = t[watcher_data]}, watcher_metatable)
         else return t[watcher_data][k] end
     end,
     __newindex = function(t, k, v)
-        -- filter set
-        if type(t[watcher_events].fset) == "function" then
-            local set = t[watcher_events].fset(t[watcher_data], k, v)
-            if set == false then return end
-        end
-        t[watcher_data][k] = v -- set
         -- set callback
         if type(t[watcher_events].set) == "function" then
-            t[watcher_events].set(t[watcher_data], k, v)
+            local block = t[watcher_events].set(t[watcher_data], k, v, t[watcher_events])
+            if block == t[watcher_events].block then return end
         end
+        t[watcher_data][k] = v -- set
     end,
     __len = function(t)
         return #t[watcher_data]
@@ -73,27 +66,29 @@ watcher_metatable = {
 }
 
 --- Watch a table for gets and sets
----@param data table table to watch
----@param events table list of event to interact with
----@param events.get function (self, key) trigger when accessing field.
----@param events.set function (self, key, value) trigger when seting field.
----@param events.fget function (self, key)->boolean,any same as get. When returning true,any the property returned is any. exemple (true, "hello") watched.prop == "hello"
----@param events.fset function (self, key, value)->boolean same a set. When returning false, block the set of the field
+---@param data table Table to watch
+---@param events table List of event to interact with
+---@param events.get function (self, key, self) Triggered when accessing field.
+---@param events.set function (self, key, value, self) Triggered when seting field.
 ---@return table
 function watcher.watch(data, events)
     if type(data) ~= "table" then error("Missing or invalid table to watch (got "..type(data)..")") end
     if data[watcher_data] then error("This table is already watched") end
 
 
-    events = type(events) == "table" and events or {}
+    events = type(events) == "table" and deep_clone(events) or {}
+
+    events.origin = data
+    events.block = {}
+    function events:ret(value) return self.block, value end
 
     return setmetatable({[watcher_data] = data, [watcher_events] = events}, watcher_metatable)
 
 end
 
---- return a table that no longer trigger events
----@param data table table to unwatch
----@param clone boolean|nil wheither to deep clone the table before return it
+--- Return a table that no longer trigger events
+---@param data table Table to unwatch
+---@param clone boolean|nil Wheither to deep clone the table before return it or not
 ---@return table
 function watcher.unwatch(data, clone)
     if type(data) ~= "table" then error("Missing or invalid table to unwatch (got "..type(data)..")") end
@@ -106,8 +101,8 @@ function watcher.unwatch(data, clone)
     return data_
 end
 
---- complety destroy all watcher instances of this table and return a shallow copy of original table
----@param data table watcher to detroy
+--- Complety destroy all watcher instances of this table and return a shallow copy of original table
+---@param data table Watcher to destroy
 ---@return table
 function watcher.destroy(data)
     if type(data) ~= "table" then error("Missing or invalid table to unwatch (got "..type(data)..")") end
@@ -127,7 +122,7 @@ function watcher.destroy(data)
     return data
 end
 
---- check if the data is watched
+--- Check if the data is watched
 ---@param data table
 ---@return boolean
 function watcher.is_watched(data)
