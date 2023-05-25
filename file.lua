@@ -1,13 +1,13 @@
 --[[lit-meta
 	name = 'Corotyest/inspect'
-	version = '2.0.3'
+	version = '2.1.0'
 ]]
 
 local console = io.output()
+
 local userdata = debug.getuservalue
 local concat, sort = table.concat, table.sort
 local format, sfind, rep, gsub = string.format, string.find, string.rep, string.gsub
-
 
 local function getn(self)
 	local response = 0
@@ -36,7 +36,7 @@ end
 
 local function getIndex(value)
 	local type1 = type(value)
-	if type1 == 'number' or type1 == 'string' and (#value == 0 or sfind(gsub(value, '_', ''), '[%c%p%s]+')) then
+	if type1 == 'number' or type1 == 'string' and sfind(gsub(value, '_', ''), '[%c%p%s]+') then
 		return format('[%s]', type1 ~= 'number' and quote(value) or value)
 	end
 
@@ -56,6 +56,11 @@ end
 local seen = {}
 
 local function sortFn(state, compare)
+	if type(state) == 'function' or type(compare) == 'function' then
+		return
+	end
+
+
 	local value, value1 = state[2], compare[2]
 	if type(value) == 'table' and not seen[value] then
 		seen[value] = true
@@ -94,8 +99,8 @@ local function cycled(value, type)
 	return quote(format('cycled: %s', type))
 end
 
-local cycle
-local function encode(value, tabs)
+local cycle = nil
+local function encode(value, tabs, spaces)
 	local type1 = type(value)
     if type1 ~= 'table' then
 		if type1 ~= 'userdata' then
@@ -115,7 +120,9 @@ local function encode(value, tabs)
 		return '{}'
 	end
 
-	tabs = tabs or 1
+	local jumpIn, dualSeparator = not spaces and '\n' or ' ', (',%s'):format(spaces and '  ' or '\n')
+
+	tabs = not spaces and tabs or 1
 	local methods = { }
 	local response = { }
 
@@ -123,28 +130,38 @@ local function encode(value, tabs)
 		local key, value = data[1], data[2]
 
 		local type2 = type(value)
-		local encoded, status = encode(value, tabs + 1)
+
+		local encoded, status = encode(value, not spaces and tabs + 1, spaces)
+		if encoded == cycle then
+			status = 'last'
+		end
         encoded = status ~= 'last' and encoded or status == 'last' and cycled(value, type2)
 
-        if encoded then
-			local field = formatIndex(key, encoded, tabs)
-
-			if isMethod(key) then
-				methods[#methods + 1] = field
-			else
-				response[#response + 1] = field
-			end
+        if not encoded then
+			goto continue
 		end
+
+		local field = formatIndex(key, encoded, not spaces and tabs)
+		if isMethod(key) then
+			methods[#methods + 1] = field
+		else
+			response[#response + 1] = field
+		end
+
+		::continue::
 	end
 
-	return format('{\n%s\n%s}',
-		format('%s%s%s', concat(methods, ',\n'), #methods ~= 0 and '\n' or '', concat(response, ',\n')),
+--  first separator ↓
+	return format('{%s%s%s%s}',
+		jumpIn,
+		format('%s%s%s', concat(methods, dualSeparator), #methods ~= 0 and jumpIn or '', concat(response, dualSeparator)),
+		jumpIn,
 		tabs ~= 1 and rep('\t', tabs - 1) or ''
 	)
 end
 
 local function highPrint(...)
-    local base = {...}
+    local base = { ... }
 	for _, value in pairs(base) do
         console:write(encode(value))
 		console:write '\t'
