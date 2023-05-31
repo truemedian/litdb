@@ -50,14 +50,6 @@ local I64 = NibLib.I64
 local F32 = NibLib.F32
 local F64 = NibLib.F64
 
-function NibLib.decodePointer(read, offset, width)
-    local str = read(offset, width)
-    if width == 1 then return cast(U8Ptr, str)[0] end
-    if width == 2 then return cast(U16Ptr, str)[0] end
-    if width == 4 then return cast(U32Ptr, str)[0] end
-    if width == 8 then return cast(U64Ptr, str)[0] end
-    error("Illegal pointer width " .. width)
-end
 
 --- Returns true if a table should be treated like an array (ipairs/length/etc)
 --- This uses the __is_array_like metaproperty if it exists, otherwise, it

@@ -38,7 +38,7 @@ local cast = ffi.cast
 
 local insert = table.insert
 
-local Tibs = require 'tibs'
+local Tibs = import 'tibs'
 local List = Tibs.List
 local Map = Tibs.Map
 local Array = Tibs.Array
@@ -50,18 +50,16 @@ local NibLib = import "nib-lib"
 
 local NibsList, NibsMap, NibsArray, NibsTrie
 
-local U64 = NibLib.U64
-local I64 = NibLib.I64
-
-local U8Ptr = NibLib.U8Ptr
-local U16Ptr = NibLib.U16Ptr
-local U32Ptr = NibLib.U32Ptr
-local U64Ptr = NibLib.U64Ptr
-
-local Slice8 = NibLib.U8Arr
-local Slice16 = NibLib.U16Arr
-local Slice32 = NibLib.U32Arr
-local Slice64 = NibLib.U64Arr
+local Slice8 = ffi.typeof 'uint8_t[?]'
+local Slice16 = ffi.typeof 'uint16_t[?]'
+local Slice32 = ffi.typeof 'uint32_t[?]'
+local Slice64 = ffi.typeof 'uint64_t[?]'
+local U8Ptr = ffi.typeof 'uint8_t*'
+local U16Ptr = ffi.typeof 'uint16_t*'
+local U32Ptr = ffi.typeof 'uint32_t*'
+local U64Ptr = ffi.typeof 'uint64_t*'
+local U64 = ffi.typeof 'uint64_t'
+local I64 = ffi.typeof 'int64_t'
 
 local converter = ffi.new 'union {double f;uint64_t i;}'
 ffi.cdef [[
@@ -106,6 +104,11 @@ local nibs8ptr = ffi.typeof 'struct nibs8*'
 local nibs16ptr = ffi.typeof 'struct nibs16*'
 local nibs32ptr = ffi.typeof 'struct nibs32*'
 local nibs64ptr = ffi.typeof 'struct nibs64*'
+
+local xxhash64 = import 'xxhash64'
+
+--- The internal trie index used by nibs' HAMTrie type
+local HamtIndex = {}
 
 ---Encode a small/big pair into binary parts
 ---@param small integer any 4-bit unsigned integer
@@ -410,34 +413,51 @@ function generate_array_index(offsets)
     return more + sizeof(index), { head, index }
 end
 
+-- Reusable buffer for reading and decoding nibs pairs and pointers up to 9 bytes
+local temp_buf = Slice8(9)
+
 ---@param read ByteProvider
----@param offset number
----@return number
----@return number
----@return number
+---@param offset integer
+---@return integer bytes_decoded (1-9)
+---@return integer small (4 bit)
+---@return integer big (up to 64 bit)
 local function decode_pair(read, offset)
-    local data = read(assert(tonumber(offset)), 9)
-    local pair = cast(nibs4ptr, data)
+    local size = read(offset, temp_buf)
+    assert(size >= 1)
+    local pair = cast(nibs4ptr, temp_buf)
     ---@cast pair {big:integer,small:integer}
     if pair.big == 12 then
-        pair = cast(nibs8ptr, data)
+        assert(size >= 2)
+        pair = cast(nibs8ptr, temp_buf)
         ---@cast pair {prefix:integer,small:integer,big:integer}
         return offset + 2, pair.small, pair.big
     elseif pair.big == 13 then
-        pair = cast(nibs16ptr, data)
+        assert(size >= 3)
+        pair = cast(nibs16ptr, temp_buf)
         ---@cast pair {prefix:integer,small:integer,big:integer}
         return offset + 3, pair.small, pair.big
     elseif pair.big == 14 then
-        pair = cast(nibs32ptr, data)
+        assert(size >= 5)
+        pair = cast(nibs32ptr, temp_buf)
         ---@cast pair {prefix:integer,small:integer,big:integer}
         return offset + 5, pair.small, pair.big
     elseif pair.big == 15 then
-        pair = cast(nibs64ptr, data)
+        assert(size >= 9)
+        pair = cast(nibs64ptr, temp_buf)
         ---@cast pair {prefix:integer,small:integer,big:integer}
         return offset + 9, pair.small, pair.big
     else
         return offset + 1, pair.small, pair.big
     end
+end
+
+--- Convert an I64 to a normal number if it's in the safe range
+---@param n integer cdata I64
+---@return integer maybe_number
+local function to_number_maybe(n)
+    return (n <= 0x1fffffffffffff and n >= -0x1fffffffffffff)
+        and tonumber(n)
+        or n
 end
 
 ---Convert an unsigned 64 bit integer to a signed 64 bit integer using zigzag decoding
@@ -446,12 +466,12 @@ end
 local function decode_zigzag(num)
     local i = I64(num)
     local o = bxor(rshift(i, 1), -band(i, 1))
-    return NibLib.tonumberMaybe(o)
+    return to_number_maybe(o)
 end
 
 --- Convert an unsigned 64 bit integer to a double precision floating point by casting the bits
----@param val number
----@return integer
+---@param val integer
+---@return number
 local function decode_float(val)
     converter.i = val
     return converter.f
@@ -469,11 +489,14 @@ local function decode_simple(big)
 end
 
 ---@param read ByteProvider
----@param offset number
----@param length number
----@return ffi.ctype*
+---@param offset integer
+---@param length integer
+---@return ffi.cdata* bytes
 local function decode_bytes(read, offset, length)
-    return NibLib.strToBuf(read(offset, length))
+    local bytes = Slice8(length)
+    local size = read(offset, bytes)
+    assert(size == length)
+    return bytes
 end
 
 ---@param read ByteProvider
@@ -481,26 +504,60 @@ end
 ---@param length number
 ---@return string
 local function decode_string(read, offset, length)
-    return read(offset, length)
+    local bytes = decode_bytes(read, offset, length)
+    return ffi_string(bytes, length)
+end
+
+--- Convert integer to ascii code for hex digit
+--- Assumes input is valid number (0-15)
+---@param num integer numerical value (0-15)
+---@return integer code ascii hex digit [0-9a-f]
+local function tohex(num)
+    return num + (num <= 9 and 0x30 or 0x57)
 end
 
 ---@param read ByteProvider
----@param offset number
----@param length number
----@return string
+---@param offset integer
+---@param length integer
+---@return string bytes expanded as hex string
 local function decode_hexstring(read, offset, length)
-    return NibLib.strToHexStr(read(offset, length))
+    local bytes = decode_bytes(read, offset, length)
+    local buf = Slice8(length * 2)
+    local j = 0
+    for i = 0, length - 1 do
+        local b = bytes[i]
+        buf[j] = tohex(rshift(b, 4))
+        j = j + 1
+        buf[j] = tohex(band(b, 15))
+        j = j + 1
+    end
+    return ffi_string(buf, length * 2)
 end
 
+---@param read ByteProvider
+---@param offset integer
+---@param width integer
+---@return integer ptr
 local function decode_pointer(read, offset, width)
-    local str = read(offset, width)
-    if width == 1 then return cast(U8Ptr, str)[0] end
-    if width == 2 then return cast(U16Ptr, str)[0] end
-    if width == 4 then return cast(U32Ptr, str)[0] end
-    if width == 8 then return cast(U64Ptr, str)[0] end
+    if width == 1 then
+        assert(read(offset, temp_buf, 1) >= 1)
+        return cast(U8Ptr, temp_buf)[0]
+    elseif width == 2 then
+        assert(read(offset, temp_buf, 2) >= 2)
+        return cast(U16Ptr, temp_buf)[0]
+    elseif width == 4 then
+        assert(read(offset, temp_buf, 4) >= 4)
+        return cast(U32Ptr, temp_buf)[0]
+    elseif width == 8 then
+        assert(read(offset, temp_buf, 8) >= 8)
+        return cast(U64Ptr, temp_buf)[0]
+    end
     error("Illegal pointer width " .. width)
 end
 
+---@param read ByteProvider
+---@param offset integer
+---@return integer new_offset
 local function skip(read, offset)
     local little, big
     offset, little, big = decode_pair(read, offset)
@@ -880,8 +937,13 @@ Nibs.get = get
 ---@param str string
 ---@return any
 function Nibs.decode(str)
-    local val, offset = Nibs.get(function(offset, length)
-        return string.sub(str, offset + 1, offset + length)
+    local size = #str
+    local source = Slice8(size)
+    ffi.copy(source, str, size)
+    local val, offset = Nibs.get(function(offset, buffer, max)
+        max = math.min(max or ffi.sizeof(buffer), size - offset)
+        ffi.copy(buffer, source + offset, max)
+        return max
     end, 0)
     assert(offset == #str, "extra data in input string")
     return val
@@ -1057,6 +1119,270 @@ end
 
 function Nibs.deduplicate(val)
     return Nibs.addRefs(val, Nibs.findDuplicates(val))
+end
+
+---@class Pointer
+---@field hash integer
+---@field target integer
+local Pointer = {}
+Pointer.__index = Pointer
+Pointer.__name = "Pointer"
+
+---@param hash integer
+---@param target integer
+---@return Pointer
+function Pointer.new(hash, target)
+    return setmetatable({ hash = hash, target = target }, Pointer)
+end
+
+---@class Node
+---@field power number
+local Node = {}
+Node.__index = Node
+Node.__name = "Node"
+Node.__is_array_like = false
+
+---@param power number bits for each path segment
+function Node.new(power)
+    return setmetatable({ power = power }, Node)
+end
+
+---Insert an entry into a node
+---@param pointer Pointer
+---@param depth integer tree depth
+---@return integer
+function Node:insert(pointer, depth)
+    local segment = assert(tonumber(
+        band(rshift(pointer.hash, depth * self.power), lshift(1, self.power) - 1)
+    ))
+    ---@type Node|Pointer|nil
+    local existing = self[segment]
+    if existing then
+        local mt = getmetatable(existing)
+        if mt == Node then
+            return existing:insert(pointer, depth + 1)
+        elseif mt == Pointer then
+            local child = Node.new(self.power)
+            self[segment] = child
+            return 1
+                + child:insert(existing, depth + 1)
+                + child:insert(pointer, depth + 1)
+        end
+        error "Bad Type"
+    end
+    self[segment] = pointer
+    return 1
+end
+
+function Node:serialize(write)
+    -- Serialize subnodes first
+    local targets = {}
+    local top = lshift(1, self.power) - 1
+    for i = top, 0, -1 do
+        ---@type Pointer|Node|nil
+        local entry = self[i]
+        if entry then
+            local mt = getmetatable(entry)
+            if mt == Node then
+                local serialized, err = entry:serialize(write)
+                if not serialized then return nil, err end
+                targets[i] = serialized
+            end
+        end
+    end
+    local high = lshift(1ULL, lshift(1ULL, self.power) - 1)
+
+    local bitfield = 0ULL
+    local current = write()
+    -- Write our own table now
+    for i = top, 0, -1 do
+        ---@type Pointer|Node|nil
+        local entry = self[i]
+        if entry then
+            bitfield = bor(bitfield, lshift(1, i))
+            local mt = getmetatable(entry)
+            if mt == Node then
+                local offset = current - targets[i]
+                if offset >= high then
+                    return nil, "overflow"
+                end
+                current = write(offset)
+            elseif mt == Pointer then
+                local target = entry.target
+                if target >= high then return nil, "overflow" end
+                current = write(bor(high, target))
+            end
+        end
+    end
+    return write(bitfield)
+end
+
+---@param map table<ffi.cdata*,number> map from key slice to number
+---@param optimize number? of hashes to try
+---@return number count
+---@return number width
+---@return ffi.cdata* index as Slice8
+function HamtIndex.encode(map, optimize)
+
+    -- Calculate largest output target...
+    local max_target = 0
+    local count = 0
+    for _, v in pairs(map) do
+        count = count + 1
+        if v > max_target then max_target = v end
+    end
+    -- ... and use that for the smallest possible start power that works
+    local start_power
+    if max_target < 0x100 then
+        start_power = 3
+    elseif max_target < 0x10000 then
+        start_power = 4
+    elseif max_target < 0x100000000 then
+        start_power = 5
+    else
+        start_power = 6
+    end
+
+    if not optimize then
+        -- Auto pick a optimize number so massive tries don't use too much CPU
+        optimize = math.max(2, math.min(255, 10000000 / (count * count)))
+    end
+
+    -- Try several combinations of parameters to find the smallest encoding.
+    local win = nil
+    -- The size of the currently winning index
+    local min = 1 / 0
+    -- Brute force all hash seeds in the 8-bit keyspace.
+    for seed = 0, optimize do
+        -- Precompute the hashes outside of the bitsize loop to save CPU.
+        local hashes = {}
+        for k in pairs(map) do
+            hashes[k] = xxhash64(k, assert(sizeof(k)), seed)
+        end
+        -- Try bit sizes small first and break of first successful encoding.
+        for power = start_power, 6 do
+
+            -- Create a new Trie and insert the data
+            local trie = Node.new(power)
+            -- Count number of rows in the index
+            local count = 1
+            for k, v in pairs(map) do
+                local hash = hashes[k]
+                count = count + trie:insert(Pointer.new(hash, v), 0)
+            end
+
+            -- Reserve a slot for the seed
+            count = count + 1
+
+            -- Width of pointers in bytes
+            local width = lshift(1, power - 3)
+            -- Total byte size of index if generated
+            local size = count * width
+
+            -- If it looks like this will be a new winner, do the full encoding.
+            if size < min then
+                local index
+                if power == 3 then
+                    index = Slice8(count)
+                elseif power == 4 then
+                    index = Slice16(count)
+                elseif power == 5 then
+                    index = Slice32(count)
+                elseif power == 6 then
+                    index = Slice64(count)
+                end
+
+                local i = 0
+                local function write(word)
+                    if word then
+                        i = i + 1
+                        index[count - i] = word
+                    end
+                    return (i - 1) * width
+                end
+
+                local _, err = trie:serialize(write)
+                write(seed)
+                if not err then
+                    min = size
+                    win = { count, width, index }
+                    break
+                end
+            end
+        end
+    end
+    assert(win, "there was no winner")
+    return unpack(win)
+end
+
+-- http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetNaive
+local function popcnt(v)
+    local c = 0
+    while v > 0 do
+        c = c + band(v, 1ULL)
+        v = rshift(v, 1ULL)
+    end
+    return c
+end
+
+
+--- Walk a HAMT index checking for matching offset output
+---@param read ByteProvider
+---@param offset number start of hamt index (including seed)
+---@param count number number of pointers in index
+---@param width number pointer width in bytes
+---@param key ffi.cdata* key
+---@return integer? result usually an offset
+function HamtIndex.walk(read, offset, count, width, key)
+    local omega = offset + count * width
+    local bits = assert(width == 1 and 3
+        or width == 2 and 4
+        or width == 4 and 5
+        or width == 8 and 6
+        or nil, "Invalid byte width")
+
+    -- Read seed
+    local seed = decode_pointer(read, offset, width)
+    offset = offset + width
+
+    local hash = xxhash64(key, assert(ffi.sizeof(key)), seed)
+
+    local segmentMask = lshift(1, bits) - 1
+    local highBit = lshift(1ULL, segmentMask)
+
+    while true do
+
+        -- Consume the next path segment
+        local segment = band(hash, segmentMask)
+        hash = rshift(hash, bits)
+
+        -- Read the next bitfield
+        local bitfield = decode_pointer(read, offset, width)
+        offset = offset + width
+        assert(offset < omega)
+
+        -- Check if segment is in bitfield
+        local match = lshift(1, segment)
+        if band(bitfield, match) == 0 then return end
+
+        -- If it is, calculate how many pointers to skip by counting 1s under it.
+        local skipCount = tonumber(popcnt(band(bitfield, match - 1)))
+
+
+        -- Jump to the pointer and read it
+        offset = offset + skipCount * width
+        assert(offset < omega)
+        local ptr = decode_pointer(read, offset, width)
+
+        -- If there is a leading 1, it's a result pointer.
+        if band(ptr, highBit) > 0 then
+            return band(ptr, highBit - 1)
+        end
+
+        -- Otherwise it's an internal pointer
+        offset = offset + width + ptr
+        assert(offset < omega)
+    end
 end
 
 return Nibs

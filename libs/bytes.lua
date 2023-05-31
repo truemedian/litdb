@@ -13,7 +13,7 @@ local Slice8 = NibLib.U8Arr
 local U8Ptr = NibLib.U8Ptr
 
 --- Interface for byte providers
----@alias ByteProvider fun(offset:number,length:number):string
+---@alias ByteProvider fun(offset:integer,buffer:ffi.cdata*,max:integer?):integer
 
 local Bytes = {}
 
