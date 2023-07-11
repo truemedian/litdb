@@ -15,11 +15,12 @@ limitations under the License.
 --]]
 --[[lit-meta
   name = "bilal2453/discordia-replies"
-  version = "1.2.2"
+  version = "1.3.1"
   homepage = "https://github.com/bilal2453/discordia-replies/"
   description = "An addon for the library Discordia 2 to provide replies support."
   tags = {"discordia", "replies", "bots", "discord"}
   license = "Apache License 2.0"
+  obsolete = true
 ]]
 
 local readFileSync = require("fs").readFileSync
