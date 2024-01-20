@@ -1,6 +1,6 @@
 return {
     name = "Richy-Z/lua-edulink",
-    version = "0.0.2",
+    version = "0.0.3.1",
     description = "EduLink One API integration for Luvit",
     tags = {"edulink", "api", "school", "education", "uk", "england", "scotland", "wales", "ireland"},
     license = "MIT",
@@ -18,6 +18,7 @@ return {
     },
     files = {
         "**.lua",
-        "!privateTests*"
+        "!privateTests*",
+        "!tests*"
     }
 }
