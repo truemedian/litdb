@@ -1,5 +1,5 @@
 local edulink = require("../main.lua")
-edulink.authenticate("username", "password", "postcode")
+edulink.authenticate("student@school.org", "Password", "Postcode")
 
 local timetable = edulink.timetable()
 
