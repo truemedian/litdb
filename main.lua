@@ -1,4 +1,3 @@
-local prettyprint = require("pretty-print")
 local http = require("coro-http")
 local json = require("json")
 
@@ -8,111 +7,102 @@ edulink.school = nil
 edulink.authentication = nil
 edulink.learner = nil
 
--- dont even ask why the edulink api handles your sensitive info in plain, clear text...
-function edulink.provision(school_postcode)
-    if not school_postcode then return nil, "Required parameters weren't supplied!" end
+function edulink.rawrequest(request_type, provisionUrl, method, headers, params)
+    if not request_type or not method then return nil, "Required parameters not supplied." end
 
-    local payload = {
-        id = "1",
-        jsonrpc = "2.0",
-        method = "School.FromCode",
-        params = {
-            code = school_postcode
-        }
-    }
-    payload = json.encode(payload)
+    if not headers then headers = {} end
+    if not params then params = {} end
 
-    local headers, body = http.request("POST", "https://provisioning.edulinkone.com/?method=School.FromCode", {
-        {"Content-Type", "application/json;charset=UTF-8"},
-        {"Content-Length", #payload}
-    }, payload)
+    local payload = {}
+    payload.id = "1"
+    payload.jsonrpc = "2.0"
+    payload.method = method
+    payload.params = params
+    encoded_payload = json.encode(payload)
+
+    headers["Content-Type"] = "application/json;charset=UTF-8"
+    headers["Content-Length"] = #encoded_payload
+    headers["X-API-Method"] = method
+
+    if edulink.authentication then
+        headers.Authorization = "Bearer ".. edulink.authentication
+    end
+
+    local formattedHeaders = {}
+    for i,v in pairs(headers) do
+        table.insert(formattedHeaders, {i, v})
+    end
+
+    local response_headers, body = http.request(request_type, provisionUrl .."?method=".. method, formattedHeaders, encoded_payload)
 
     body = json.decode(body)
     if not body or not body.result.success then
-        local err = "Provisioning Error with HTTP ".. headers.code .." ".. headers.reason ..": ".. body.result.error
+        errmsg = body.result.error or "No error provided by EduLink API"
+        local err = "Error in request with HTTP ".. response_headers.code .." ".. response_headers.reason ..": ".. errmsg
         error(err)
         return nil, err
     end
 
-    edulink.school = body.result.provision
+    return body.result, true
+end
 
-    return body.result.school, true
+
+-- dont even ask why the edulink api handles your sensitive info in plain, clear text...
+function edulink.provision(school_postcode)
+    if not school_postcode then return nil, "School postcode is invalid or wasn't supplied!" end
+
+    local result, err = edulink.rawrequest("POST", "https://provisioning.edulinkone.com/", "School.FromCode", nil, {code = school_postcode})
+
+    edulink.school = result.school
+
+    return result.school, err
 end
 
 
 
 function edulink.authenticate(username, password, school_postcode)
-    if not username or not password then return nil, "Required parameters weren't supplied!" end
+    if not username or not password or (not school_postcode and not edulink.school) then return nil, "Required parameters weren't supplied!" end
 
     edulink.school = edulink.provision(school_postcode) or edulink.school
 
-    local payload = {
-        id = "1",
-        jsonrpc = "2.0",
-        method = "EduLink.Login",
-        params = {
-            establishment_id = edulink.school.school_id,
-            username = username,
-            password = password,
-            from_app = false
-        }
-    }
-    payload = json.encode(payload)
+    local result, err = edulink.rawrequest("POST", edulink.school.server, "EduLink.Login", nil, {
+        establishment_id = edulink.school.school_id,
+        username = username,
+        password = password,
+        from_app = false
+    })
 
-    local headers, body = http.request("POST", edulink.school.server .."?method=EduLink.Login", {
-        {"Content-Type", "application/json;charset=UTF-8"},
-        {"Content-Length", #payload},
-        {"X-API-Method", "EduLink.Login"}
-    }, payload)
+    edulink.authentication = result.authtoken
+    edulink.learner = result.user
 
-    body = json.decode(body)
-    if not body or not body.result.success or not body.result.authtoken then
-        local err = "Authentication Error with HTTP ".. headers.code .." ".. headers.reason ..": ".. body.result.error
-        error(err)
-        return nil, err
-    end
+    print("lua-edulink: Authenticated as ".. result.user.forename)
 
-    edulink.authentication = body.result.authtoken
-    edulink.learner = body.result.user
-
-    print("lua-edulink: Authenticated as ".. body.result.user.forename)
-
-    return body.result.authtoken, true
+    return result.authtoken, true
 end
 
-
-
 function edulink.timetable(date, learner_id)
-    if not date then date = os.date("%Y-%m-%d", os.time()) end
+    date = date or os.time()
+    if type(date) == "number" then date = os.date("%Y-%m-%d", date) end
 
     learner_id = learner_id or edulink.learner.id
 
-    local payload = {
-        id = "1",
-        jsonrpc = "2.0",
-        method = "EduLink.Timetable",
-        params = {
-            learner_id = edulink.learner.id,
-            date = date
-        }
-    }
-    payload = json.encode(payload)
+    local result, err = edulink.rawrequest("POST", edulink.school.server, "EduLink.Timetable", nil, {
+        learner_id = edulink.learner.id,
+        date = date
+    })
 
-    local headers, body = http.request("POST", edulink.school.server .."?method=EduLink.Timetable", {
-        {"Content-Type", "application/json;charset=UTF-8"},
-        {"Content-Length", #payload},
-        {"X-API-Method", "EduLink.Timetable"},
-        {"Authorization", "Bearer ".. edulink.authentication}
-    }, payload)
-
-    body = json.decode(body)
-    if not body or not body.result.success or not body.result.weeks then
-        local err = "Timetable Error with HTTP ".. headers.code .." ".. headers.reason ..": ".. body.result.error
-        error(err)
-        return nil, err
+    local found = nil
+    for i,v in pairs(result.weeks) do
+        for ii, vv in pairs(v.days) do
+            if vv.date == date then
+                found = vv.lessons
+            end
+        end
     end
 
-    return body.result.weeks[1].days[1].lessons, true
+    if not found then return nil, "Failed to find lessons on that day. Maybe there are no lessons?" end
+
+    return found, true
 end
 
 return edulink
