@@ -46,7 +46,8 @@ function edulink.rawrequest(request_type, provisionUrl, method, headers, params)
     return body.result, true
 end
 
-
+-- school_postcode: REQUIRED string
+-- retrieve provision / school details when provided with an institution postcode (required)
 -- dont even ask why the edulink api handles your sensitive info in plain, clear text...
 function edulink.provision(school_postcode)
     if not school_postcode then return nil, "School postcode is invalid or wasn't supplied!" end
@@ -58,8 +59,8 @@ function edulink.provision(school_postcode)
     return result.school, err
 end
 
-
-
+-- username: REQUIRED string, password: REQUIRED string, school_postcode: OPTIONAL string
+-- authenticate (log in) with the specified username, password and postcode (if not provided, then the postcode from the previous provision request will be used)
 function edulink.authenticate(username, password, school_postcode)
     if not username or not password or (not school_postcode and not edulink.school) then return nil, "Required parameters weren't supplied!" end
 
@@ -80,6 +81,8 @@ function edulink.authenticate(username, password, school_postcode)
     return result.authtoken, true
 end
 
+-- date: OPTIONAL string or number, learner_id: OPTIONAL number
+-- Return an array of all lessons on a specified date (either unix time number or string in the format of YYYY-MM-DD) and for a specified learner (or the learner that was used to initially authenticate)
 function edulink.timetable(date, learner_id)
     date = date or os.time()
     if type(date) == "number" then date = os.date("%Y-%m-%d", date) end
