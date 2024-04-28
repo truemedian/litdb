@@ -1,6 +1,6 @@
 --[[lit-meta
 	name = "MrEntrasil/Discordis"
-	version = "0.0.3"
+	version = "0.0.4"
 	homepage = "https://github.com/MrEntrasil/discordis"
 	description = "A simple discord wrapper written in lua"
 	license = "MIT"

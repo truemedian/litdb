@@ -172,9 +172,8 @@ function mol.run(self, token, sts)
             }
 
             for i in read do
-                local payload = json.parse(i.payload)
-
-                if payload then
+                if i.payload then
+                    local payload = json.parse(i.payload)
                     local d = payload.d
                     local op = payload.op
 
