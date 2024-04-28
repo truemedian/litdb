@@ -119,8 +119,8 @@ local function msgObject(obj, token)
             http.request("DELETE", api.."channels/"..msg.channel.id.."/messages/"..msg.id, {{"Authorization", "Bot "..token}})
         end
     end
-    if msg.avatar then
-        msg["avatar"] = "https://cdn.discordapp.com/avatars/"..author.id.."/"..author.avatar..".png"
+    if msg.author.avatar then
+        msg.author["avatar"] = "https://cdn.discordapp.com/avatars/"..author.id.."/"..author.avatar..".png"
     end
     msg["channel"] = channelObject(token, payload.channel_id)
     msg["channel_id"] = nil
