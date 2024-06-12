@@ -1,6 +1,6 @@
 return {
   name = "creationix/hoedown",
-  version = "1.1.3",
+  version = "1.1.4",
   homepage = "https://github.com/creationix/lit-hoedown",
   description = "FFI bindings to the hoedown markdown library",
   tags = { "ffi", "markdown", "codec" },
