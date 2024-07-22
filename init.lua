@@ -23,10 +23,8 @@ local function find(tbl, tofind)
 	return nil
 end
 
-local find = string.find
-local sub = string.sub
-
 local function split(str, delim)
+	local find, sub = string.find, string.sub
 	local ret = {}
 	if not str then
 		return ret
@@ -300,14 +298,16 @@ function erlua.NotInDiscord(guild, apikey, globalkey)
     local players = erlua.Players(apikey, globalkey)
     if players.code then return players end
     for i, v in pairs(players) do
-        local ind = false
-        for _, member in pairs(guild.members) do
-            if member.name:lower():find(v.Name:lower()) then
-                ind = true
+        if v.Permission == "Normal" then
+            local ind = false
+            for _, member in pairs(guild.members) do
+                if member.name:lower():find(v.Name:lower()) then
+                    ind = true
+                end
             end
-        end
-        if ind == false then
-            table.insert(nid, v)
+            if ind == false then
+                table.insert(nid, v)
+            end
         end
     end
     return nid
