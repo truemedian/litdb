@@ -230,7 +230,7 @@ function erlua.Staff(apikey, globalkey)
     return staff
 end
 
-local validTeamNames = {"civilian", "police", "sheriff", "firefighter", "dot"}
+local validTeamNames = {"civilian", "police", "sheriff", "fire", "dot", "jail"}
 
 function erlua.Team(teamName, apikey, globalkey)
     if not teamName then err("A team name was not provided") return nil end
