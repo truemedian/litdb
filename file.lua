@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 --[[lit-meta
   name = "luvit/require"
-  version = "2.2.3"
+  version = "2.2.4"
   homepage = "https://github.com/luvit/luvit/blob/master/deps/require.lua"
   description = "Luvit's custom require system with relative requires and sane search paths."
   tags = {"luvit", "require"}
@@ -29,14 +29,14 @@ local luvi = require('luvi')
 local bundle = luvi.bundle
 local pathJoin = luvi.path.join
 local env = require('env')
-local os = require('ffi').os
 local uv = require('uv')
 
 local realRequire = _G.require
 
-local tmpBase = os == "Windows" and (env.get("TMP") or uv.cwd()) or
-                                    (env.get("TMPDIR") or '/tmp')
-local binExt = os == "Windows" and ".dll" or ".so"
+local tmpBase = env.get("TMPDIR") or env.get("TMP") or env.get("TEMP") or (uv.fs_access("/tmp", "r") and "/tmp") or uv.cwd()
+
+local first_cpath = package.cpath:match("[^" .. package.config:sub(3, 3) .. "]+")
+local binExt = (first_cpath and first_cpath:match("%.[^.]+$")) or (package.config:sub(1, 1) == "\\" and ".dll" or ".so")
 
 -- Package sources
 -- $author/$name@$version -> resolves to hash, cached in memory
@@ -114,7 +114,7 @@ local function statFile(path)
     statCache[path] = stat
     return stat
   end
-  return nil, err or "Problem statting: " .. path
+  return nil, err or ("Problem statting: " .. path)
 end
 
 
@@ -298,15 +298,14 @@ function Module:require(name)
     else
       path = "@" .. path
     end
-    local fn = assert(loadstring(data, path))
-    local global = {
+    local global = setmetatable({
       module = module,
       exports = module.exports,
       require = function (...)
         return module:require(...)
       end
-    }
-    setfenv(fn, setmetatable(global, { __index = _G }))
+    }, { __index = _G })
+    local fn = assert(load(data, path, nil, global))
     local ret = fn()
 
     -- Allow returning the exports as well
