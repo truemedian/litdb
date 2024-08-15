@@ -17,7 +17,7 @@ limitations under the License.
 --]]
 --[[lit-meta
   name = "luvit/buffer"
-  version = "2.1.0"
+  version = "2.1.3"
   dependencies = {
     "luvit/core@2.0.0"
   }
@@ -27,6 +27,10 @@ limitations under the License.
   tags = {"luvit", "buffer"}
 ]]
 
+if not pcall(require, 'ffi') then
+  error("The 'buffer' module requires FFI support, which is not available on this platform.")
+end
+
 local core = require('core')
 local ffi = require('ffi')
 
@@ -35,6 +39,7 @@ local instanceof = core.instanceof
 
 ffi.cdef[[
   void *malloc (size_t __size);
+  void *calloc (size_t nmemb, size_t __size);
   void free (void *__ptr);
 ]]
 
@@ -49,7 +54,7 @@ local C = ffi.os == "Windows" and ffi.load("msvcrt") or ffi.C
 function Buffer:initialize(length)
   if type(length) == "number" then
     self.length = length
-    self.ctype = ffi.gc(ffi.cast("unsigned char*", C.malloc(length)), C.free)
+    self.ctype = ffi.gc(ffi.cast("unsigned char*", C.calloc(length, 1)), C.free)
   elseif type(length) == "string" then
     local string = length
     self.length = #string
@@ -68,6 +73,10 @@ function Buffer.meta:__ipairs()
       return index, self[index]
     end
   end
+end
+
+function Buffer.meta:__len()
+  return self.length
 end
 
 function Buffer.meta:__tostring()
@@ -199,6 +208,7 @@ Buffer.writeInt32BE = Buffer.writeUInt32BE
 
 function Buffer:toString(i, j)
   local offset = i and i - 1 or 0
+  if (offset < 0 or offset > self.length) or (j and j > self.length) then error("Range out of bounds") end
   return ffi.string(self.ctype + offset, (j or self.length) - offset)
 end
 
