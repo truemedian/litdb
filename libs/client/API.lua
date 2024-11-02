@@ -750,6 +750,41 @@ function API:createInteractionResponse(id, token, payload, files)
   return self:request("POST", endpoint, payload, nil, files)
 end
 
+function API:getOriginalInteractionResponse(application_id, interaction_token) -- MessagingInteraction:getReply
+	local endpoint = f(endpoints.WEBHOOK_TOKEN_MESSAGES_ORIGINAL, application_id, interaction_token)
+	return self:request("GET", endpoint)
+end
+
+function API:editOriginalInteractionResponse(application_id, interaction_token, payload, files) -- MessagingInteraction:updateReply
+	local endpoint = f(endpoints.WEBHOOK_TOKEN_MESSAGES_ORIGINAL, application_id, interaction_token)
+	return self:request("PATCH", endpoint, payload, nil, files)
+end
+
+function API:deleteOriginalInteractionResponse(application_id, interaction_token) -- MessagingInteraction:deleteReply
+	local endpoint = f(endpoints.WEBHOOK_TOKEN_MESSAGES_ORIGINAL, application_id, interaction_token)
+	return self:request("DELETE", endpoint)
+end
+
+function API:createFollowupMessage(application_id, interaction_token, payload, files) -- MessagingInteraction:followup
+	local endpoint = f(endpoints.WEBHOOK_TOKEN, application_id, interaction_token)
+	return self:request("POST", endpoint, payload, nil, files)
+end
+
+function API:getFollowupMessage(application_id, interaction_token, message_id) -- MessagingInteraction:getFollowupMessage
+	local endpoint = f(endpoints.WEBHOOK_TOKEN_MESSAGE, application_id, interaction_token, message_id)
+	return self:request("GET", endpoint)
+end
+
+function API:editFollowupMessage(application_id, interaction_token, message_id, payload, files) -- MessagingInteraction:updateFollowup
+	local endpoint = f(endpoints.WEBHOOK_TOKEN_MESSAGE, application_id, interaction_token, message_id)
+	return self:request("PATCH", endpoint, payload, nil, files)
+end
+
+function API:deleteFollowupMessage(application_id, interaction_token, message_id) -- MessagingInteraction:deleteFollowup
+	local endpoint = f(endpoints.WEBHOOK_TOKEN_MESSAGE, application_id, interaction_token, message_id)
+	return self:request("DELETE", endpoint)
+end
+
 function API:createWebhookMessage(id, token, payload, files) -- same as executeWebhook but allows files
 	local endpoint = f(endpoints.INTERACTION_WEBHOOK, id, token)
 	return self:request("POST", endpoint, payload, nil, files)

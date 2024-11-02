@@ -1,25 +1,25 @@
-local Component = require("../containers/abstract/Component")
+local Component = require("../abstract/Component")
 
 local enums = require("enums")
 local class = require('class')
 local componentType = enums.componentType
 
----@alias SelectMentionMenu-Resolvable table
+---@alias SelectRoleMenu-Resolvable table
 
----Represents a Component of type SelectMentionMenu.
----SelectMentionMenus are interactive message components that offers the user multiple choices of mentions, once one is selected an interactionCreate event is fired.
+---Represents a Component of type SelectRoleMenu.
+---SelectRoleMenus are interactive message components that offers the user multiple choices of roles, once one is selected an interactionCreate event is fired.
 ---
----For accepted `data` fields see SelectMentionMenu-Resolvable.
+---For accepted `data` fields see SelectRoleMenu-Resolvable.
 ---
 ---General rules you should follow:
----1. Only a single SelectMentionMenu can be sent in each Action Row.
----2. SelectMentionMenu and Buttons cannot be in the same row.
----@class SelectMentionMenu: Component
----@type fun(data: SelectMentionMenu-Resolvable): SelectMentionMenu
+---1. Only a single SelectRoleMenu can be sent in each Action Row.
+---2. SelectRoleMenu and Buttons cannot be in the same row.
+---@class SelectRoleMenu: Component
+---@type fun(data: SelectRoleMenu-Resolvable): SelectRoleMenu
 ---<!tag:interface> <!method-tag:mem>
-local SelectMentionMenu = class("SelectMentionMenu", Component)
+local SelectRoleMenu = class("SelectRoleMenu", Component)
 
-function SelectMentionMenu:__init(data)
+function SelectRoleMenu:__init(data)
   -- Validate input into appropriate structure
   data = self._validate(data)
   assert(data.id, "an id must be supplied")
@@ -29,13 +29,13 @@ function SelectMentionMenu:__init(data)
   end
 
   -- Base constructor initializing
-  Component.__init(self, data, componentType.mentionSelect)
+  Component.__init(self, data, componentType.roleSelect)
 
   -- Properly load rest of data
   self:_load(data)
 end
 
-function SelectMentionMenu._validate(data)
+function SelectRoleMenu._validate(data)
   if type(data) ~= "table" then
     data = {id = data}
   end
@@ -43,14 +43,14 @@ function SelectMentionMenu._validate(data)
 end
 
 local eligibilityError = "An Action Row that contains a Select Menu cannot contain any other component!"
-function SelectMentionMenu._eligibilityCheck(c)
+function SelectRoleMenu._eligibilityCheck(c)
   return not c, eligibilityError
 end
 
 ---<!ignore>
----Changes the SelectMentionMenu instance properties according to provided data.
+---Changes the SelectRoleMenu instance properties according to provided data.
 ---@param data table
-function SelectMentionMenu:_load(data)
+function SelectRoleMenu:_load(data)
   if data.placeholder then
     self:placeholder(data.placeholder)
   end
@@ -66,9 +66,9 @@ end
 ---
 --- Returns self.
 ---@param placeholder string
----@return SelectMentionMenu self
+---@return SelectRoleMenu self
 ---<!tag:mem>
-function SelectMentionMenu:placeholder(placeholder)
+function SelectRoleMenu:placeholder(placeholder)
   placeholder = tostring(placeholder)
   assert(placeholder and #placeholder <= 100, "placeholder must be a string that is at most 100 character long")
   return self:_set("placeholder", placeholder)
@@ -78,9 +78,9 @@ end
 ---
 ---Returns self.
 ---@param val number
----@return SelectMentionMenu self
+---@return SelectRoleMenu self
 ---<!tag:mem>
-function SelectMentionMenu:minValues(val)
+function SelectRoleMenu:minValues(val)
   val = tonumber(val) or -1
   assert(val > 0 and val <= 25, "minValues must be a number in the range 1-25 inclusive")
   return self:_set("minValues", val)
@@ -90,12 +90,12 @@ end
 ---
 ---Returns self.
 ---@param val number
----@return SelectMentionMenu self
+---@return SelectRoleMenu self
 ---<!tag:mem>
-function SelectMentionMenu:maxValues(val)
+function SelectRoleMenu:maxValues(val)
   val = tonumber(val) or -1
   assert(val <= 25, "maxValues must be a number in the range 0-25 inclusive")
   return self:_set("maxValues", val)
 end
 
-return SelectMentionMenu
+return SelectRoleMenu

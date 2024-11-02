@@ -1,5 +1,5 @@
-local Component = require("../containers/abstract/Component")
-local resolver = require("../resolver/components")
+local Component = require("../abstract/Component")
+local resolver = require("../../resolver/components")
 local enums = require("enums")
 local class = require('class')
 local buttonStyle = enums.buttonStyle

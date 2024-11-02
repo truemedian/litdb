@@ -1,4 +1,4 @@
-local Component = require("../containers/abstract/Component")
+local Component = require("../abstract/Component")
 
 local enums = require("enums")
 local class = require('class')

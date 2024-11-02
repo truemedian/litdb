@@ -1,5 +1,5 @@
-local Component = require("../containers/abstract/Component")
-local resolveEmoji = require("../resolver/components").emoji
+local Component = require("../abstract/Component")
+local resolveEmoji = require("../../resolver/components").emoji
 
 local enums = require("enums")
 local class = require('class')

@@ -9,12 +9,12 @@ local resolver = require("../resolver/components")
 local objComponents = resolver.objComponents
 
 local ArrayIterable = classes.ArrayIterable
-local SelectChannelMenu = require("../components/SelectChannelMenu")
-local SelectMentionMenu = require("../components/SelectMentionMenu")
-local SelectRoleMenu = require("../components/SelectRoleMenu")
-local SelectUserMenu = require("../components/SelectUserMenu")
-local SelectMenu = require("../components/SelectMenu")
-local Button = require("../components/Button")
+local SelectChannelMenu = require("./components/SelectChannelMenu")
+local SelectMentionMenu = require("./components/SelectMentionMenu")
+local SelectRoleMenu = require("./components/SelectRoleMenu")
+local SelectUserMenu = require("./components/SelectUserMenu")
+local SelectMenu = require("./components/SelectMenu")
+local Button = require("./components/Button")
 
 ---Represents a set of Component objects, offering an interface to control, modify, and retrieve Components easily.
 ---This is the entry point of this library and what this whole thing is about, that is, the builder.
@@ -59,8 +59,10 @@ end
 ---@return number
 local function findComponent(tbl, id)
   for i = 1, #tbl do
-    if tbl[i].id == id then return i end
+    if tbl[i].id == id and type(tbl[i].id) ~= "nil" and type(id) ~= "nil"
+    then return i end
   end
+  return false
 end
 
 ---<!ignore>

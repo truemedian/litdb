@@ -118,7 +118,7 @@ enums.relationshipType = enum {
 }
 
 enums.activityType = enum {
-	default   = 0,
+	game      = 0,
 	streaming = 1,
 	listening = 2,
 	watching  = 3,
@@ -216,6 +216,11 @@ enums.permission = enum {
 	createEvents          = flag(44),
 	useExternalSounds     = flag(45),
 	sendVoiceMessages     = flag(46),
+}
+
+enums.overwriteType = enum {
+	role   = 0,
+	member = 1,
 }
 
 enums.messageFlag = enum {
@@ -316,6 +321,39 @@ enums.actionType = enum {
 	autoModUserTimeout     = 145,
 }
 
+enums.locale = enum {
+	danish      = "da",
+	german      = "de",
+	englishUK   = "en-GB",
+	englishUS   = "en-US",
+	spanish     = "es-ES",
+	french      = "fr",
+	croatian    = "hr",
+	italian     = "it",
+	lithuanian  = "lt",
+	hungarian   = "hu",
+	dutch       = "nl",
+	norwegian   = "no",
+	polish      = "pl",
+	portugeseBR = "pt-BR",
+	romanian    = "ro",
+	finnish     = "fi",
+	swedish     = "sv-SE",
+	vietnamese  = "vi",
+	turkish     = "tr",
+	czech       = "cs",
+	greek       = "el",
+	bulgarian   = "bg",
+	russian     = "ru",
+	ukrainian   = "uk",
+	hindi       = "hi",
+	thai        = "th",
+	chineseCN   = "zh-CN",
+	chineseTW   = "zh-TW",
+	japanese    = "ja",
+	korean      = "ko",
+}
+
 enums.logLevel = enum {
 	none    = 0,
 	error   = 1,
@@ -324,87 +362,72 @@ enums.logLevel = enum {
 	debug   = 4,
 }
 
-enums.timestampStyle = enum {
-	shortTime      = 't',
-	longTime       = 'T',
-	shortDate      = 'd',
-	longDate       = 'D',
-	shortDateTime  = 'f',
-	longDateTime   = 'F',
-	relativeTime   = 'R',
+enums.interactionType = enum {
+	ping               = 1,
+	applicationCommand = 2,
+	messageComponent   = 3,
+	autocomplete       = 4,
+	modalSubmit        = 5,
 }
 
-enums.interactionType = {
-  ping                            = 1,
-  applicationCommand              = 2,
-  messageComponent                = 3,
-  applicationCommandAutocomplete  = 4,
-  modalSubmit                     = 5,
+enums.callbackType = enum {
+	pong         = 1,
+	reply        = 4,
+	deferReply   = 5,
+	deferUpdate  = 6,
+	update       = 7,
+	autocomplete = 8,
+	modal        = 9,
 }
 
-enums.interactionCallbackType = {
-  pong                                  = 1,
-  channelMessage                        = 4,
-  deferredChannelMessage                = 5,
-  deferredUpdateMessage                 = 6,
-  updateMessage                         = 7,
-  applicationCommandAutocompleteResult  = 8,
-  modal                                 = 9,
+enums.applicationCommandType = enum {
+	chatInput = 1,
+	user      = 2,
+	message   = 3,
 }
 
-enums.appCommandType = {
-  chatInput = 1,
-  user      = 2,
-  message   = 3,
+enums.interactionContextType = enum {
+	guild          = 0,
+	dm             = 1,
+	privateChannel = 2,
 }
 
-enums.appCommandOptionType = {
-  subCommand      = 1,
-  subCommandGroup = 2,
-  string          = 3,
-  integer         = 4,
-  boolean         = 5,
-  user            = 6,
-  channel         = 7,
-  role            = 8,
-  mentionable     = 9,
-  number          = 10,
-  attachment      = 11,
+enums.applicationCommandOptionType = enum {
+	subcommand      = 1,
+	subcommandGroup = 2,
+	string          = 3,
+	integer         = 4,
+	boolean         = 5,
+	user            = 6,
+	channel         = 7,
+	role            = 8,
+	mentionable     = 9,
+	number          = 10,
+	attachment      = 11,
 }
 
-enums.appCommandPermissionType = {
-  role = 1,
-  user = 2,
+enums.componentType = enum {
+	row               = 1,
+	button            = 2,
+	stringSelect      = 3,
+	textInput         = 4,
+	userSelect        = 5,
+	roleSelect        = 6,
+	mentionableSelect = 7,
+	channelSelect     = 8,
 }
 
-enums.componentType = {
-  actionRow     = 1,
-  button        = 2,
-  selectMenu    = 3,
-  textInput     = 4,
-	userSelect    = 5,
-	roleSelect    = 6,
-	mentionSelect = 7,
-	channelSelect = 8
+enums.buttonStyle = enum {
+	primary   = 1,
+	secondary = 2,
+	success   = 3,
+	danger    = 4,
+	link      = 5,
 }
 
-enums.messageFlag = {
-  hasThread = 0x00000020,
-  ephemeral = 0x00000040,
-  loading   = 0x00000080,
-}
-
-enums.buttonStyle = {
-  primary   = 1,
-  secondary = 2,
-  success   = 3,
-  danger    = 4,
-  link      = 5,
-}
-
-enums.textInputStyles = {
+enums.inputStyle = enum {
 	short     = 1,
-	paragraph = 2
+	paragraph = 2,
 }
 
 return enums
