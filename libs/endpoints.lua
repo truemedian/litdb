@@ -22,6 +22,8 @@ return {
 	GUILD                         = "/guilds/%s",
 	GUILDS                        = "/guilds",
 	GUILD_AUDIT_LOGS              = "/guilds/%s/audit-logs",
+	GUILD_AUTOMOD_RULE  					= "/guilds/%s/auto-moderation/rules/%s",
+	GUILD_AUTOMOD_RULES 					= "/guilds/%s/auto-moderation/rules",
 	GUILD_BAN                     = "/guilds/%s/bans/%s",
 	GUILD_BANS                    = "/guilds/%s/bans",
 	GUILD_CHANNELS                = "/guilds/%s/channels",

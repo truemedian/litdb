@@ -370,6 +370,16 @@ function API:groupDMRemoveRecipient(channel_id, user_id) -- GroupChannel:removeR
 	return self:request("DELETE", endpoint)
 end
 
+function API:listGuildAutoModRule(guild_id)
+  local endpoint = f(endpoints.GUILD_AUTOMOD_RULES, guild_id)
+	return self:requiest("GET", endpoint)
+end
+
+function API:listGuildAutomodRule(guild_id, automod_id)
+  local endpoint = f(endpoints.GUILD_AUTOMOD_RULES, guild_id, automod_id)
+	return self:requiest("GET", endpoint)
+end
+
 function API:listGuildEmojis(guild_id) -- not exposed, use cache
 	local endpoint = f(endpoints.GUILD_EMOJIS, guild_id)
 	return self:request("GET", endpoint)

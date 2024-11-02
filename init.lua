@@ -18,5 +18,9 @@ return {
   Components = require("containers/Components"),
   Button = require("components/Button"),
   SelectMenu = require("components/SelectMenu"),
+	SelectUserMenu = require("components/SelectUserMenu"),
+	SelectChannelMenu = require("components/SelectChannelMenu"),
+	SelectRoleMenu = require("components/SelectRoleMenu"),
+	SelectMentionMenu = require("components/SelectMentionMenu"),
 	storage = {},
 }

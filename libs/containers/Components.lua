@@ -9,6 +9,10 @@ local resolver = require("../resolver/components")
 local objComponents = resolver.objComponents
 
 local ArrayIterable = classes.ArrayIterable
+local SelectChannelMenu = require("../components/SelectChannelMenu")
+local SelectMentionMenu = require("../components/SelectMentionMenu")
+local SelectRoleMenu = require("../components/SelectRoleMenu")
+local SelectUserMenu = require("../components/SelectUserMenu")
 local SelectMenu = require("../components/SelectMenu")
 local Button = require("../components/Button")
 
@@ -65,7 +69,15 @@ end
 local function buildCompCache(obj)
   obj._buttons = {}
   obj._selectMenus = {}
+  obj._selectRoleMenus = {}
+  obj._selectUserMenus = {}
+  obj._selectMentionMenus = {}
+  obj._selectChannelMenus = {}
   obj._cacheMap = {
+    [SelectChannelMenu] = obj._selectChannelMenus,
+    [SelectMentionMenu] = obj._selectMentionMenus,
+    [SelectUserMenu] = obj._selectUserMenus,
+    [SelectRoleMenu] = obj._selectRoleMenus,
     [SelectMenu] = obj._selectMenus,
     [Button] = obj._buttons,
   }
@@ -106,6 +118,7 @@ function Components:_load(data)
   if not data then return end
   self._buttons = data._buttons
   self._selectMenus = data._selectMenus
+  self._selectChannelMenus = data._selectChannelMenus
   self._rows = data._rows
 end
 
@@ -283,6 +296,54 @@ function Components:selectMenu(data)
   return self
 end
 
+---Constructs a new SelectRoleMenu object with the initial provided data; if `data` is a string
+---it is treated as if it were the `id` field.
+---
+---Returns self.
+---@param data SelectRoleMenu-Resolvable|Custom-ID-Resolvable
+---@return Components self
+function Components:selectRoleMenu(data)
+  assert(data, "data argument is required")
+  self:_buildComponent(SelectRoleMenu, data)
+  return self
+end
+
+---Constructs a new SelectUserMenu object with the initial provided data; if `data` is a string
+---it is treated as if it were the `id` field.
+---
+---Returns self.
+---@param data SelectUserMenu-Resolvable|Custom-ID-Resolvable
+---@return Components self
+function Components:selectUserMenu(data)
+  assert(data, "data argument is required")
+  self:_buildComponent(SelectUserMenu, data)
+  return self
+end
+
+---Constructs a new SelectMentionMenu object with the initial provided data; if `data` is a string
+---it is treated as if it were the `id` field.
+---
+---Returns self.
+---@param data SelectMentionMenu-Resolvable|Custom-ID-Resolvable
+---@return Components self
+function Components:sselectMentionMenu(data)
+  assert(data, "data argument is required")
+  self:_buildComponent(SelectMentionMenu, data)
+  return self
+end
+
+---Constructs a new SelectChannelMenu object with the initial provided data; if `data` is a string
+---it is treated as if it were the `id` field.
+---
+---Returns self.
+---@param data SelectChannelMenu-Resolvable|Custom-ID-Resolvable
+---@return Components self
+function Components:selectChannelMenu(data)
+  assert(data, "data argument is required")
+  self:_buildComponent(SelectChannelMenu, data)
+  return self
+end
+
 ---Removes all components attached to this instance and reset its cache.
 ---
 ---Returns self.
@@ -310,6 +371,46 @@ end
 ---@return SelectMenu # The removed SelectMenu object.
 function Components:removeSelectMenu(id)
   return self:_remove(SelectMenu, id)
+end
+
+---Removes a previously constructed SelectRoleMenu object with the custom_id of `id`.
+---
+---Returns self and the removed [[SelectRoleMenu]] object.
+---@param id string
+---@return Components self
+---@return SelectRoleMenu # The removed SelectRoleMenu object.
+function Components:removeSelectRoleMenu(id)
+  return self:_remove(SelectRoleMenu, id)
+end
+
+---Removes a previously constructed SelectUserMenu object with the custom_id of `id`.
+---
+---Returns self and the removed [[SelectUserMenu]] object.
+---@param id string
+---@return Components self
+---@return SelectUserMenu # The removed SelectUserMenu object.
+function Components:removeSelectUserMenu(id)
+  return self:_remove(SelectUserMenu, id)
+end
+
+---Removes a previously constructed SelectMentionMenu object with the custom_id of `id`.
+---
+---Returns self and the removed [[SelectMentionMenu]] object.
+---@param id string
+---@return Components self
+---@return SelectMentionMenu # The removed SelectMentionMenu object.
+function Components:removeSelectMentionMenu(id)
+  return self:_remove(SelectMentionMenu, id)
+end
+
+---Removes a previously constructed SelectChannelMenu object with the custom_id of `id`.
+---
+---Returns self and the removed [[SelectChannelMenu]] object.
+---@param id string
+---@return Components self
+---@return SelectChannelMenu # The removed SelectChannelMenu object.
+function Components:removeSelectChannelMenu(id)
+  return self:_remove(SelectChannelMenu, id)
 end
 
 ---Returns a table value of what the raw value Discord would accept is like based on assumptions
@@ -356,6 +457,10 @@ end
 
 function getter.selectMenus(self)
   return ArrayIterable(self._selectMenus)
+end
+
+function getter.selectChannelMenus(self)
+  return ArrayIterable(self._selectChannelMenus)
 end
 
 return Components

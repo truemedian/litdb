@@ -20,6 +20,7 @@ local componentType = enums.componentType
 ---@class Button: Component
 ---@type fun(data: Button-Resolvable, actionRow?: number)
 ---<!tag:interface> <!method-tags:mem>
+---
 local Button = class("Button", Component)
 
 function Button:__init(data, actionRow)

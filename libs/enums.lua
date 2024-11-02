@@ -378,10 +378,14 @@ enums.appCommandPermissionType = {
 }
 
 enums.componentType = {
-  actionRow   = 1,
-  button      = 2,
-  selectMenu  = 3,
-  textInput   = 4,
+  actionRow     = 1,
+  button        = 2,
+  selectMenu    = 3,
+  textInput     = 4,
+	userSelect    = 5,
+	roleSelect    = 6,
+	mentionSelect = 7,
+	channelSelect = 8
 }
 
 enums.messageFlag = {
@@ -396,6 +400,11 @@ enums.buttonStyle = {
   success   = 3,
   danger    = 4,
   link      = 5,
+}
+
+enums.textInputStyles = {
+	short     = 1,
+	paragraph = 2
 }
 
 return enums

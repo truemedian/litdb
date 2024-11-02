@@ -51,7 +51,16 @@ function resolver.rawComponents(comp)
 end
 
 function resolver.objComponents(data)
-  local bases = {nil, classes.Button, classes.SelectMenu}
+  local bases = {
+    nil,
+    classes.Button,
+    classes.SelectMenu,
+    nil,
+    classes.SelectUserMenu,
+    classes.SelectRoleMenu,
+    classes.SelectMentionMenu,
+    classes.SelectChannelMenu
+  }
   local instance, cell = classes.Components(), nil
   for c = 1, #data do
     cell = data[c]
