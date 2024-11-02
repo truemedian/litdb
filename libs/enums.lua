@@ -407,7 +407,7 @@ enums.applicationCommandOptionType = enum {
 }
 
 enums.componentType = enum {
-	row               = 1,
+	actionRow         = 1,
 	button            = 2,
 	stringSelect      = 3,
 	textInput         = 4,

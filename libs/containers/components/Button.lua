@@ -59,7 +59,7 @@ end
 
 local eligibilityError = "Cannot have a Button in an Action Row that also contains Select Menu component!"
 function Button._eligibilityCheck(c)
-  return c.type ~= componentType.selectMenu, eligibilityError
+  return c.type == componentType.button, eligibilityError
 end
 
 ---<!ignore>
