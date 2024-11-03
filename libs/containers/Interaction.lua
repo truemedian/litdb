@@ -1,5 +1,6 @@
 local enums = require("enums")
 local resolver = require("../resolver/interaction")
+local rawComponents = require('../resolver/components').rawComponents
 local bit = require("bit")
 
 local bor = bit.bor
@@ -8,7 +9,7 @@ local intrType = enums.interactionType
 local Snowflake = require('./abstract/Snowflake')
 local messageFlag = enums.messageFlag
 local resolveMessage = resolver.message
-local callbackType = enums.interactionCallbackType
+local callbackType = enums.callbackType
 local channelType = enums.channelType
 
 ---Represents a [Discord Interaction](https://discord.com/developers/docs/interactions/receiving-and-responding#interactions)
@@ -128,7 +129,7 @@ end
 
 function Interaction:_sendMessage(payload, files, deferred)
   local data, err = self._api:createInteractionResponse(self.id, self._token, {
-    type = deferred and callbackType.deferredChannelMessage or callbackType.channelMessage,
+    type = deferred and callbackType.deferReply or callbackType.reply,
     data = payload,
   }, files)
   if data then
@@ -177,6 +178,28 @@ function Interaction:reply(content, isEphemeral)
     method = self._sendMessage
   end
   return method(self, msg, files)
+end
+
+---Sets the interaction's components.
+---If `components` is false or nil, the interaction's components are removed.
+---
+---Returns `true` on success, otherwise `nil, err`.
+---@param components? Components-Resolvable|boolean
+---@return boolean
+function Interaction:setComponents(components)
+  components = components and rawComponents(components) or {}
+  return self:_modify{components = components}
+end
+
+---Equivalent to `Message.client:waitComponent(Message, ...)`.
+---@param type? string|number
+---@param id? Custom-ID-Resolvable
+---@param timeout? number
+---@param predicate? function
+---@return boolean
+---@return ...
+function Interaction:waitComponent(type, id, timeout, predicate)
+  return self.client:waitComponent(self, type, id, timeout, predicate)
 end
 
 ---Sends a deferred interaction reply.

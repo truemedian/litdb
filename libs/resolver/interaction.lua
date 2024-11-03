@@ -28,6 +28,7 @@
 local fs = require("fs")
 local ffi = require("ffi")
 local splitPath = require("pathjoin").splitPath
+local rawComponents = require("./components").rawComponents
 
 local istype = ffi.istype
 local int64_t = ffi.typeof('int64_t')
@@ -157,6 +158,11 @@ function resolver.message(content)
         end
       end
     end
+
+		if tbl.components then
+			assert(type(tbl.components) == "table", "bad argument #2 to sendComponents (expected a Components|table value)")
+      tbl.components = rawComponents(tbl.components)
+		end
 
     local refMessage, refMention
     if tbl.reference then

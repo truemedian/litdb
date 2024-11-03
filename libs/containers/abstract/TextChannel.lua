@@ -10,7 +10,6 @@ local Message = require('containers/Message')
 local WeakCache = require('iterables/WeakCache')
 local SecondaryCache = require('iterables/SecondaryCache')
 local Resolver = require('client/Resolver')
-local resolver = require('../../resolver/interaction')
 local rawComponents = require("../../resolver/components").rawComponents
 local fs = require('fs')
 
@@ -305,6 +304,12 @@ function TextChannel:send(content)
 			end
 		end
 
+		local components
+		if tbl.components then
+			assert(type(tbl.components) == "table", "bad argument #2 to sendComponents (expected a Components|table value)")
+			components = rawComponents(tbl.components)
+		end
+
 		local refMessage, refMention
 		if tbl.reference then
 			refMessage = {message_id = Resolver.messageId(tbl.reference.message)}
@@ -328,6 +333,7 @@ function TextChannel:send(content)
 			allowed_mentions = refMention,
 			sticker_ids = sticker,
 			flags = tbl.silent and 2^12 or nil,
+			components = components
 		}, files)
 
 	else
@@ -359,29 +365,6 @@ function TextChannel:sendf(content, ...)
 	else
 		return nil, err
 	end
-end
-
-function TextChannel:sendComponents(content, components)
-  assert(content, "bad argument #1 to sendComponents (expected a string|table value)")
-  if type(content) == "table" and not components then
-    assert(type(content.components) == "table", "components not provided, either provide argument #2 to sendComponents or field `components` to argument #1")
-    components = content.components
-  else
-    assert(type(components) == "table", "bad argument #2 to sendComponents (expected a Components|table value)")
-  end
-
-  content = type(content) == "table" and content or {
-    content = content,
-  }
-  content.components = rawComponents(components)
-  local payload, files = resolver.message(content)
-  local data, err = self.client._api:createMessage(self._id, payload, files)
-
-  if data then
-    return self._messages:_insert(data)
-  else
-    return nil, err
-  end
 end
 
 --[=[@p messages WeakCache An iterable weak cache of all messages that are

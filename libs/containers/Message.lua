@@ -430,15 +430,6 @@ function Message:updateComponents(components, data)
   return self:_modify(data)
 end
 
----Equivalent to `Message.channel:sendComponents(content, components)`.
----@param content string|table
----@param components? Components-Resolvable|table
----@return Message
----<!tag:http>
-function Message:replyComponents(content, components)
-  return self._parent:sendComponents(content, components)
-end
-
 ---Equivalent to `Message.client:waitComponent(Message, ...)`.
 ---@param type? string|number
 ---@param id? Custom-ID-Resolvable
