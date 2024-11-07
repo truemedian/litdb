@@ -22,7 +22,7 @@ SOFTWARE.]]
 
 return {
 	name = 'RainyXeon/discordia',
-	version = '3.0.6',
+	version = '3.0.7',
 	homepage = 'https://github.com/LunaticSea/Discordia',
 	dependencies = {
 		'creationix/coro-http@3.1.0',

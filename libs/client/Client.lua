@@ -67,6 +67,7 @@ local defaultOptions = {
 	bitrate = 64000,
 	logFile = 'discordia.log',
 	logLevel = logLevel.info,
+	logEntryPad = 0,
 	gatewayFile = 'gateway.json',
 	dateTime = '%F %T',
 	syncGuilds = false,
@@ -115,7 +116,7 @@ function Client:__init(options)
 	self._private_channels = Cache({}, PrivateChannel, self)
 	self._relationships = Cache({}, Relationship, self)
 	self._webhooks = WeakCache({}, Webhook, self) -- used for audit logs
-	self._logger = Logger(options.logLevel, options.dateTime, options.logFile)
+	self._logger = Logger(options.logLevel, options.dateTime, options.logFile, options.logEntryPad)
 	self._voice = VoiceManager(self)
 	self._role_map = {}
 	self._emoji_map = {}
@@ -127,7 +128,7 @@ end
 
 for name, level in pairs(logLevel) do
 	Client[name] = function(self, fmt, ...)
-		local msg = self._logger:log(level, fmt, ...)
+		local msg = self._logger:log(level, 'Discordia', fmt, ...)
 		return self:emit(name, msg or format(fmt, ...))
 	end
 end
@@ -147,7 +148,7 @@ end
 
 local function run(self, token)
 
-	self:info('Discordia %s', package.version)
+	self:info('Current version: %s', package.version)
 	self:info('Connecting to Discord...')
 
 	local api = self._api

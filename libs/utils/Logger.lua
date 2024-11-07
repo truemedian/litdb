@@ -34,6 +34,13 @@ local config = {
 	{'[DEBUG]  ', CYAN},
 }
 
+local function table_args(is_file, d, tag, entry, msg)
+	local res = { d, tag[1], entry, msg }
+	if entry == nil then res = { d, tag[1], msg } end
+	if not is_file then res[2] = tag[3] end
+	return res
+end
+
 do -- parse config
 	local bold = 1
 	for _, v in ipairs(config) do
@@ -43,10 +50,15 @@ end
 
 local Logger = require('class')('Logger')
 
-function Logger:__init(level, dateTime, file)
+function Logger:__init(level, dateTime, file, typePad)
 	self._level = level
 	self._dateTime = dateTime
 	self._file = file and openSync(file, 'a')
+	self._typePad = typePad
+end
+
+function Logger:pad_end(str, length)
+  return str .. string.rep(' ', length - #str)
 end
 
 --[=[
@@ -60,7 +72,7 @@ initialization, this logs a message to stdout as defined by Luvit's `process`
 module and to a file if one was provided on initialization. The `msg, ...` pair
 is formatted according to `string.format` and returned if the message is logged.
 ]=]
-function Logger:log(level, msg, ...)
+function Logger:log(level, entry, msg, ...)
 
 	if self._level < level then return end
 
@@ -70,10 +82,21 @@ function Logger:log(level, msg, ...)
 	msg = format(msg, ...)
 
 	local d = date(self._dateTime)
-	if self._file then
-		writeSync(self._file, -1, format('%s | %s | %s\n', d, tag[1], msg))
+
+	local str_format = '%s | %s | %s \n'
+	local class_name = nil
+
+	if self._typePad > 0 then
+		str_format = '%s | %s | %s | %s\n'
+		class_name = self:pad_end(entry, self._typePad)
 	end
-	stdout:write(format('%s | %s | %s\n', d, tag[3], msg))
+
+	if self._file then
+		local args = table_args(true, d, tag, class_name, msg)
+		writeSync(self._file, -1, format(str_format, table.unpack(args)))
+	end
+	local args = table_args(false, d, tag, class_name, msg)
+	stdout:write(format(str_format, table.unpack(args)))
 
 	return msg
 
