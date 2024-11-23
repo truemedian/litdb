@@ -22,15 +22,15 @@ SOFTWARE.]]
 
 return {
 	name = 'RainyXeon/discordia',
-	version = '3.0.7',
+	version = '3.0.8',
 	homepage = 'https://github.com/LunaticSea/Discordia',
 	dependencies = {
 		'creationix/coro-http@3.1.0',
 		'creationix/coro-websocket@3.1.0',
 		'luvit/secure-socket@1.2.2',
 	},
-	tags = {'discord', 'api'},
+	tags = { 'discord', 'api' },
 	license = 'MIT',
 	author = 'Sinister Rectus, RainyXeon',
-	files = {'**.lua', '!tests'},
+	files = { '**.lua', '!tests', '!examples' },
 }

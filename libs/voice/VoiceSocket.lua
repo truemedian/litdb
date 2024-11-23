@@ -12,22 +12,21 @@ local setInterval, clearInterval = timer.setInterval, timer.clearInterval
 local wrap = coroutine.wrap
 local time = os.time
 local unpack, pack = string.unpack, string.pack -- luacheck: ignore
-
 local SUPPORTED_ENCRYPTION_MODES = { 'aead_xchacha20_poly1305_rtpsize' }
 if sodium.aead_aes256_gcm then -- AEAD AES256-GCM is only available if the hardware supports it
 	table.insert(SUPPORTED_ENCRYPTION_MODES, 1, 'aead_aes256_gcm_rtpsize')
 end
 
-local IDENTIFY        = 0
+local IDENTIFY = 0
 local SELECT_PROTOCOL = 1
-local READY           = 2
-local HEARTBEAT       = 3
-local DESCRIPTION     = 4
-local SPEAKING        = 5
-local HEARTBEAT_ACK   = 6
-local RESUME          = 7
-local HELLO           = 8
-local RESUMED         = 9
+local READY = 2
+local HEARTBEAT = 3
+local DESCRIPTION = 4
+local SPEAKING = 5
+local HEARTBEAT_ACK = 6
+local RESUME = 7
+local HELLO = 8
+local RESUMED = 9
 
 local function checkMode(modes)
 	for _, ENCRYPTION_MODE in ipairs(SUPPORTED_ENCRYPTION_MODES) do
@@ -64,7 +63,6 @@ function VoiceSocket:handleDisconnect()
 end
 
 function VoiceSocket:handlePayload(payload)
-
 	local manager = self._manager
 
 	local d = payload.d
@@ -77,13 +75,10 @@ function VoiceSocket:handlePayload(payload)
 	self:debug('WebSocket OP %s', op)
 
 	if op == HELLO then
-
 		self:info('Received HELLO')
 		self:startHeartbeat(d.heartbeat_interval)
 		self:identify()
-
 	elseif op == READY then
-
 		self:info('Received READY')
 		local mode = checkMode(d.modes)
 		if mode then
@@ -95,38 +90,24 @@ function VoiceSocket:handlePayload(payload)
 			self:error('No supported encryption mode available')
 			self:disconnect()
 		end
-
 	elseif op == RESUMED then
-
 		self:info('Received RESUMED')
-
 	elseif op == DESCRIPTION then
-
 		if d.mode == self._mode then
 			self._connection:_prepare(d.secret_key, self)
 		else
 			self:error('%q encryption mode not available', self._mode)
 			self:disconnect()
 		end
-
 	elseif op == HEARTBEAT_ACK then
-
 		manager:emit('heartbeat', nil, self._sw.milliseconds) -- TODO: id
-
 	elseif op == SPEAKING then
-
 		return -- TODO
-
 	elseif op == 12 or op == 13 then
-
 		return -- ignore
-
 	elseif op then
-
 		self:warning('Unhandled WebSocket payload OP %i', op)
-
 	end
-
 end
 
 local function loop(self)
@@ -157,12 +138,16 @@ end
 
 function VoiceSocket:identify()
 	local state = self._state
-	return self:_send(IDENTIFY, {
-		server_id = state.guild_id,
-		user_id = state.user_id,
-		session_id = state.session_id,
-		token = state.token,
-	}, true)
+	return self:_send(
+		IDENTIFY,
+		{
+			server_id = state.guild_id,
+			user_id = state.user_id,
+			session_id = state.session_id,
+			token = state.token,
+		},
+		true
+	)
 end
 
 function VoiceSocket:resume()
@@ -198,7 +183,7 @@ function VoiceSocket:selectProtocol(address, port)
 			address = address,
 			port = port,
 			mode = self._mode,
-		}
+		},
 	})
 end
 

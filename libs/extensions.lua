@@ -145,7 +145,9 @@ function string.split(str, delim)
 	local n = 1
 	while true do
 		local i, j = find(str, delim, n)
-		if not i then break end
+		if not i then
+			break
+		end
 		insert(ret, sub(str, n, i - 1))
 		n = j + 1
 	end
@@ -164,7 +166,8 @@ function string.pad(str, len, align, pattern)
 	elseif align == 'center' then
 		local pad = 0.5 * (len - #str) / #pattern
 		return rep(pattern, floor(pad)) .. str .. rep(pattern, ceil(pad))
-	else -- left
+	else
+		-- left
 		return str .. rep(pattern, (len - #str) / #pattern)
 	end
 end
@@ -180,8 +183,9 @@ function string.endswith(str, pattern, plain)
 end
 
 function string.levenshtein(str1, str2)
-
-	if str1 == str2 then return 0 end
+	if str1 == str2 then
+		return 0
+	end
 
 	local len1 = #str1
 	local len2 = #str2
@@ -194,7 +198,7 @@ function string.levenshtein(str1, str2)
 
 	local matrix = {}
 	for i = 0, len1 do
-		matrix[i] = {[0] = i}
+		matrix[i] = { [0] = i }
 	end
 	for j = 0, len2 do
 		matrix[0][j] = j
@@ -203,12 +207,11 @@ function string.levenshtein(str1, str2)
 	for i = 1, len1 do
 		for j = 1, len2 do
 			local cost = byte(str1, i) == byte(str2, j) and 0 or 1
-			matrix[i][j] = min(matrix[i-1][j] + 1, matrix[i][j-1] + 1, matrix[i-1][j-1] + cost)
+			matrix[i][j] = min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost)
 		end
 	end
 
 	return matrix[len1][len2]
-
 end
 
 function string.random(len, mn, mx)
@@ -232,22 +235,25 @@ function math.round(n, i)
 	return floor(n * m + 0.5) / m
 end
 
-local ext = setmetatable({
-	table = table,
-	string = string,
-	math = math,
-}, {__call = function(self)
-	for _, v in pairs(self) do
-		v()
-	end
-end})
+local ext = setmetatable(
+	{
+		table = table,
+		string = string,
+		math = math,
+	},
+	{ __call = function(self)
+		for _, v in pairs(self) do
+			v()
+		end
+	end }
+)
 
 for n, m in pairs(ext) do
-	setmetatable(m, {__call = function(self)
+	setmetatable(m, { __call = function(self)
 		for k, v in pairs(self) do
 			_G[n][k] = v
 		end
-	end})
+	end })
 end
 
 return ext

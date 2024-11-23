@@ -11,11 +11,11 @@ and milliseconds.
 local class = require('class')
 local constants = require('constants')
 
-local MS_PER_S    =               constants.MS_PER_S
-local MS_PER_MIN  = MS_PER_S    * constants.S_PER_MIN
-local MS_PER_HOUR = MS_PER_MIN  * constants.MIN_PER_HOUR
-local MS_PER_DAY  = MS_PER_HOUR * constants.HOUR_PER_DAY
-local MS_PER_WEEK = MS_PER_DAY  * constants.DAY_PER_WEEK
+local MS_PER_S = constants.MS_PER_S
+local MS_PER_MIN = MS_PER_S * constants.S_PER_MIN
+local MS_PER_HOUR = MS_PER_MIN * constants.MIN_PER_HOUR
+local MS_PER_DAY = MS_PER_HOUR * constants.HOUR_PER_DAY
+local MS_PER_WEEK = MS_PER_DAY * constants.DAY_PER_WEEK
 
 local insert, concat = table.insert, table.concat
 local modf, fmod = math.modf, math.fmod
@@ -25,14 +25,15 @@ local function decompose(value, mult)
 	return modf(value / mult), fmod(value, mult)
 end
 
-local units = {
-	{'weeks', MS_PER_WEEK},
-	{'days', MS_PER_DAY},
-	{'hours', MS_PER_HOUR},
-	{'minutes', MS_PER_MIN},
-	{'seconds', MS_PER_S},
-	{'milliseconds', 1},
-}
+local units =
+	{
+		{ 'weeks', MS_PER_WEEK },
+		{ 'days', MS_PER_DAY },
+		{ 'hours', MS_PER_HOUR },
+		{ 'minutes', MS_PER_MIN },
+		{ 'seconds', MS_PER_S },
+		{ 'milliseconds', 1 },
+	}
 
 local Time = class('Time')
 
@@ -71,23 +72,28 @@ function Time:toString()
 	return #ret > 0 and concat(ret, ', ') or '0 milliseconds'
 end
 
-function Time:__eq(other) check(self, other)
+function Time:__eq(other)
+	check(self, other)
 	return self._value == other._value
 end
 
-function Time:__lt(other) check(self, other)
+function Time:__lt(other)
+	check(self, other)
 	return self._value < other._value
 end
 
-function Time:__le(other) check(self, other)
+function Time:__le(other)
+	check(self, other)
 	return self._value <= other._value
 end
 
-function Time:__add(other) check(self, other)
+function Time:__add(other)
+	check(self, other)
 	return Time(self._value + other._value)
 end
 
-function Time:__sub(other) check(self, other)
+function Time:__sub(other)
+	check(self, other)
 	return Time(self._value - other._value)
 end
 

@@ -76,7 +76,8 @@ end
 function ArrayIterable:iter()
 	local array = self._array
 	if not array or #array == 0 then
-		return function() -- new closure for consistency
+		return function()
+			-- new closure for consistency
 			return nil
 		end
 	end

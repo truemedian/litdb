@@ -36,18 +36,21 @@ function Color:__tostring()
 	return format('Color: %s (%i, %i, %i)', self:toHex(), self:toRGB())
 end
 
-function Color:__eq(other) check(self, other)
+function Color:__eq(other)
+	check(self, other)
 	return self._value == other._value
 end
 
-function Color:__add(other) check(self, other)
+function Color:__add(other)
+	check(self, other)
 	local r = clamp(self.r + other.r, 0, 0xFF)
 	local g = clamp(self.g + other.g, 0, 0xFF)
 	local b = clamp(self.b + other.b, 0, 0xFF)
 	return Color.fromRGB(r, g, b)
 end
 
-function Color:__sub(other) check(self, other)
+function Color:__sub(other)
+	check(self, other)
 	local r = clamp(self.r - other.r, 0, 0xFF)
 	local g = clamp(self.g - other.g, 0, 0xFF)
 	local b = clamp(self.b - other.b, 0, 0xFF)

@@ -38,11 +38,18 @@ local function scan(dir)
 	end
 end
 
-local function match(s, pattern) -- only useful for one capture
+local function match(
+s,
+	pattern -- only useful for one capture
+)
 	return assert(s:match(pattern), s)
 end
 
-local function gmatch(s, pattern, hash) -- only useful for one capture
+local function gmatch(
+s,
+	pattern,
+	hash -- only useful for one capture
+)
 	local tbl = {}
 	if hash then
 		for k in s:gmatch(pattern) do
@@ -104,7 +111,7 @@ end
 local function matchParameters(s)
 	local ret = {}
 	for optional, paramName, paramType in s:gmatch('@(o?)p (%S+) (%S+)') do
-		insert(ret, {paramName, paramType, optional == 'o'})
+		insert(ret, { paramName, paramType, optional == 'o' })
 	end
 	return ret
 end
@@ -124,7 +131,6 @@ end
 local docs = {}
 
 local function newClass()
-
 	local class = {
 		methods = {},
 		statics = {},
@@ -143,11 +149,9 @@ local function newClass()
 	end
 
 	return class, init
-
 end
 
 for f in coroutine.wrap(scan), './libs' do
-
 	local d = assert(fs.readFileSync(f))
 
 	local class, initClass = newClass()
@@ -166,7 +170,6 @@ for f in coroutine.wrap(scan), './libs' do
 			insert(class.properties, matchProperty(s))
 		end
 	end
-
 end
 
 ----
@@ -264,17 +267,15 @@ local function checkTags(tbl, check)
 end
 
 local function writeMethods(f, methods)
-
 	sort(methods, sorter)
 	for _, method in ipairs(methods) do
-
 		f:write('### ', method.name)
 		writeParameters(f, method.parameters)
 		f:write(method.desc, '\n\n')
 
 		local tags = method.tags
-		checkTags(tags, {'http', 'http?', 'mem'})
-		checkTags(tags, {'ws', 'mem'})
+		checkTags(tags, { 'http', 'http?', 'mem' })
+		checkTags(tags, { 'ws', 'mem' })
 
 		for k in pairs(tags) do
 			if k ~= 'static' then
@@ -284,9 +285,7 @@ local function writeMethods(f, methods)
 		end
 
 		f:write('**Returns:** ', link(method.returns), '\n\n----\n\n')
-
 	end
-
 end
 
 if not fs.existsSync(output) then
@@ -312,7 +311,6 @@ local function collectParents(parents, k, ret, seen)
 end
 
 for _, class in pairs(docs) do
-
 	local f = io.open(pathJoin(output, class.name .. '.md'), 'w')
 
 	local parents = class.parents
@@ -324,7 +322,7 @@ for _, class in pairs(docs) do
 
 	f:write(class.desc, '\n\n')
 
-	checkTags(class.tags, {'ui', 'abc'})
+	checkTags(class.tags, { 'ui', 'abc' })
 	if class.tags.ui then
 		writeHeading(f, 'Constructor')
 		f:write('### ', class.name)
@@ -369,5 +367,4 @@ for _, class in pairs(docs) do
 	end
 
 	f:close()
-
 end

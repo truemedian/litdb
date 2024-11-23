@@ -42,7 +42,9 @@ function Message:_load(data)
 end
 
 local function parseMentions(content, pattern)
-	if not content:find('%b<>') then return {} end
+	if not content:find('%b<>') then
+		return {}
+	end
 	local mentions, seen = {}, {}
 	for id in content:gmatch(pattern) do
 		if not seen[id] then
@@ -54,7 +56,6 @@ local function parseMentions(content, pattern)
 end
 
 function Message:_loadMore(data)
-
 	local mentions = {}
 	if data.mentions then
 		for _, user in ipairs(data.mentions) do
@@ -109,11 +110,12 @@ function Message:_loadMore(data)
 	if data.sticker_items then
 		self._sticker_items = #data.sticker_items > 0 and data.sticker_items or nil
 	end
-
+	if data.components then
+	  self._components = data.components
+	end
 end
 
 function Message:_addReaction(d)
-
 	local reactions = self._reactions
 
 	if not reactions then
@@ -136,20 +138,21 @@ function Message:_addReaction(d)
 		reaction = reactions:_insert(d)
 	end
 	return reaction
-
 end
 
 function Message:_removeReaction(d)
-
 	local reactions = self._reactions
-	if not reactions then return nil end
+	if not reactions then
+		return nil
+	end
 
 	local emoji = d.emoji
 	local k = emoji.id ~= null and emoji.id or emoji.name
 	local reaction = reactions:get(k) or nil
 
-	if not reaction then return nil end -- uncached reaction?
-
+	if not reaction then
+		return nil
+	end -- uncached reaction?
 	reaction._count = reaction._count - 1
 	if d.user_id == self.client._user._id then
 		reaction._me = false
@@ -160,7 +163,6 @@ function Message:_removeReaction(d)
 	end
 
 	return reaction
-
 end
 
 function Message:_setOldContent(d)
@@ -170,7 +172,7 @@ function Message:_setOldContent(d)
 	if old then
 		old[ts] = old[ts] or self._content
 	else
-		self._old = {[ts] = self._content}
+		self._old = { [ts] = self._content }
 	end
 end
 
@@ -198,7 +200,7 @@ function Message:setContent(content)
 	return self:_modify({
 		content = content or null,
 		allowed_mentions = {
-			parse = {'users', 'roles', 'everyone'},
+			parse = { 'users', 'roles', 'everyone' },
 			replied_user = not not self._reply_target,
 		},
 	})
@@ -213,7 +215,7 @@ end
 (ie: you cannot change the embed of messages sent by other users).
 ]=]
 function Message:setEmbed(embed)
-	return self:_modify({embed = embed or null})
+	return self:_modify({ embed = embed or null })
 end
 
 --[=[
@@ -224,7 +226,7 @@ end
 ]=]
 function Message:hideEmbeds()
 	local flags = bor(self._flags or 0, messageFlag.suppressEmbeds)
-	return self:_modify({flags = flags})
+	return self:_modify({ flags = flags })
 end
 
 --[=[
@@ -235,7 +237,7 @@ end
 ]=]
 function Message:showEmbeds()
 	local flags = band(self._flags or 0, bnot(messageFlag.suppressEmbeds))
-	return self:_modify({flags = flags})
+	return self:_modify({ flags = flags })
 end
 
 --[=[
@@ -262,17 +264,17 @@ must be authored by the current user. (ie: you cannot change the embed of messag
 sent by other users).
 ]=]
 function Message:update(data)
-  local components = data.components and rawComponents(data.components)
-  return self:_modify{
-    components = components or {},
-    content = data.content or null,
-    embed = data.embed or null,
-    embeds = data.embeds or null,
-    allowed_mentions = {
-      parse = {'users', 'roles', 'everyone'},
-      replied_user = not not self._reply_target,
-    },
-  }
+	local components = data.components and rawComponents(data.components)
+	return self:_modify{
+		components = components or {},
+		content = data.content or null,
+		embed = data.embed or null,
+		embeds = data.embeds or null,
+		allowed_mentions = {
+			parse = { 'users', 'roles', 'everyone' },
+			replied_user = not not self._reply_target,
+		},
+	}
 end
 
 --[=[
@@ -396,7 +398,6 @@ function Message:reply(content)
 	return self._parent:send(content)
 end
 
-
 ---Sets the message's components.
 ---If `components` is false or nil, the message's components are removed.
 ---
@@ -404,8 +405,8 @@ end
 ---@param components? Components-Resolvable|boolean
 ---@return boolean
 function Message:setComponents(components)
-  components = components and rawComponents(components) or {}
-  return self:_modify{components = components}
+	components = components and rawComponents(components) or {}
+	return self:_modify{ components = components }
 end
 
 ---<!ignore>
@@ -419,15 +420,18 @@ end
 ---@return Message
 ---@deprecated Use `Message:update()` instead.
 function Message:updateComponents(components, data)
-  self.client._deprecated("Message", "updateComponents", "update")
-  data = type(data) == "table" and data or {}
-  if not components then
-    data.components = {}
-    return self:_modify(data)
-  end
-  assert(components == true or type(components) == "table", "bad argument #1 to updateComponents (expected a Components|falsy value)")
-  data.components = rawComponents(components)
-  return self:_modify(data)
+	self.client._deprecated('Message', 'updateComponents', 'update')
+	data = type(data) == 'table' and data or {}
+	if not components then
+		data.components = {}
+		return self:_modify(data)
+	end
+	assert(
+		components == true or type(components) == 'table',
+		'bad argument #1 to updateComponents (expected a Components|falsy value)'
+	)
+	data.components = rawComponents(components)
+	return self:_modify(data)
 end
 
 ---Equivalent to `Message.client:waitComponent(Message, ...)`.
@@ -438,11 +442,11 @@ end
 ---@return boolean
 ---@return ...
 function Message:waitComponent(type, id, timeout, predicate)
-  return self.client:waitComponent(self, type, id, timeout, predicate)
+	return self.client:waitComponent(self, type, id, timeout, predicate)
 end
 
 function get.components(self)
-  return self._components
+	return self._components
 end
 
 --[=[@p reactions Cache An iterable cache of all reactions that exist for this message.]=]
@@ -506,7 +510,9 @@ function get.mentionedChannels(self)
 		self._mentioned_channels = ArrayIterable(mentions, function(id)
 			local guild = client._channel_map[id]
 			if guild then
-				return guild._text_channels:get(id) or guild._voice_channels:get(id) or guild._categories:get(id)
+				return guild._text_channels:get(id) or guild._voice_channels:get(
+					id
+				) or guild._categories:get(id)
 			else
 				return client._private_channels:get(id) or client._group_channels:get(id)
 			end
@@ -524,7 +530,7 @@ function get.stickers(self)
 				local guild = client._sticker_map[sticker.id]
 				return guild and guild._stickers:get(sticker.id) or nil
 			else
-				-- return client:getSticker(sticker.id) ??
+			-- return client:getSticker(sticker.id) ??
 			end
 		end)
 	end
@@ -536,18 +542,22 @@ function get.sticker(self)
 	return self.stickers and self.stickers.first or nil
 end
 
-local usersMeta = {__index = function(_, k) return '@' .. k end}
-local rolesMeta = {__index = function(_, k) return '@' .. k end}
-local channelsMeta = {__index = function(_, k) return '#' .. k end}
+local usersMeta = { __index = function(_, k)
+	return '@' .. k
+end }
+local rolesMeta = { __index = function(_, k)
+	return '@' .. k
+end }
+local channelsMeta = { __index = function(_, k)
+	return '#' .. k
+end }
 local everyone = '@' .. constants.ZWSP .. 'everyone'
 local here = '@' .. constants.ZWSP .. 'here'
 
 --[=[@p cleanContent string The message content with all recognized mentions replaced by names and with
 @everyone and @here mentions escaped by a zero-width space (ZWSP).]=]
 function get.cleanContent(self)
-
 	if not self._clean_content then
-
 		local content = self._content
 		local guild = self.guild
 
@@ -567,18 +577,14 @@ function get.cleanContent(self)
 			channels[channel._id] = '#' .. channel._name
 		end
 
-		self._clean_content = content
-			:gsub('<@!?(%d+)>', users)
-			:gsub('<@&(%d+)>', roles)
-			:gsub('<#(%d+)>', channels)
-			:gsub('<a?(:[%w_]+:)%d+>', '%1')
-			:gsub('@everyone', everyone)
-			:gsub('@here', here)
-
+		self._clean_content =
+			content:gsub('<@!?(%d+)>', users):gsub('<@&(%d+)>', roles):gsub('<#(%d+)>', channels):gsub(
+				'<a?(:[%w_]+:)%d+>',
+				'%1'
+			):gsub('@everyone', everyone):gsub('@here', here)
 	end
 
 	return self._clean_content
-
 end
 
 --[=[@p mentionsEveryone boolean Whether this message mentions @everyone or @here.]=]
@@ -681,7 +687,12 @@ end
 --[=[@p link string URL that can be used to jump-to the message in the Discord client.]=]
 function get.link(self)
 	local guild = self.guild
-	return format('https://discord.com/channels/%s/%s/%s', guild and guild._id or '@me', self._parent._id, self._id)
+	return format(
+		'https://discord.com/channels/%s/%s/%s',
+		guild and guild._id or '@me',
+		self._parent._id,
+		self._id
+	)
 end
 
 --[=[@p webhookId string/nil The ID of the webhook that generated this message, if applicable.]=]

@@ -1,20 +1,20 @@
-local enums = require("enums")
+local enums = require('enums')
 local class = require('class')
 local classes = class.classes
 local ceil, max, min = math.ceil, math.max, math.min
 local isInstance = class.isInstance
 local componentType = enums.componentType
 
-local resolver = require("../resolver/components")
+local resolver = require('../resolver/components')
 local objComponents = resolver.objComponents
 
 local ArrayIterable = classes.ArrayIterable
-local SelectChannelMenu = require("./components/SelectChannelMenu")
-local SelectMentionMenu = require("./components/SelectMentionMenu")
-local SelectRoleMenu = require("./components/SelectRoleMenu")
-local SelectUserMenu = require("./components/SelectUserMenu")
-local SelectMenu = require("./components/SelectMenu")
-local Button = require("./components/Button")
+local SelectChannelMenu = require('./components/SelectChannelMenu')
+local SelectMentionMenu = require('./components/SelectMentionMenu')
+local SelectRoleMenu = require('./components/SelectRoleMenu')
+local SelectUserMenu = require('./components/SelectUserMenu')
+local SelectMenu = require('./components/SelectMenu')
+local Button = require('./components/Button')
 
 ---Represents a set of Component objects, offering an interface to control, modify, and retrieve Components easily.
 ---This is the entry point of this library and what this whole thing is about, that is, the builder.
@@ -23,7 +23,7 @@ local Button = require("./components/Button")
 ---@field selectMenus ArrayIterable A cache of all constructed SelectMenu objects in this instance.
 ---@type fun(data?: Components-Resolvable): Components
 ---<!tag:interface> <!method-tags:mem>
-local Components, get = class("Components")
+local Components, get = class('Components')
 
 ---@type table
 local getter = get
@@ -31,14 +31,13 @@ local getter = get
 local MAX_ROW_CELLS = 5 -- Maximum number of components per action row.
 local MAX_ROWS = 5 -- Maximum number of action rows per message.
 local MAX_COMPONENTS = MAX_ROW_CELLS * MAX_ROWS -- Maximum overall components per message.
-
 ---<!ignore>
 ---Returns the index at which the cell is located at in a table of MAX_ROW_CELLS rows.
 ---@param row number
 ---@param column number
 ---@return number
 local function cellIndex(row, column)
-  return (row - 1) * MAX_ROW_CELLS + column
+	return (row - 1) * MAX_ROW_CELLS + column
 end
 
 ---<!ignore>
@@ -46,10 +45,12 @@ end
 ---@param tbl table
 ---@return number
 local function findLast(tbl)
-  -- FIXME: would starting at index 1 or at MAX_COMPONENTS be better?
-  for i = MAX_COMPONENTS, 1, -1 do
-    if tbl[i] ~= nil then return i end
-  end
+	-- FIXME: would starting at index 1 or at MAX_COMPONENTS be better?
+	for i = MAX_COMPONENTS, 1, -1 do
+		if tbl[i] ~= nil then
+			return i
+		end
+	end
 end
 
 ---<!ignore>
@@ -58,70 +59,72 @@ end
 ---@param id string
 ---@return number
 local function findComponent(tbl, id)
-  for i = 1, #tbl do
-    if tbl[i].id == id and type(tbl[i].id) ~= "nil" and type(id) ~= "nil"
-    then return i end
-  end
-  return false
+	for i = 1, #tbl do
+		if tbl[i].id == id and type(tbl[i].id) ~= 'nil' and type(id) ~= 'nil' then
+			return i
+		end
+	end
+	return false
 end
 
 ---<!ignore>
 ---Sets the fields `_buttons`, `_selectMenus` and `_cacheMap` to their initial values.
 ---@param obj Components
 local function buildCompCache(obj)
-  obj._buttons = {}
-  obj._selectMenus = {}
-  obj._selectRoleMenus = {}
-  obj._selectUserMenus = {}
-  obj._selectMentionMenus = {}
-  obj._selectChannelMenus = {}
-  obj._cacheMap = {
-    [SelectChannelMenu] = obj._selectChannelMenus,
-    [SelectMentionMenu] = obj._selectMentionMenus,
-    [SelectUserMenu] = obj._selectUserMenus,
-    [SelectRoleMenu] = obj._selectRoleMenus,
-    [SelectMenu] = obj._selectMenus,
-    [Button] = obj._buttons,
-  }
+	obj._buttons = {}
+	obj._selectMenus = {}
+	obj._selectRoleMenus = {}
+	obj._selectUserMenus = {}
+	obj._selectMentionMenus = {}
+	obj._selectChannelMenus = {}
+	obj._cacheMap = {
+		[SelectChannelMenu] = obj._selectChannelMenus,
+		[SelectMentionMenu] = obj._selectMentionMenus,
+		[SelectUserMenu] = obj._selectUserMenus,
+		[SelectRoleMenu] = obj._selectRoleMenus,
+		[SelectMenu] = obj._selectMenus,
+		[Button] = obj._buttons,
+	}
 end
-
 
 ---<!ignore>
 ---Creates a new `Components` object to act as the container and the builder for all of the components.
 ---@param data table
 ---@return Components
 function Components:__init(data)
-  if data then return self:_load(data) end
-  self._cacheMap = {}
-  buildCompCache(self)
+	if data then
+		return self:_load(data)
+	end
+	self._cacheMap = {}
+	buildCompCache(self)
 
-  -- An array of Component objects (nils as default) to track each action row stats,
-  -- where a cell will be a Component-based object if provided at that index, otherwise a nil.
-  -- This inconvenient structure is used to make sure we are not wasting any memory;
-  -- Glad to suffer in order to save your memory!
-  -- Maybe I felt bad for eating some of your brain's memories earlier and want to make up for it,
-  -- who knows.
-  self._rows = {
-    -- nil, nil, nil, nil, nil, -> Row 1
-    -- nil, nil, nil, nil, nil, -> Row 2
-    -- nil, nil, nil, nil, nil, -> Row 3
-    -- nil, nil, nil, nil, nil, -> Row 4
-    -- nil, nil, nil, nil, nil, -> Row 5
-    n = 0, -- how many cells(components) are currently provided
-    m = 0, -- in which row the last cell is located?
-  }
+	-- An array of Component objects (nils as default) to track each action row stats,
+	-- where a cell will be a Component-based object if provided at that index, otherwise a nil.
+	-- This inconvenient structure is used to make sure we are not wasting any memory;
+	-- Glad to suffer in order to save your memory!
+	-- Maybe I felt bad for eating some of your brain's memories earlier and want to make up for it,
+	-- who knows.
+	self._rows = {
+		-- nil, nil, nil, nil, nil, -> Row 1
+		-- nil, nil, nil, nil, nil, -> Row 2
+		-- nil, nil, nil, nil, nil, -> Row 3
+		-- nil, nil, nil, nil, nil, -> Row 4
+		-- nil, nil, nil, nil, nil, -> Row 5
+		n = 0, -- how many cells(components) are currently provided
+		m = 0, -- in which row the last cell is located?
+	}
 end
 
 ---<!ignore>
 ---Load the provided data into the instance cache.
 ---@param data Component|table<number, table>
 function Components:_load(data)
-  data = objComponents(data)
-  if not data then return end
-  self._buttons = data._buttons
-  self._selectMenus = data._selectMenus
-  self._selectChannelMenus = data._selectChannelMenus
-  self._rows = data._rows
+	data = objComponents(data)
+	if not data then return end
+	self._buttons = data._buttons
+	self._selectMenus = data._selectMenus
+	self._selectChannelMenus = data._selectChannelMenus
+	self._rows = data._rows
 end
 
 ---<!ignore>
@@ -129,22 +132,25 @@ end
 ---@param index number
 ---@param value Component
 function Components:_insert(index, value)
-  local rows = self._rows
-  if rows[index] then return end
+	local rows = self._rows
+	if rows[index] then return end
 
-  rows[index] = value
-  rows.n = rows.n + 1
-  rows.m = max(rows.m, ceil(findLast(rows) / 5))
+	rows[index] = value
+	rows.n = rows.n + 1
+	rows.m = max(rows.m, ceil(findLast(rows) / 5))
 
-  local typ = value.__class
-  local cache = self._cacheMap[typ]
-  if findComponent(cache, value.id) then
-    error((
-      'Component of the type "%s" and the ID "%s" already exists; ' ..
-      "Cannot have two components of the same type and ID at the same time!"
-    ):format(typ.__name, value.id), 4)
-  end
-  cache[#cache + 1] = value
+	local typ = value.__class
+	local cache = self._cacheMap[typ]
+	if findComponent(cache, value.id) then
+		error(
+			('Component of the type "%s" and the ID "%s" already exists; ' .. 'Cannot have two components of the same type and ID at the same time!'):format(
+				typ.__name,
+				value.id
+			),
+			4
+		)
+	end
+	cache[#cache + 1] = value
 end
 
 ---<!ignore>
@@ -154,19 +160,19 @@ end
 ---@return Components self
 ---@return Component # The removed component.
 function Components:_remove(type, id)
-  local cache = self._cacheMap[type]
-  local index = findComponent(cache, id)
-  local rows = self._rows
-  if not index then
-    error(('No such %s with the ID %s'):format(type.__name, id), 2)
-  end
-  table.remove(cache, index)
+	local cache = self._cacheMap[type]
+	local index = findComponent(cache, id)
+	local rows = self._rows
+	if not index then
+		error(('No such %s with the ID %s'):format(type.__name, id), 2)
+	end
+	table.remove(cache, index)
 
-  index = findComponent(rows, id)
-  rows.n = rows.n - 1
-  rows.m = max(rows.m, ceil(findLast(rows) / 5))
+	index = findComponent(rows, id)
+	rows.n = rows.n - 1
+	rows.m = max(rows.m, ceil(findLast(rows) / 5))
 
-  return self, table.remove(rows, index)
+	return self, table.remove(rows, index)
 end
 
 ---<!ignore>
@@ -175,13 +181,14 @@ end
 ---@return boolean success
 ---@return number|string result # The cell index if `success` is true, otherwise a string explaining what went wrong.
 local function checkAny(rows)
-  for c = 1, MAX_COMPONENTS do
-    if not rows[c] then
-      return true, c
-    end
-  end
-  return false, ("All Action Rows are full; Cannot have more than %d component per message")
-    :format(MAX_COMPONENTS)
+	for c = 1, MAX_COMPONENTS do
+		if not rows[c] then
+			return true, c
+		end
+	end
+	return false, ('All Action Rows are full; Cannot have more than %d component per message'):format(
+		MAX_COMPONENTS
+	)
 end
 
 ---<!ignore>
@@ -192,21 +199,21 @@ end
 ---@return boolean success
 ---@return string|number result # The cell index if `success` is true, otherwise a string explaining what went wrong.
 local function checkPredicate(rows, targetRow, predicate)
-  local success, msg, cell
-  for c = cellIndex(targetRow, 1), targetRow * MAX_ROW_CELLS do
-    if rows[c] then
-      success, msg = predicate(rows[c], c)
-    elseif not cell then
-      cell = c -- first empty cell
-    end
-    if success == false then
-      return false, msg or "Predicate was not satisfied"
-    end
-  end
-  if not cell then
-    return false, "Action Row not eligible" -- user should never see this error message
-  end
-  return true, cell
+	local success, msg, cell
+	for c = cellIndex(targetRow, 1), targetRow * MAX_ROW_CELLS do
+		if rows[c] then
+			success, msg = predicate(rows[c], c)
+		elseif not cell then
+			cell = c -- first empty cell
+		end
+		if success == false then
+			return false, msg or 'Predicate was not satisfied'
+		end
+	end
+	if not cell then
+		return false, 'Action Row not eligible' -- user should never see this error message
+	end
+	return true, cell
 end
 
 ---<!ignore>
@@ -216,41 +223,44 @@ end
 ---@return boolean success
 ---@return string|number result # The cell index if `success` is true, otherwise a string explaining what went wrong.
 function Components:_isEligible(targetRow, predicate)
-  targetRow = tonumber(targetRow)
-  local rows = self._rows
+	targetRow = tonumber(targetRow)
+	local rows = self._rows
 
-  -- Do we even have an available action row to start with?
-  if rows.n >= MAX_COMPONENTS then
-    return false, ("All Action Rows are full; Cannot have more than %d component per message")
-      :format(MAX_COMPONENTS)
-  end
+	-- Do we even have an available action row to start with?
+	if rows.n >= MAX_COMPONENTS then
+		return false, ('All Action Rows are full; Cannot have more than %d component per message'):format(
+			MAX_COMPONENTS
+		)
+	end
 
-  -- Does the specified action row jump over an empty row? that's a gap between rows
-  if targetRow and targetRow > rows.m + 1 then
-    return false, "Cannot use an Action Row while the previous row is empty"
-  end
+	-- Does the specified action row jump over an empty row? that's a gap between rows
+	if targetRow and targetRow > rows.m + 1 then
+		return false, 'Cannot use an Action Row while the previous row is empty'
+	end
 
-  -- If no predicate is specified, use first empty cell
-  if type(predicate) ~= "function" then
-    return checkAny(rows)
-  end
+	-- If no predicate is specified, use first empty cell
+	if type(predicate) ~= 'function' then
+		return checkAny(rows)
+	end
 
-  -- If targetRow is presented, run the predicate-check over that specified row only
-  -- otherwise, if no targetRow is specified, check all rows until one is available (or not)
-  local success, cell
-  if targetRow then
-    success, cell = checkPredicate(rows, targetRow, predicate)
-  else
-    for row = 1, min(MAX_ROWS, rows.m + 1) do
-      success, cell = checkPredicate(rows, row, predicate)
-      if success then break end
-    end
-  end
-  if not success then
-    return false, targetRow and cell or "No eligible Action Row for the provided component"
-  end
+	-- If targetRow is presented, run the predicate-check over that specified row only
+	-- otherwise, if no targetRow is specified, check all rows until one is available (or not)
+	local success, cell
+	if targetRow then
+		success, cell = checkPredicate(rows, targetRow, predicate)
+	else
+		for row = 1, min(MAX_ROWS, rows.m + 1) do
+			success, cell = checkPredicate(rows, row, predicate)
+			if success then
+				break
+			end
+		end
+	end
+	if not success then
+		return false, targetRow and cell or 'No eligible Action Row for the provided component'
+	end
 
-  return true, cell
+	return true, cell
 end
 
 ---<!ignore>
@@ -261,16 +271,18 @@ end
 ---@param ... any
 ---@return Component
 function Components:_buildComponent(comp, data, ...)
-  -- Validate and factor the provided arguments
-  data = comp._validate and comp._validate(data, ...) or data
-  -- Can we fit a new component in the provided builder?
-  local success, cell = self:_isEligible(data.actionRow, comp._eligibilityCheck)
-  if not success then error(cell, 3) end
-  -- Create and insert the component into the action row
-  -- using isInstance as an optimization for passing an already constructed component
-  local obj = isInstance(data, comp) and data or comp(data)
-  self:_insert(cell, obj)
-  return obj
+	-- Validate and factor the provided arguments
+	data = comp._validate and comp._validate(data, ...) or data
+	-- Can we fit a new component in the provided builder?
+	local success, cell = self:_isEligible(data.actionRow, comp._eligibilityCheck)
+	if not success then
+		error(cell, 3)
+	end
+	-- Create and insert the component into the action row
+	-- using isInstance as an optimization for passing an already constructed component
+	local obj = isInstance(data, comp) and data or comp(data)
+	self:_insert(cell, obj)
+	return obj
 end
 
 ---Constructs a new Button object with the initial provided data; if `data` is a string it is treated
@@ -281,9 +293,9 @@ end
 ---@param actionRow? number
 ---@return Components self
 function Components:button(data, actionRow)
-  assert(data, "data argument is required")
-  self:_buildComponent(Button, data, actionRow)
-  return self
+	assert(data, 'data argument is required')
+	self:_buildComponent(Button, data, actionRow)
+	return self
 end
 
 ---Constructs a new SelectMenu object with the initial provided data; if `data` is a string
@@ -293,9 +305,9 @@ end
 ---@param data SelectMenu-Resolvable|Custom-ID-Resolvable
 ---@return Components self
 function Components:selectMenu(data)
-  assert(data, "data argument is required")
-  self:_buildComponent(SelectMenu, data)
-  return self
+	assert(data, 'data argument is required')
+	self:_buildComponent(SelectMenu, data)
+	return self
 end
 
 ---Constructs a new SelectRoleMenu object with the initial provided data; if `data` is a string
@@ -305,9 +317,9 @@ end
 ---@param data SelectRoleMenu-Resolvable|Custom-ID-Resolvable
 ---@return Components self
 function Components:selectRoleMenu(data)
-  assert(data, "data argument is required")
-  self:_buildComponent(SelectRoleMenu, data)
-  return self
+	assert(data, 'data argument is required')
+	self:_buildComponent(SelectRoleMenu, data)
+	return self
 end
 
 ---Constructs a new SelectUserMenu object with the initial provided data; if `data` is a string
@@ -317,9 +329,9 @@ end
 ---@param data SelectUserMenu-Resolvable|Custom-ID-Resolvable
 ---@return Components self
 function Components:selectUserMenu(data)
-  assert(data, "data argument is required")
-  self:_buildComponent(SelectUserMenu, data)
-  return self
+	assert(data, 'data argument is required')
+	self:_buildComponent(SelectUserMenu, data)
+	return self
 end
 
 ---Constructs a new SelectMentionMenu object with the initial provided data; if `data` is a string
@@ -329,9 +341,9 @@ end
 ---@param data SelectMentionMenu-Resolvable|Custom-ID-Resolvable
 ---@return Components self
 function Components:sselectMentionMenu(data)
-  assert(data, "data argument is required")
-  self:_buildComponent(SelectMentionMenu, data)
-  return self
+	assert(data, 'data argument is required')
+	self:_buildComponent(SelectMentionMenu, data)
+	return self
 end
 
 ---Constructs a new SelectChannelMenu object with the initial provided data; if `data` is a string
@@ -341,9 +353,9 @@ end
 ---@param data SelectChannelMenu-Resolvable|Custom-ID-Resolvable
 ---@return Components self
 function Components:selectChannelMenu(data)
-  assert(data, "data argument is required")
-  self:_buildComponent(SelectChannelMenu, data)
-  return self
+	assert(data, 'data argument is required')
+	self:_buildComponent(SelectChannelMenu, data)
+	return self
 end
 
 ---Removes all components attached to this instance and reset its cache.
@@ -351,8 +363,8 @@ end
 ---Returns self.
 ---@return Components self
 function Components:removeAllComponents()
-  buildCompCache(self)
-  return self
+	buildCompCache(self)
+	return self
 end
 
 ---Removes a previously constructed Button object with the custom_id of `id`.
@@ -362,7 +374,7 @@ end
 ---@return Components self
 ---@return Button # The removed [[Button]] object.
 function Components:removeButton(id)
-  return self:_remove(Button, id)
+	return self:_remove(Button, id)
 end
 
 ---Removes a previously constructed SelectMenu object with the custom_id of `id`.
@@ -372,7 +384,7 @@ end
 ---@return Components self
 ---@return SelectMenu # The removed SelectMenu object.
 function Components:removeSelectMenu(id)
-  return self:_remove(SelectMenu, id)
+	return self:_remove(SelectMenu, id)
 end
 
 ---Removes a previously constructed SelectRoleMenu object with the custom_id of `id`.
@@ -382,7 +394,7 @@ end
 ---@return Components self
 ---@return SelectRoleMenu # The removed SelectRoleMenu object.
 function Components:removeSelectRoleMenu(id)
-  return self:_remove(SelectRoleMenu, id)
+	return self:_remove(SelectRoleMenu, id)
 end
 
 ---Removes a previously constructed SelectUserMenu object with the custom_id of `id`.
@@ -392,7 +404,7 @@ end
 ---@return Components self
 ---@return SelectUserMenu # The removed SelectUserMenu object.
 function Components:removeSelectUserMenu(id)
-  return self:_remove(SelectUserMenu, id)
+	return self:_remove(SelectUserMenu, id)
 end
 
 ---Removes a previously constructed SelectMentionMenu object with the custom_id of `id`.
@@ -402,7 +414,7 @@ end
 ---@return Components self
 ---@return SelectMentionMenu # The removed SelectMentionMenu object.
 function Components:removeSelectMentionMenu(id)
-  return self:_remove(SelectMentionMenu, id)
+	return self:_remove(SelectMentionMenu, id)
 end
 
 ---Removes a previously constructed SelectChannelMenu object with the custom_id of `id`.
@@ -412,7 +424,7 @@ end
 ---@return Components self
 ---@return SelectChannelMenu # The removed SelectChannelMenu object.
 function Components:removeSelectChannelMenu(id)
-  return self:_remove(SelectChannelMenu, id)
+	return self:_remove(SelectChannelMenu, id)
 end
 
 ---Returns a table value of what the raw value Discord would accept is like based on assumptions
@@ -421,48 +433,54 @@ end
 ---By design, user should never need to use this method.
 ---@return table
 function Components:raw()
-  local data = {}
-  local rows = self._rows
-  if rows.n <= 0 then return {} end
+	local data = {}
+	local rows = self._rows
+	if rows.n <= 0 then
+		return {}
+	end
 
-  -- Read rows and assign each row to table data while respecting its index
-  local row, cell
-  for r = 1, MAX_ROWS do
-    row = nil
-    for c = 1, MAX_ROW_CELLS do
-      cell = rows[cellIndex(r, c)]
-      if cell then
-        row = row or {}
-        row[#row + 1] = cell:raw()
-      end
-    end
-    if row then data[r] = row end
-  end
+	-- Read rows and assign each row to table data while respecting its index
+	local row, cell
+	for r = 1, MAX_ROWS do
+		row = nil
+		for c = 1, MAX_ROW_CELLS do
+			cell = rows[cellIndex(r, c)]
+			if cell then
+				row = row or {}
+				row[#row + 1] = cell:raw()
+			end
+		end
+		if row then
+			data[r] = row
+		end
+	end
 
-  -- Convert each row table in table data to a valid Action Row table object
-  for i = 1, MAX_ROWS do
-    row = data[i]
-    if not row then goto continue end
-    data[i] = {
-      type = componentType.actionRow,
-      components = row
-    }
-    ::continue::
-  end
+	-- Convert each row table in table data to a valid Action Row table object
+	for i = 1, MAX_ROWS do
+		row = data[i]
+		if not row then
+			goto continue
+		end
+		data[i] = {
+			type = componentType.actionRow,
+			components = row,
+		}
+		::continue::
+	end
 
-  return data
+	return data
 end
 
 function getter.buttons(self)
-  return ArrayIterable(self._buttons)
+	return ArrayIterable(self._buttons)
 end
 
 function getter.selectMenus(self)
-  return ArrayIterable(self._selectMenus)
+	return ArrayIterable(self._selectMenus)
 end
 
 function getter.selectChannelMenus(self)
-  return ArrayIterable(self._selectChannelMenus)
+	return ArrayIterable(self._selectChannelMenus)
 end
 
 return Components

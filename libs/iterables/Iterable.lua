@@ -52,7 +52,9 @@ end
 @d Returns an individual object by key, where the key should match the result of
 calling `__hash` on the contained objects. Operates with up to O(n) complexity.
 ]=]
-function Iterable:get(k) -- objects must be hashable
+function Iterable:get(
+k -- objects must be hashable
+)
 	for obj in self:iter() do
 		if obj:__hash() == k then
 			return obj

@@ -28,7 +28,7 @@ function GuildCategoryChannel:createTextChannel(name)
 	local data, err = guild.client._api:createGuildChannel(guild._id, {
 		name = name,
 		type = channelType.text,
-		parent_id = self._id
+		parent_id = self._id,
 	})
 	if data then
 		return guild._text_channels:_insert(data)
@@ -49,7 +49,7 @@ function GuildCategoryChannel:createVoiceChannel(name)
 	local data, err = guild.client._api:createGuildChannel(guild._id, {
 		name = name,
 		type = channelType.voice,
-		parent_id = self._id
+		parent_id = self._id,
 	})
 	if data then
 		return guild._voice_channels:_insert(data)

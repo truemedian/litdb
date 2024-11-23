@@ -26,7 +26,7 @@ end
 default is set, which is 64000.
 ]=]
 function GuildVoiceChannel:setBitrate(bitrate)
-	return self:_modify({bitrate = bitrate or json.null})
+	return self:_modify({ bitrate = bitrate or json.null })
 end
 
 --[=[
@@ -38,7 +38,7 @@ end
 unlimited). If `nil` is passed, the default is set, which is 0.
 ]=]
 function GuildVoiceChannel:setUserLimit(user_limit)
-	return self:_modify({user_limit = user_limit or json.null})
+	return self:_modify({ user_limit = user_limit or json.null })
 end
 
 --[=[
@@ -48,19 +48,15 @@ end
 @d Join this channel and form a connection to the Voice Gateway.
 ]=]
 function GuildVoiceChannel:join()
-
 	local success, err
 
 	local connection = self._connection
 
 	if connection then
-
 		if connection._ready then
 			return connection
 		end
-
 	else
-
 		local guild = self._parent
 		local client = guild._parent
 
@@ -78,7 +74,6 @@ function GuildVoiceChannel:join()
 		end
 
 		self._connection = connection
-
 	end
 
 	success, err = connection:_await()
@@ -88,7 +83,6 @@ function GuildVoiceChannel:join()
 	else
 		return nil, err
 	end
-
 end
 
 --[=[

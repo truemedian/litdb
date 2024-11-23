@@ -13,13 +13,12 @@ local ws_parseUrl, ws_connect = websocket.parseUrl, websocket.connect
 
 local GATEWAY_DELAY = constants.GATEWAY_DELAY
 
-local TEXT   = 1
+local TEXT = 1
 local BINARY = 2
-local CLOSE  = 8
+local CLOSE = 8
 
-local CLOSE_CODE     = '\003\232' -- code: 1000
+local CLOSE_CODE = '\003\232' -- code: 1000
 local RECONNECT_CODE = '\015\160' -- code: 4000
-
 local function connect(url, path)
 	local options = assert(ws_parseUrl(url))
 	options.pathname = path
@@ -36,7 +35,6 @@ function WebSocket:__init(parent)
 end
 
 function WebSocket:connect(url, path)
-
 	local success, res, read, write = pcall(connect, url, path)
 
 	if success then
@@ -47,7 +45,9 @@ function WebSocket:connect(url, path)
 		local parent = self._parent
 		for message in self._read do
 			local payload, str = self:parseMessage(message)
-			if not payload then break end
+			if not payload then
+				break
+			end
 			parent:emit('raw', str)
 			if self.handlePayload then -- virtual method
 				self:handlePayload(payload)
@@ -69,32 +69,23 @@ function WebSocket:connect(url, path)
 	if self.handleDisconnect then -- virtual method
 		return self:handleDisconnect(url, path)
 	end
-
 end
 
 function WebSocket:parseMessage(message)
-
 	local opcode = message.opcode
 	local payload = message.payload
 
 	if opcode == TEXT then
-
 		return decode(payload, 1, null), payload
-
 	elseif opcode == BINARY then
-
 		payload = inflate(payload, 1)
 		return decode(payload, 1, null), payload
-
 	elseif opcode == CLOSE then
-
 		local code, i = ('>H'):unpack(payload)
 		local msg = #payload > i and payload:sub(i) or 'Connection closed'
 		self:warning('%i - %s', code, msg)
 		return nil
-
 	end
-
 end
 
 function WebSocket:_send(op, d, identify)
@@ -102,7 +93,13 @@ function WebSocket:_send(op, d, identify)
 	local success, err
 	if identify or self._session_id then
 		if self._write then
-			success, err = self._write {opcode = TEXT, payload = encode {op = op, d = d}}
+			success, err = self._write{
+				opcode = TEXT,
+				payload = encode{
+					op = op,
+					d = d,
+				},
+			}
 		else
 			success, err = false, 'Not connected to gateway'
 		end
@@ -116,7 +113,10 @@ end
 function WebSocket:disconnect(reconnect)
 	if not self._write then return end
 	self._reconnect = not not reconnect
-	self._write {opcode = CLOSE, payload = reconnect and RECONNECT_CODE or CLOSE_CODE}
+	self._write{
+		opcode = CLOSE,
+		payload = reconnect and RECONNECT_CODE or CLOSE_CODE,
+	}
 	self._read = nil
 	self._write = nil
 end

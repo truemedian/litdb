@@ -1,7 +1,7 @@
-local enums = require("enums")
-local resolver = require("../resolver/interaction")
+local enums = require('enums')
+local resolver = require('../resolver/interaction')
 local rawComponents = require('../resolver/components').rawComponents
-local bit = require("bit")
+local bit = require('bit')
 
 local bor = bit.bor
 local class = require('class')
@@ -31,123 +31,142 @@ local channelType = enums.channelType
 ---@field guildLocale string The guild's preferred locale, if said interaction was executed in a guild.
 ---<!method-tags:http>
 ---@type Interaction | fun(data: table, parent: Client): Interaction
-local Interaction, get = class("Interaction", Snowflake)
+local Interaction, get = class('Interaction', Snowflake)
 
 ---@type table
 local getter = get
 
 function Interaction:__init(data, parent)
-  Snowflake.__init(self, data, parent)
-  self._api = parent._api -- a bit easier to navigate
-  self._data = data.data
+	Snowflake.__init(self, data, parent)
+	self._api = parent._api -- a bit easier to navigate
+	self._data = data.data
 
-  -- Handle guild and guild_id
-  do local guildId = data.guild_id
-    self._guild = guildId and parent._guilds:get(guildId)
-    if not self._guild and guildId then
-      local guild = self._api:getGuild(guildId)
-      if guild then
-        self._guild = parent._guilds:_insert(guild)
-      end
-    end
-  end
+	-- Handle guild and guild_id
+	do
+		local guildId = data.guild_id
+		self._guild = guildId and parent._guilds:get(guildId)
+		if not self._guild and guildId then
+			local guild = self._api:getGuild(guildId)
+			if guild then
+				self._guild = parent._guilds:_insert(guild)
+			end
+		end
+	end
 
-  -- Handle channel and channel_id
-  do local channelId = data.channel_id
-    if not channelId then goto skip end
-    -- First try retrieving it from cache
-    if self._guild then
-      self._channel = self._guild:getChannel(channelId)
-    elseif not data.guild_id then
-      self._channel = parent._private_channels:get(channelId)
-    end
-    if self._channel then
-      goto skip
-    end
+	-- Handle channel and channel_id
+	do
+		local channelId = data.channel_id
+		if not channelId then
+			goto skip
+		end
+		-- First try retrieving it from cache
+		if self._guild then
+			self._channel = self._guild:getChannel(channelId)
+		elseif not data.guild_id then
+			self._channel = parent._private_channels:get(channelId)
+		end
+		if self._channel then
+			goto skip
+		end
 
-    -- Last resort, request the channel object from the API if wasn't cached
-    local channel = self._api:getChannel(channelId)
-    if not channel then goto skip end -- somehow channel not available
+		-- Last resort, request the channel object from the API if wasn't cached
+		local channel = self._api:getChannel(channelId)
+		if not channel then
+			goto skip
+		end -- somehow channel not available
+		if channel.guild_id then
+			local guild
+			if self._guild and channel.guild_id == self._guild.id then
+				guild = self._guild
+			else
+				local guild_data = self._api:getGuild(channel.guild_id)
+				if guild_data then
+					guild = parent._guilds:_insert(guild_data)
+				end
+			end
 
-    if channel.guild_id then
-      local guild
-      if self._guild and channel.guild_id == self._guild.id then
-        guild = self._guild
-      else
-        local guild_data = self._api:getGuild(channel.guild_id)
-        if guild_data then
-          guild = parent._guilds:_insert(guild_data)
-        end
-      end
+			if guild then
+				if channel.type == channelType.text then
+					self._channel = guild._text_channels:_insert(channel)
+				elseif channel.type == channelType.voice then
+					self._channel = guild._voice_channels:_insert(channel)
+				end
+			end
+		elseif channel.type == channelType.private then
+			self._channel = parent._private_channels:_insert(channel)
+		end
+		::skip::
+	end
 
-      if guild then
-        if channel.type == channelType.text then
-          self._channel = guild._text_channels:_insert(channel)
-        elseif channel.type == channelType.voice then
-          self._channel = guild._voice_channels:_insert(channel)
-        end
-      end
-    elseif channel.type == channelType.private then
-      self._channel = parent._private_channels:_insert(channel)
-    end
-    ::skip::
-  end
+	-- Handle user and member
+	do
+		if data.member and self._guild then
+			self._member = self._guild._members:_insert(data.member)
+			self._user = parent._users:_insert(data.member.user)
+		elseif data.user then
+			self._user = parent._users:_insert(data.user)
+		end
+	end
 
-  -- Handle user and member
-  do
-    if data.member and self._guild then
-      self._member = self._guild._members:_insert(data.member)
-      self._user = parent._users:_insert(data.member.user)
-    elseif data.user then
-      self._user = parent._users:_insert(data.user)
-    end
-  end
+	-- Handle message
+	do
+		if not data.message then
+			goto skip
+		end
+		if self._channel then
+			self._message = self._channel._messages:_insert(data.message)
+		elseif data.message.channel then
+			local guild, cache = data.message.guild, nil
+			if guild then
+				guild = parent._guilds:_insert(guild)
+				cache = guild._text_channels:_insert(data.message.channel)
+			else
+				cache = parent._private_channels:_insert(data.message.channel)
+			end
+			self._message = cache and cache._messages:_insert(data.message)
+		end
+		if not self._message then
+			self._message = nil
+		end
+		::skip::
+	end
 
-  -- Handle message
-  do
-    if not data.message then goto skip end
-    if self._channel then
-      self._message = self._channel._messages:_insert(data.message)
-    elseif data.message.channel then
-      local guild, cache = data.message.guild, nil
-      if guild then
-        guild = parent._guilds:_insert(guild)
-        cache = guild._text_channels:_insert(data.message.channel)
-      else
-        cache = parent._private_channels:_insert(data.message.channel)
-      end
-      self._message = cache and cache._messages:_insert(data.message)
-    end
-    if not self._message then self._message = nil end
-    ::skip::
-  end
+	-- Define Interaction state tracking
+	self._initialRes = false
+	self._deferred = false
 
-  -- Define Interaction state tracking
-  self._initialRes = false
-  self._deferred = false
+	if data.components then
+	  self._components = data.components
+	end
 end
 
 function Interaction:_sendMessage(payload, files, deferred)
-  local data, err = self._api:createInteractionResponse(self.id, self._token, {
-    type = deferred and callbackType.deferReply or callbackType.reply,
-    data = payload,
-  }, files)
-  if data then
-    self._initialRes = true
-    self._deferred = deferred or false
-    return true
-  else
-    return false, err
-  end
+	local data, err = self._api:createInteractionResponse(
+		self.id,
+		self._token,
+		{
+			type = deferred and callbackType.deferReply or callbackType.reply,
+			data = payload,
+		},
+		files
+	)
+	if data then
+		self._initialRes = true
+		self._deferred = deferred or false
+		return true
+	else
+		return false, err
+	end
 end
 
 function Interaction:_sendFollowup(payload, files)
-  local data, err = self._api:createWebhookMessage(self._application_id, self._token, payload, files)
-  if data then
-    return self._channel and self._channel._messages:_insert(data) or true
-  else
-    return false, err
-  end
+	local data, err =
+		self._api:createWebhookMessage(self._application_id, self._token, payload, files)
+	if data then
+		return self._channel and self._channel._messages:_insert(data) or true
+	else
+		return false, err
+	end
 end
 
 ---Sends an interaction reply. An initial response is sent on first call of this,
@@ -162,22 +181,22 @@ end
 ---@param isEphemeral? boolean
 ---@return boolean|Message
 function Interaction:reply(content, isEphemeral)
-  isEphemeral = isEphemeral and true or type(content) == "table" and content.ephemeral
-  local msg, files = resolveMessage(content)
+	isEphemeral = isEphemeral and true or type(content) == 'table' and content.ephemeral
+	local msg, files = resolveMessage(content)
 
-  -- Handle flag masking
-  if isEphemeral then
-    msg.flags = bor(type(msg.flags) == "number" and msg.flags or 0, messageFlag.ephemeral)
-  end
+	-- Handle flag masking
+	if isEphemeral then
+		msg.flags = bor(type(msg.flags) == 'number' and msg.flags or 0, messageFlag.ephemeral)
+	end
 
-  -- Choose desired method depending on the context
-  local method
-  if self._initialRes or self._deferred then
-    method = self._sendFollowup
-  else
-    method = self._sendMessage
-  end
-  return method(self, msg, files)
+	-- Choose desired method depending on the context
+	local method
+	if self._initialRes or self._deferred then
+		method = self._sendFollowup
+	else
+		method = self._sendMessage
+	end
+	return method(self, msg, files)
 end
 
 ---Sets the interaction's components.
@@ -187,8 +206,8 @@ end
 ---@param components? Components-Resolvable|boolean
 ---@return boolean
 function Interaction:setComponents(components)
-  components = components and rawComponents(components) or {}
-  return self:_modify{components = components}
+	components = components and rawComponents(components) or {}
+	return self:_modify{ components = components }
 end
 
 ---Equivalent to `Message.client:waitComponent(Message, ...)`.
@@ -199,7 +218,7 @@ end
 ---@return boolean
 ---@return ...
 function Interaction:waitComponent(type, id, timeout, predicate)
-  return self.client:waitComponent(self, type, id, timeout, predicate)
+	return self.client:waitComponent(self, type, id, timeout, predicate)
 end
 
 ---Sends a deferred interaction reply.
@@ -210,9 +229,9 @@ end
 ---@param isEphemeral? boolean
 ---@return boolean
 function Interaction:replyDeferred(isEphemeral)
-  assert(not self._initialRes, "only the initial response can be deferred")
-  local msg = isEphemeral and {flags = messageFlag.ephemeral} or nil
-  return self:_sendMessage(msg, nil, true)
+	assert(not self._initialRes, 'only the initial response can be deferred')
+	local msg = isEphemeral and { flags = messageFlag.ephemeral } or nil
+	return self:_sendMessage(msg, nil, true)
 end
 
 ---@alias Message-ID-Resolvable table
@@ -224,9 +243,9 @@ end
 ---@param id? Message-ID-Resolvable
 ---@return Message
 function Interaction:getReply(id)
-  id = resolver.messageId(id) or "@original"
-  local data, err = self._api:getWebhookMessage(self._application_id, self._token, id)
-  return data and self._channel._messages:_insert(data), err
+	id = resolver.messageId(id) or '@original'
+	local data, err = self._api:getWebhookMessage(self._application_id, self._token, id)
+	return data and self._channel._messages:_insert(data), err
 end
 
 ---Modifies a previously sent interaction response.
@@ -237,10 +256,10 @@ end
 ---@param id? Message-ID-Resolvable
 ---@return Message
 function Interaction:editReply(content, id)
-  id = resolver.messageId(id) or self._message.id
-  local msg, files = resolveMessage(content)
-  local data, err = self._api:editWebhookMessage(self._application_id, self._token, id, msg, files)
-  return data and true, err
+	id = resolver.messageId(id) or self._message.id
+	local msg, files = resolveMessage(content)
+	local data, err = self._api:editWebhookMessage(self._application_id, self._token, id, msg, files)
+	return data and true, err
 end
 
 ---Deletes a previously sent response. If response `id` was not provided, original interaction response is deleted instead.
@@ -251,23 +270,28 @@ end
 ---@param id? Message-ID-Resolvable
 ---@return boolean
 function Interaction:deleteReply(id)
-  id = resolver.messageId(id) or "@original"
-  local data, err = self._api:deleteWebhookMessage(self._application_id, self._token, id)
-  return data and true, err
+	id = resolver.messageId(id) or '@original'
+	local data, err = self._api:deleteWebhookMessage(self._application_id, self._token, id)
+	return data and true, err
 end
 
 function Interaction:_sendUpdate(payload, files)
-  local data, err = self._api:createInteractionResponse(self.id, self._token, {
-    type = payload and callbackType.updateMessage or callbackType.deferredUpdateMessage,
-    data = payload,
-  }, files)
-  if data then
-    self._initialRes = true
-    self._deferred = not payload and true
-    return true
-  else
-    return false, err
-  end
+	local data, err = self._api:createInteractionResponse(
+		self.id,
+		self._token,
+		{
+			type = payload and callbackType.updateMessage or callbackType.deferredUpdateMessage,
+			data = payload,
+		},
+		files
+	)
+	if data then
+		self._initialRes = true
+		self._deferred = not payload and true
+		return true
+	else
+		return false, err
+	end
 end
 
 ---Responds to a component-based interaction by editing the message that the component is attached to.
@@ -276,20 +300,20 @@ end
 ---@param content table|string
 ---@return boolean
 function Interaction:update(content)
-  local t = type(content)
-  assert(self._message, "UPDATE_MESSAGE is only supported by components-based interactions!")
-  assert(t == "string" or t == "table", "bad argument #2 to update (expected table|string)")
-  local msg, files = resolveMessage(content)
-  if not self._initialRes then
-    return self:_sendUpdate(msg, files)
-  end
-  local data, err = self._api:editMessage(self._message._parent._id, self._message._id, msg, files)
-  if data then
-    self._message:_setOldContent(data)
-    self._message:_load(data)
-    return true
-  end
-  return false, err
+	local t = type(content)
+	assert(self._message, 'UPDATE_MESSAGE is only supported by components-based interactions!')
+	assert(t == 'string' or t == 'table', 'bad argument #2 to update (expected table|string)')
+	local msg, files = resolveMessage(content)
+	if not self._initialRes then
+		return self:_sendUpdate(msg, files)
+	end
+	local data, err = self._api:editMessage(self._message._parent._id, self._message._id, msg, files)
+	if data then
+		self._message:_setOldContent(data)
+		self._message:_load(data)
+		return true
+	end
+	return false, err
 end
 
 ---Responds to a component-based interaction by acknowledging the interaction.
@@ -298,9 +322,12 @@ end
 ---Returns `true` on success, otherwise `false, err`.
 ---@return boolean
 function Interaction:updateDeferred()
-  assert(self._message, "DEFERRED_UPDATE_MESSAGE is only supported by components-based interactions!")
-  assert(not self._initialRes, "only the initial response can be deferred")
-  return self:_sendUpdate()
+	assert(
+		self._message,
+		'DEFERRED_UPDATE_MESSAGE is only supported by components-based interactions!'
+	)
+	assert(not self._initialRes, 'only the initial response can be deferred')
+	return self:_sendUpdate()
 end
 
 ---Responds to an autocomplete interaction.
@@ -311,97 +338,103 @@ end
 ---@param choices table
 ---@return boolean
 function Interaction:autocomplete(choices)
-  assert(self._type == intrType.applicationCommandAutocomplete, "APPLICATION_COMMAND_AUTOCOMPLETE is only supported by application-based commands!")
-  choices = resolver.autocomplete(choices)
-  assert(type(choices) == "table", 'bad argument #1 to autocomplete (expected table)')
-  if choices.name and choices.value then
-    choices = {choices}
-  end
-  assert(#choices < 26, 'choices must not exceeds 25 choice')
-  local data, err = self._api:createInteractionResponse(self.id, self._token, {
-    type = callbackType.applicationCommandAutocompleteResult,
-    data = {
-      choices = choices,
-    },
-  })
-  if data then
-    return true
-  else
-    return false, err
-  end
+	assert(
+		self._type == intrType.applicationCommandAutocomplete,
+		'APPLICATION_COMMAND_AUTOCOMPLETE is only supported by application-based commands!'
+	)
+	choices = resolver.autocomplete(choices)
+	assert(type(choices) == 'table', 'bad argument #1 to autocomplete (expected table)')
+	if choices.name and choices.value then
+		choices = { choices }
+	end
+	assert(#choices < 26, 'choices must not exceeds 25 choice')
+	local data, err = self._api:createInteractionResponse(self.id, self._token, {
+		type = callbackType.applicationCommandAutocompleteResult,
+		data = { choices = choices },
+	})
+	if data then
+		return true
+	else
+		return false, err
+	end
 end
 
 function Interaction:_sendModal(payload)
-  local data, err = self._api:createInteractionResponse(self.id, self._token, {
-    type = callbackType.modal,
-    data = payload,
-  })
-  if data then
-    return true
-  else
-    return false, err
-  end
+	local data, err = self._api:createInteractionResponse(self.id, self._token, {
+		type = callbackType.modal,
+		data = payload,
+	})
+	if data then
+		return true
+	else
+		return false, err
+	end
 end
 
 function Interaction:modal(modal)
-  modal = resolver.modal(modal)
-  return self:_sendModal(modal)
+	modal = resolver.modal(modal)
+	return self:_sendModal(modal)
 end
 
 function getter:applicationId()
-  return self._application_id
+	return self._application_id
 end
 
 function getter:type()
-  return self._type
+	return self._type
 end
 
 function getter:guildId()
-  return self._guild_id
+	return self._guild_id
 end
 
 function getter:guild()
-  return self._guild
+	return self._guild
 end
 
 function getter:channelId()
-  return self._channel_id
+	return self._channel_id
 end
 
 function getter:channel()
-  return self._channel
+	return self._channel
 end
 
 function getter:message()
-  return self._message
+	return self._message
 end
 
 function getter:member()
-  return self._member
+	return self._member
 end
 
 function getter:user()
-  return self._user
+	return self._user
 end
 
 function getter:data()
-  return self._data
+	return self._data
 end
 
 function getter:token()
-  return self._token
+	return self._token
 end
 
 function getter:version()
-  return self._version
+	return self._version
 end
 
 function getter:locale()
-  return self._locale
+	return self._locale
 end
 
 function getter:guildLocale()
-  return self._guild_locale
+	return self._guild_locale
+end
+
+
+function get.components(self)
+  return self._components
 end
 
 return Interaction

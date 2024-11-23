@@ -3,7 +3,7 @@ local format = string.format
 local meta = {}
 local names = {}
 local classes = {}
-local objects = setmetatable({}, {__mode = 'k'})
+local objects = setmetatable({}, { __mode = 'k' })
 
 function meta:__call(...)
 	local obj = setmetatable({}, self)
@@ -54,7 +54,12 @@ local function isInstance(obj, cls)
 end
 
 local function profile()
-	local ret = setmetatable({}, {__index = function() return 0 end})
+	local ret = setmetatable(
+		{},
+		{ __index = function()
+			return 0
+		end }
+	)
 	for obj in pairs(objects) do
 		local name = obj.__name
 		ret[name] = ret[name] + 1
@@ -62,7 +67,11 @@ local function profile()
 	return ret
 end
 
-local types = {['string'] = true, ['number'] = true, ['boolean'] = true}
+local types = {
+	string = true,
+	number = true,
+	boolean = true,
+}
 
 local function _getPrimitive(v)
 	return types[type(v)] and v or v ~= nil and tostring(v) or nil
@@ -85,81 +94,84 @@ local function type(obj)
 	return isObject(obj) and obj.__name or rawtype(obj)
 end
 
-return setmetatable({
+return setmetatable(
+	{
+		classes = names,
+		isClass = isClass,
+		isObject = isObject,
+		isSubclass = isSubclass,
+		isInstance = isInstance,
+		type = type,
+		profile = profile,
+		serialize = serialize,
+	},
+	{ __call = function(_, name, ...)
+		if names[name] then
+			return error(format('Class %q already defined', name))
+		end
 
-	classes = names,
-	isClass = isClass,
-	isObject = isObject,
-	isSubclass = isSubclass,
-	isInstance = isInstance,
-	type = type,
-	profile = profile,
-	serialize = serialize,
+		local class = setmetatable({}, meta)
+		classes[class] = true
 
-}, {__call = function(_, name, ...)
+		for k, v in pairs(default) do
+			class[k] = v
+		end
 
-	if names[name] then return error(format('Class %q already defined', name)) end
+		local bases = { ... }
+		local getters = {}
+		local setters = {}
 
-	local class = setmetatable({}, meta)
-	classes[class] = true
-
-	for k, v in pairs(default) do
-		class[k] = v
-	end
-
-	local bases = {...}
-	local getters = {}
-	local setters = {}
-
-	for _, base in ipairs(bases) do
-		for k1, v1 in pairs(base) do
-			class[k1] = v1
-			for k2, v2 in pairs(base.__getters) do
-				getters[k2] = v2
-			end
-			for k2, v2 in pairs(base.__setters) do
-				setters[k2] = v2
+		for _, base in ipairs(bases) do
+			for k1, v1 in pairs(base) do
+				class[k1] = v1
+				for k2, v2 in pairs(base.__getters) do
+					getters[k2] = v2
+				end
+				for k2, v2 in pairs(base.__setters) do
+					setters[k2] = v2
+				end
 			end
 		end
-	end
 
-	class.__name = name
-	class.__class = class
-	class.__bases = bases
-	class.__getters = getters
-	class.__setters = setters
+		class.__name = name
+		class.__class = class
+		class.__bases = bases
+		class.__getters = getters
+		class.__setters = setters
 
-	local pool = {}
-	local n = #pool
+		local pool = {}
+		local n = #pool
 
-	function class:__index(k)
-		if getters[k] then
-			return getters[k](self)
-		elseif pool[k] then
-			return rawget(self, pool[k])
-		else
-			return class[k]
-		end
-	end
-
-	function class:__newindex(k, v)
-		if setters[k] then
-			return setters[k](self, v)
-		elseif class[k] or getters[k] then
-			return error(format('Cannot overwrite protected property: %s.%s', name, k))
-		elseif k:find('_', 1, true) ~= 1 then
-			return error(format('Cannot write property to object without leading underscore: %s.%s', name, k))
-		else
-			if not pool[k] then
-				n = n + 1
-				pool[k] = n
+		function class:__index(k)
+			if getters[k] then
+				return getters[k](self)
+			elseif pool[k] then
+				return rawget(self, pool[k])
+			else
+				return class[k]
 			end
-			return rawset(self, pool[k], v)
 		end
-	end
 
-	names[name] = class
+		function class:__newindex(k, v)
+			if setters[k] then
+				return setters[k](self, v)
+			elseif class[k] or getters[k] then
+				return error(format('Cannot overwrite protected property: %s.%s', name, k))
+			elseif k:find('_', 1, true) ~= 1 then
+				return error(
+					format('Cannot write property to object without leading underscore: %s.%s', name, k)
+				)
+			else
+				if not pool[k] then
+					n = n + 1
+					pool[k] = n
+				end
+				return rawset(self, pool[k], v)
+			end
+		end
 
-	return class, getters, setters
+		names[name] = class
 
-end})
+		return class, getters, setters
+	end }
+)

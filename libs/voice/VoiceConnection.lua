@@ -79,7 +79,6 @@ function VoiceConnection:__init(channel)
 end
 
 function VoiceConnection:_prepare(key, socket)
-
 	self._socket = socket
 	self._ip = socket._ip
 	self._port = socket._port
@@ -109,7 +108,6 @@ function VoiceConnection:_prepare(key, socket)
 
 	self._ready = true
 	self:_continue(true)
-
 end
 
 function VoiceConnection:_await()
@@ -214,17 +212,16 @@ function VoiceConnection:_createAudioPacket(opus_data, opus_len, ssrc, key)
 	local nonce = self._crypto.nonce(n)
 	local nonce_padding = ffi.string(nonce, 4)
 
-	local ciphertext, ciphertext_len = self._crypto.encrypt(opus_data, opus_len, header, #header, nonce, key)
+	local ciphertext, ciphertext_len =
+		self._crypto.encrypt(opus_data, opus_len, header, #header, nonce, key)
 	if not ciphertext then
 		return nil, ciphertext_len -- report error
 	end
 
 	return header .. ffi.string(ciphertext, ciphertext_len) .. nonce_padding
-
 end
 
 function VoiceConnection:_parseAudioPacket(packet, key)
-
 	if #packet < 12 then
 		return nil, 'packet too short'
 	end
@@ -259,7 +256,8 @@ function VoiceConnection:_parseAudioPacket(packet, key)
 	local nonce_bytes = packet:sub(-4)
 	local nonce = self._crypto.nonce(nonce_bytes)
 
-	local message, message_len = self._crypto.decrypt(payload, payload_len, packet, header_len, nonce, key)
+	local message, message_len =
+		self._crypto.decrypt(payload, payload_len, packet, header_len, nonce, key)
 	if not message then
 		return nil, message_len -- report error
 	end
@@ -273,11 +271,9 @@ function VoiceConnection:_parseAudioPacket(packet, key)
 	end
 
 	return ffi.string(message + extension_len, message_len - extension_len), sequence, timestamp, ssrc
-
 end
 
 function VoiceConnection:_play(stream, duration)
-
 	self:stopStream()
 	self:_setSpeaking(true)
 
@@ -294,7 +290,6 @@ function VoiceConnection:_play(stream, duration)
 	local reason
 
 	while elapsed < duration do
-
 		local pcm = stream:read(pcm_len)
 		if not pcm then
 			reason = 'stream exhausted or errored'
@@ -333,7 +328,6 @@ function VoiceConnection:_play(stream, duration)
 			reason = 'stream stopped'
 			break
 		end
-
 	end
 
 	self:_setSpeaking(false)
@@ -344,7 +338,6 @@ function VoiceConnection:_play(stream, duration)
 	end
 
 	return elapsed, reason
-
 end
 
 function VoiceConnection:_setSpeaking(speaking)
@@ -367,7 +360,6 @@ reason why the stream stopped. For more information about acceptable sources,
 see the [[voice]] page.
 ]=]
 function VoiceConnection:playPCM(source, duration)
-
 	if not self._ready then
 		return nil, 'Connection is not ready'
 	end
@@ -386,7 +378,6 @@ function VoiceConnection:playPCM(source, duration)
 	end
 
 	return self:_play(stream, duration)
-
 end
 
 --[=[
@@ -405,7 +396,6 @@ reason why the stream stopped. For more information about using FFmpeg,
 see the [[voice]] page.
 ]=]
 function VoiceConnection:playFFmpeg(path, duration)
-
 	if not self._ready then
 		return nil, 'Connection is not ready'
 	end
@@ -415,7 +405,6 @@ function VoiceConnection:playFFmpeg(path, duration)
 	local elapsed, reason = self:_play(stream, duration)
 	stream:close()
 	return elapsed, reason
-
 end
 
 --[=[

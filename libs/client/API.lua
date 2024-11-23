@@ -15,14 +15,22 @@ local sleep = timer.sleep
 local running = coroutine.running
 
 local API_VERSION = constants.API_VERSION
-local BASE_URL = "https://discord.com/api/" .. 'v' .. API_VERSION
+local BASE_URL = 'https://discord.com/api/' .. 'v' .. API_VERSION
 local JSON = 'application/json'
 local PRECISION = 'millisecond'
 local MULTIPART = 'multipart/form-data;boundary='
 local USER_AGENT = f('DiscordBot (%s, %s)', package.homepage, package.version)
 
-local majorRoutes = {guilds = true, channels = true, webhooks = true}
-local payloadRequired = {PUT = true, PATCH = true, POST = true}
+local majorRoutes = {
+	guilds = true,
+	channels = true,
+	webhooks = true,
+}
+local payloadRequired = {
+	PUT = true,
+	PATCH = true,
+	POST = true,
+}
 
 local function parseErrors(ret, errors, key)
 	for k, v in pairs(errors) do
@@ -32,7 +40,11 @@ local function parseErrors(ret, errors, key)
 			end
 		else
 			if key then
-				parseErrors(ret, v, f(k:find("^[%a_][%a%d_]*$") and '%s.%s' or tonumber(k) and '%s[%d]' or '%s[%q]', key, k))
+				parseErrors(
+					ret,
+					v,
+					f(k:find('^[%a_][%a%d_]*$') and '%s.%s' or tonumber(k) and '%s[%d]' or '%s[%q]', key, k)
+				)
 			else
 				parseErrors(ret, v, k)
 			end
@@ -46,7 +58,6 @@ local function sub(path)
 end
 
 local function route(method, endpoint)
-
 	-- special case for reactions
 	if endpoint:find('reactions') then
 		endpoint = endpoint:match('.*/reactions')
@@ -64,7 +75,6 @@ local function route(method, endpoint)
 	end
 
 	return endpoint
-
 end
 
 local function generateBoundary(files, boundary)
@@ -79,12 +89,13 @@ end
 
 local function attachFiles(payload, files)
 	local boundary = generateBoundary(files)
-	local ret = {
-		'--' .. boundary,
-		'Content-Disposition:form-data;name="payload_json"',
-		'Content-Type:application/json\r\n',
-		payload,
-	}
+	local ret =
+		{
+			'--' .. boundary,
+			'Content-Disposition:form-data;name="payload_json"',
+			'Content-Type:application/json\r\n',
+			payload,
+		}
 	for i, v in ipairs(files) do
 		insert(ret, '--' .. boundary)
 		insert(ret, f('Content-Disposition:form-data;name="file%i";filename=%q', i, v[1]))
@@ -100,7 +111,7 @@ local mutexMeta = {
 	__index = function(self, k)
 		self[k] = Mutex()
 		return self[k]
-	end
+	end,
 }
 
 local function tohex(char)
@@ -124,7 +135,6 @@ function API:authenticate(token)
 end
 
 function API:request(method, endpoint, payload, query, files)
-
 	local _, main = running()
 	if main then
 		return error('Cannot make HTTP request outside of a coroutine', 2)
@@ -133,7 +143,7 @@ function API:request(method, endpoint, payload, query, files)
 	local url = BASE_URL .. endpoint
 
 	if query and next(query) then
-		local buf = {url}
+		local buf = { url }
 		for k, v in pairs(query) do
 			insert(buf, #buf == 1 and '?' or '&')
 			insert(buf, urlencode(k))
@@ -143,13 +153,10 @@ function API:request(method, endpoint, payload, query, files)
 		url = concat(buf)
 	end
 
-	local req = {
-		{'User-Agent', USER_AGENT},
-		{'Authorization', self._token},
-	}
+	local req = { { 'User-Agent', USER_AGENT }, { 'Authorization', self._token } }
 
 	if API_VERSION < 8 then
-		insert(req, {'X-RateLimit-Precision', PRECISION})
+		insert(req, { 'X-RateLimit-Precision', PRECISION })
 	end
 
 	if payloadRequired[method] then
@@ -157,11 +164,11 @@ function API:request(method, endpoint, payload, query, files)
 		if files and next(files) then
 			local boundary
 			payload, boundary = attachFiles(payload, files)
-			insert(req, {'Content-Type', MULTIPART .. boundary})
+			insert(req, { 'Content-Type', MULTIPART .. boundary })
 		else
-			insert(req, {'Content-Type', JSON})
+			insert(req, { 'Content-Type', JSON })
 		end
-		insert(req, {'Content-Length', #payload})
+		insert(req, { 'Content-Length', #payload })
 	end
 
 	local mutex = self._mutexes[route(method, endpoint)]
@@ -175,11 +182,9 @@ function API:request(method, endpoint, payload, query, files)
 	else
 		return nil, err
 	end
-
 end
 
 function API:commit(method, url, req, payload, retries)
-
 	local client = self._client
 	local options = client._options
 	local delay = options.routeDelay
@@ -202,14 +207,10 @@ function API:commit(method, url, req, payload, retries)
 	local data = res['content-type'] == JSON and decode(msg, 1, null) or msg
 
 	if res.code < 300 then
-
 		client:debug('%i - %s : %s %s', res.code, res.reason, method, url)
 		return data, nil, delay
-
 	else
-
 		if type(data) == 'table' then
-
 			local retry
 			if res.code == 429 then -- TODO: global ratelimiting
 				delay = data.retry_after
@@ -220,7 +221,14 @@ function API:commit(method, url, req, payload, retries)
 			end
 
 			if retry and delay then
-				client:warning('%i - %s : retrying after %i ms : %s %s', res.code, res.reason, delay, method, url)
+				client:warning(
+					'%i - %s : retrying after %i ms : %s %s',
+					res.code,
+					res.reason,
+					delay,
+					method,
+					url
+				)
 				sleep(delay)
 				return self:commit(method, url, req, payload, retries + 1)
 			end
@@ -231,578 +239,892 @@ function API:commit(method, url, req, payload, retries)
 				msg = 'HTTP Error'
 			end
 			if data.errors then
-				msg = parseErrors({msg}, data.errors)
+				msg = parseErrors({ msg }, data.errors)
 			end
-
 		end
 
 		client:error('%i - %s : %s %s', res.code, res.reason, method, url)
 		return nil, msg, delay
-
 	end
-
 end
 
 -- start of auto-generated methods --
 
 function API:getGuildAuditLog(guild_id, query)
 	local endpoint = f(endpoints.GUILD_AUDIT_LOGS, guild_id)
-	return self:request("GET", endpoint, nil, query)
+	return self:request('GET', endpoint, nil, query)
 end
 
-function API:getChannel(channel_id) -- not exposed, use cache
+function API:getChannel(
+channel_id -- not exposed, use cache
+)
 	local endpoint = f(endpoints.CHANNEL, channel_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:modifyChannel(channel_id, payload) -- Channel:_modify
+function API:modifyChannel(
+channel_id,
+	payload -- Channel:_modify
+)
 	local endpoint = f(endpoints.CHANNEL, channel_id)
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
-function API:deleteChannel(channel_id) -- Channel:delete
+function API:deleteChannel(
+channel_id -- Channel:delete
+)
 	local endpoint = f(endpoints.CHANNEL, channel_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:getChannelMessages(channel_id, query) -- TextChannel:get[First|Last]Message, TextChannel:getMessages
+function API:getChannelMessages(
+channel_id,
+	query -- TextChannel:get[First|Last]Message, TextChannel:getMessages
+)
 	local endpoint = f(endpoints.CHANNEL_MESSAGES, channel_id)
-	return self:request("GET", endpoint, nil, query)
+	return self:request('GET', endpoint, nil, query)
 end
 
-function API:getChannelMessage(channel_id, message_id) -- TextChannel:getMessage fallback
+function API:getChannelMessage(
+channel_id,
+	message_id -- TextChannel:getMessage fallback
+)
 	local endpoint = f(endpoints.CHANNEL_MESSAGE, channel_id, message_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:createMessage(channel_id, payload, files) -- TextChannel:send
+function API:createMessage(
+channel_id,
+	payload,
+	files -- TextChannel:send
+)
 	local endpoint = f(endpoints.CHANNEL_MESSAGES, channel_id)
-	return self:request("POST", endpoint, payload, nil, files)
+	return self:request('POST', endpoint, payload, nil, files)
 end
 
-function API:createReaction(channel_id, message_id, emoji, payload) -- Message:addReaction
-	local endpoint = f(endpoints.CHANNEL_MESSAGE_REACTION_ME, channel_id, message_id, urlencode(emoji))
-	return self:request("PUT", endpoint, payload)
+function API:createReaction(
+channel_id,
+	message_id,
+	emoji,
+	payload -- Message:addReaction
+)
+	local endpoint =
+		f(endpoints.CHANNEL_MESSAGE_REACTION_ME, channel_id, message_id, urlencode(emoji))
+	return self:request('PUT', endpoint, payload)
 end
 
-function API:deleteOwnReaction(channel_id, message_id, emoji) -- Message:removeReaction
-	local endpoint = f(endpoints.CHANNEL_MESSAGE_REACTION_ME, channel_id, message_id, urlencode(emoji))
-	return self:request("DELETE", endpoint)
+function API:deleteOwnReaction(
+channel_id,
+	message_id,
+	emoji -- Message:removeReaction
+)
+	local endpoint =
+		f(endpoints.CHANNEL_MESSAGE_REACTION_ME, channel_id, message_id, urlencode(emoji))
+	return self:request('DELETE', endpoint)
 end
 
-function API:deleteUserReaction(channel_id, message_id, emoji, user_id) -- Message:removeReaction
-	local endpoint = f(endpoints.CHANNEL_MESSAGE_REACTION_USER, channel_id, message_id, urlencode(emoji), user_id)
-	return self:request("DELETE", endpoint)
+function API:deleteUserReaction(
+channel_id,
+	message_id,
+	emoji,
+	user_id -- Message:removeReaction
+)
+	local endpoint =
+		f(endpoints.CHANNEL_MESSAGE_REACTION_USER, channel_id, message_id, urlencode(emoji), user_id)
+	return self:request('DELETE', endpoint)
 end
 
-function API:getReactions(channel_id, message_id, emoji, query) -- Reaction:getUsers
+function API:getReactions(
+channel_id,
+	message_id,
+	emoji,
+	query -- Reaction:getUsers
+)
 	local endpoint = f(endpoints.CHANNEL_MESSAGE_REACTION, channel_id, message_id, urlencode(emoji))
-	return self:request("GET", endpoint, nil, query)
+	return self:request('GET', endpoint, nil, query)
 end
 
-function API:deleteAllReactions(channel_id, message_id) -- Message:clearReactions
+function API:deleteAllReactions(
+channel_id,
+	message_id -- Message:clearReactions
+)
 	local endpoint = f(endpoints.CHANNEL_MESSAGE_REACTIONS, channel_id, message_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:editMessage(channel_id, message_id, payload, files) -- patch Discordia's to allow files field
+function API:editMessage(
+channel_id,
+	message_id,
+	payload,
+	files -- patch Discordia's to allow files field
+)
 	local endpoint = f(endpoints.CHANNEL_MESSAGE, channel_id, message_id)
-	return self:request("PATCH", endpoint, payload, nil, files)
+	return self:request('PATCH', endpoint, payload, nil, files)
 end
 
-function API:deleteMessage(channel_id, message_id) -- Message:delete
+function API:deleteMessage(
+channel_id,
+	message_id -- Message:delete
+)
 	local endpoint = f(endpoints.CHANNEL_MESSAGE, channel_id, message_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:bulkDeleteMessages(channel_id, payload) -- GuildTextChannel:bulkDelete
+function API:bulkDeleteMessages(
+channel_id,
+	payload -- GuildTextChannel:bulkDelete
+)
 	local endpoint = f(endpoints.CHANNEL_MESSAGES_BULK_DELETE, channel_id)
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
-function API:editChannelPermissions(channel_id, overwrite_id, payload) -- various PermissionOverwrite methods
+function API:editChannelPermissions(
+channel_id,
+	overwrite_id,
+	payload -- various PermissionOverwrite methods
+)
 	local endpoint = f(endpoints.CHANNEL_PERMISSION, channel_id, overwrite_id)
-	return self:request("PUT", endpoint, payload)
+	return self:request('PUT', endpoint, payload)
 end
 
-function API:getChannelInvites(channel_id) -- GuildChannel:getInvites
+function API:getChannelInvites(
+channel_id -- GuildChannel:getInvites
+)
 	local endpoint = f(endpoints.CHANNEL_INVITES, channel_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:createChannelInvite(channel_id, payload) -- GuildChannel:createInvite
+function API:createChannelInvite(
+channel_id,
+	payload -- GuildChannel:createInvite
+)
 	local endpoint = f(endpoints.CHANNEL_INVITES, channel_id)
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
-function API:deleteChannelPermission(channel_id, overwrite_id) -- PermissionOverwrite:delete
+function API:deleteChannelPermission(
+channel_id,
+	overwrite_id -- PermissionOverwrite:delete
+)
 	local endpoint = f(endpoints.CHANNEL_PERMISSION, channel_id, overwrite_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:triggerTypingIndicator(channel_id, payload) -- TextChannel:broadcastTyping
+function API:triggerTypingIndicator(
+channel_id,
+	payload -- TextChannel:broadcastTyping
+)
 	local endpoint = f(endpoints.CHANNEL_TYPING, channel_id)
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
-function API:getPinnedMessages(channel_id) -- TextChannel:getPinnedMessages
+function API:getPinnedMessages(
+channel_id -- TextChannel:getPinnedMessages
+)
 	local endpoint = f(endpoints.CHANNEL_PINS, channel_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:addPinnedChannelMessage(channel_id, message_id, payload) -- Message:pin
+function API:addPinnedChannelMessage(
+channel_id,
+	message_id,
+	payload -- Message:pin
+)
 	local endpoint = f(endpoints.CHANNEL_PIN, channel_id, message_id)
-	return self:request("PUT", endpoint, payload)
+	return self:request('PUT', endpoint, payload)
 end
 
-function API:deletePinnedChannelMessage(channel_id, message_id) -- Message:unpin
+function API:deletePinnedChannelMessage(
+channel_id,
+	message_id -- Message:unpin
+)
 	local endpoint = f(endpoints.CHANNEL_PIN, channel_id, message_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:groupDMAddRecipient(channel_id, user_id, payload) -- GroupChannel:addRecipient
+function API:groupDMAddRecipient(
+channel_id,
+	user_id,
+	payload -- GroupChannel:addRecipient
+)
 	local endpoint = f(endpoints.CHANNEL_RECIPIENT, channel_id, user_id)
-	return self:request("PUT", endpoint, payload)
+	return self:request('PUT', endpoint, payload)
 end
 
-function API:groupDMRemoveRecipient(channel_id, user_id) -- GroupChannel:removeRecipient
+function API:groupDMRemoveRecipient(
+channel_id,
+	user_id -- GroupChannel:removeRecipient
+)
 	local endpoint = f(endpoints.CHANNEL_RECIPIENT, channel_id, user_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
 function API:listGuildAutoModRule(guild_id)
-  local endpoint = f(endpoints.GUILD_AUTOMOD_RULES, guild_id)
-	return self:requiest("GET", endpoint)
+	local endpoint = f(endpoints.GUILD_AUTOMOD_RULES, guild_id)
+	return self:requiest('GET', endpoint)
 end
 
 function API:listGuildAutomodRule(guild_id, automod_id)
-  local endpoint = f(endpoints.GUILD_AUTOMOD_RULES, guild_id, automod_id)
-	return self:requiest("GET", endpoint)
+	local endpoint = f(endpoints.GUILD_AUTOMOD_RULES, guild_id, automod_id)
+	return self:requiest('GET', endpoint)
 end
 
-function API:listGuildEmojis(guild_id) -- not exposed, use cache
+function API:listGuildEmojis(
+guild_id -- not exposed, use cache
+)
 	local endpoint = f(endpoints.GUILD_EMOJIS, guild_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:getGuildEmoji(guild_id, emoji_id) -- not exposed, use cache
+function API:getGuildEmoji(
+guild_id,
+	emoji_id -- not exposed, use cache
+)
 	local endpoint = f(endpoints.GUILD_EMOJI, guild_id, emoji_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:createGuildEmoji(guild_id, payload) -- Guild:createEmoji
+function API:createGuildEmoji(
+guild_id,
+	payload -- Guild:createEmoji
+)
 	local endpoint = f(endpoints.GUILD_EMOJIS, guild_id)
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
-function API:modifyGuildEmoji(guild_id, emoji_id, payload) -- Emoji:_modify
+function API:modifyGuildEmoji(
+guild_id,
+	emoji_id,
+	payload -- Emoji:_modify
+)
 	local endpoint = f(endpoints.GUILD_EMOJI, guild_id, emoji_id)
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
-function API:deleteGuildEmoji(guild_id, emoji_id) -- Emoji:delete
+function API:deleteGuildEmoji(
+guild_id,
+	emoji_id -- Emoji:delete
+)
 	local endpoint = f(endpoints.GUILD_EMOJI, guild_id, emoji_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:createGuildSticker(guild_id, payload) -- Guild:createSticker
+function API:createGuildSticker(
+guild_id,
+	payload -- Guild:createSticker
+)
 	local endpoint = f(endpoints.GUILD_STICKERS, guild_id)
-	return self:request("POST", endpoint, payload, nil, {{ "sticker.png", payload.image}})
+	return self:request('POST', endpoint, payload, nil, { { 'sticker.png', payload.image } })
 end
 
-function API:getGuildStickers(guild_id) -- not exposed, use cache
+function API:getGuildStickers(
+guild_id -- not exposed, use cache
+)
 	local endpoint = f(endpoints.GUILD_STICKERS, guild_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:getGuildSticker(guild_id, sticker_id) -- Guild:getSticker
+function API:getGuildSticker(
+guild_id,
+	sticker_id -- Guild:getSticker
+)
 	local endpoint = f(endpoints.GUILD_STICKER, guild_id, sticker_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:modifyGuildSticker(guild_id, sticker_id, payload) -- Sticker:_modify
+function API:modifyGuildSticker(
+guild_id,
+	sticker_id,
+	payload -- Sticker:_modify
+)
 	local endpoint = f(endpoints.GUILD_STICKER, guild_id, sticker_id)
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
-function API:deleteGuildSticker(guild_id, sticker_id) -- Sticker:delete
+function API:deleteGuildSticker(
+guild_id,
+	sticker_id -- Sticker:delete
+)
 	local endpoint = f(endpoints.GUILD_STICKER, guild_id, sticker_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:createGuild(payload) -- Client:createGuild
+function API:createGuild(
+payload -- Client:createGuild
+)
 	local endpoint = endpoints.GUILDS
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
-function API:getGuild(guild_id) -- not exposed, use cache
+function API:getGuild(
+guild_id -- not exposed, use cache
+)
 	local endpoint = f(endpoints.GUILD, guild_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:modifyGuild(guild_id, payload) -- Guild:_modify
+function API:modifyGuild(
+guild_id,
+	payload -- Guild:_modify
+)
 	local endpoint = f(endpoints.GUILD, guild_id)
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
-function API:deleteGuild(guild_id) -- Guild:delete
+function API:deleteGuild(
+guild_id -- Guild:delete
+)
 	local endpoint = f(endpoints.GUILD, guild_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:getGuildChannels(guild_id) -- not exposed, use cache
+function API:getGuildChannels(
+guild_id -- not exposed, use cache
+)
 	local endpoint = f(endpoints.GUILD_CHANNELS, guild_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:createGuildChannel(guild_id, payload) -- Guild:create[Text|Voice]Channel
+function API:createGuildChannel(
+guild_id,
+	payload -- Guild:create[Text|Voice]Channel
+)
 	local endpoint = f(endpoints.GUILD_CHANNELS, guild_id)
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
-function API:modifyGuildChannelPositions(guild_id, payload) -- GuildChannel:move[Up|Down]
+function API:modifyGuildChannelPositions(
+guild_id,
+	payload -- GuildChannel:move[Up|Down]
+)
 	local endpoint = f(endpoints.GUILD_CHANNELS, guild_id)
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
-function API:getGuildMember(guild_id, user_id) -- Guild:getMember fallback
+function API:getGuildMember(
+guild_id,
+	user_id -- Guild:getMember fallback
+)
 	local endpoint = f(endpoints.GUILD_MEMBER, guild_id, user_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:listGuildMembers(guild_id) -- not exposed, use cache
+function API:listGuildMembers(
+guild_id -- not exposed, use cache
+)
 	local endpoint = f(endpoints.GUILD_MEMBERS, guild_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:addGuildMember(guild_id, user_id, payload) -- not exposed, limited use
+function API:addGuildMember(
+guild_id,
+	user_id,
+	payload -- not exposed, limited use
+)
 	local endpoint = f(endpoints.GUILD_MEMBER, guild_id, user_id)
-	return self:request("PUT", endpoint, payload)
+	return self:request('PUT', endpoint, payload)
 end
 
-function API:modifyGuildMember(guild_id, user_id, payload) -- various Member methods
+function API:modifyGuildMember(
+guild_id,
+	user_id,
+	payload -- various Member methods
+)
 	local endpoint = f(endpoints.GUILD_MEMBER, guild_id, user_id)
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
-function API:modifyCurrentUsersNick(guild_id, payload) -- Member:setNickname
+function API:modifyCurrentUsersNick(
+guild_id,
+	payload -- Member:setNickname
+)
 	local endpoint = f(endpoints.GUILD_MEMBER_ME_NICK, guild_id)
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
-function API:addGuildMemberRole(guild_id, user_id, role_id, payload) -- Member:addrole
+function API:addGuildMemberRole(
+guild_id,
+	user_id,
+	role_id,
+	payload -- Member:addrole
+)
 	local endpoint = f(endpoints.GUILD_MEMBER_ROLE, guild_id, user_id, role_id)
-	return self:request("PUT", endpoint, payload)
+	return self:request('PUT', endpoint, payload)
 end
 
-function API:removeGuildMemberRole(guild_id, user_id, role_id) -- Member:removeRole
+function API:removeGuildMemberRole(
+guild_id,
+	user_id,
+	role_id -- Member:removeRole
+)
 	local endpoint = f(endpoints.GUILD_MEMBER_ROLE, guild_id, user_id, role_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:removeGuildMember(guild_id, user_id, query) -- Guild:kickUser
+function API:removeGuildMember(
+guild_id,
+	user_id,
+	query -- Guild:kickUser
+)
 	local endpoint = f(endpoints.GUILD_MEMBER, guild_id, user_id)
-	return self:request("DELETE", endpoint, nil, query)
+	return self:request('DELETE', endpoint, nil, query)
 end
 
-function API:getGuildBans(guild_id) -- Guild:getBans
+function API:getGuildBans(
+guild_id -- Guild:getBans
+)
 	local endpoint = f(endpoints.GUILD_BANS, guild_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:getGuildBan(guild_id, user_id) -- Guild:getBan
+function API:getGuildBan(
+guild_id,
+	user_id -- Guild:getBan
+)
 	local endpoint = f(endpoints.GUILD_BAN, guild_id, user_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:createGuildBan(guild_id, user_id, query) -- Guild:banUser
+function API:createGuildBan(
+guild_id,
+	user_id,
+	query -- Guild:banUser
+)
 	local endpoint = f(endpoints.GUILD_BAN, guild_id, user_id)
-	return self:request("PUT", endpoint, nil, query)
+	return self:request('PUT', endpoint, nil, query)
 end
 
-function API:removeGuildBan(guild_id, user_id, query) -- Guild:unbanUser / Ban:delete
+function API:removeGuildBan(
+guild_id,
+	user_id,
+	query -- Guild:unbanUser / Ban:delete
+)
 	local endpoint = f(endpoints.GUILD_BAN, guild_id, user_id)
-	return self:request("DELETE", endpoint, nil, query)
+	return self:request('DELETE', endpoint, nil, query)
 end
 
-function API:getGuildRoles(guild_id) -- not exposed, use cache
+function API:getGuildRoles(
+guild_id -- not exposed, use cache
+)
 	local endpoint = f(endpoints.GUILD_ROLES, guild_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:createGuildRole(guild_id, payload) -- Guild:createRole
+function API:createGuildRole(
+guild_id,
+	payload -- Guild:createRole
+)
 	local endpoint = f(endpoints.GUILD_ROLES, guild_id)
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
-function API:modifyGuildRolePositions(guild_id, payload) -- Role:move[Up|Down]
+function API:modifyGuildRolePositions(
+guild_id,
+	payload -- Role:move[Up|Down]
+)
 	local endpoint = f(endpoints.GUILD_ROLES, guild_id)
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
-function API:modifyGuildRole(guild_id, role_id, payload) -- Role:_modify
+function API:modifyGuildRole(
+guild_id,
+	role_id,
+	payload -- Role:_modify
+)
 	local endpoint = f(endpoints.GUILD_ROLE, guild_id, role_id)
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
-function API:deleteGuildRole(guild_id, role_id) -- Role:delete
+function API:deleteGuildRole(
+guild_id,
+	role_id -- Role:delete
+)
 	local endpoint = f(endpoints.GUILD_ROLE, guild_id, role_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:getGuildPruneCount(guild_id, query) -- Guild:getPruneCount
+function API:getGuildPruneCount(
+guild_id,
+	query -- Guild:getPruneCount
+)
 	local endpoint = f(endpoints.GUILD_PRUNE, guild_id)
-	return self:request("GET", endpoint, nil, query)
+	return self:request('GET', endpoint, nil, query)
 end
 
-function API:beginGuildPrune(guild_id, payload, query) -- Guild:pruneMembers
+function API:beginGuildPrune(
+guild_id,
+	payload,
+	query -- Guild:pruneMembers
+)
 	local endpoint = f(endpoints.GUILD_PRUNE, guild_id)
-	return self:request("POST", endpoint, payload, query)
+	return self:request('POST', endpoint, payload, query)
 end
 
-function API:getGuildVoiceRegions(guild_id) -- Guild:listVoiceRegions
+function API:getGuildVoiceRegions(
+guild_id -- Guild:listVoiceRegions
+)
 	local endpoint = f(endpoints.GUILD_REGIONS, guild_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:getGuildInvites(guild_id) -- Guild:getInvites
+function API:getGuildInvites(
+guild_id -- Guild:getInvites
+)
 	local endpoint = f(endpoints.GUILD_INVITES, guild_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:getGuildIntegrations(guild_id) -- not exposed, maybe in the future
+function API:getGuildIntegrations(
+guild_id -- not exposed, maybe in the future
+)
 	local endpoint = f(endpoints.GUILD_INTEGRATIONS, guild_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:createGuildIntegration(guild_id, payload) -- not exposed, maybe in the future
+function API:createGuildIntegration(
+guild_id,
+	payload -- not exposed, maybe in the future
+)
 	local endpoint = f(endpoints.GUILD_INTEGRATIONS, guild_id)
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
-function API:modifyGuildIntegration(guild_id, integration_id, payload) -- not exposed, maybe in the future
+function API:modifyGuildIntegration(
+guild_id,
+	integration_id,
+	payload -- not exposed, maybe in the future
+)
 	local endpoint = f(endpoints.GUILD_INTEGRATION, guild_id, integration_id)
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
-function API:deleteGuildIntegration(guild_id, integration_id) -- not exposed, maybe in the future
+function API:deleteGuildIntegration(
+guild_id,
+	integration_id -- not exposed, maybe in the future
+)
 	local endpoint = f(endpoints.GUILD_INTEGRATION, guild_id, integration_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:syncGuildIntegration(guild_id, integration_id, payload) -- not exposed, maybe in the future
+function API:syncGuildIntegration(
+guild_id,
+	integration_id,
+	payload -- not exposed, maybe in the future
+)
 	local endpoint = f(endpoints.GUILD_INTEGRATION_SYNC, guild_id, integration_id)
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
-function API:getGuildEmbed(guild_id) -- not exposed, maybe in the future
+function API:getGuildEmbed(
+guild_id -- not exposed, maybe in the future
+)
 	local endpoint = f(endpoints.GUILD_EMBED, guild_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:modifyGuildEmbed(guild_id, payload) -- not exposed, maybe in the future
+function API:modifyGuildEmbed(
+guild_id,
+	payload -- not exposed, maybe in the future
+)
 	local endpoint = f(endpoints.GUILD_EMBED, guild_id)
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
-function API:getInvite(invite_code, query) -- Client:getInvite
+function API:getInvite(
+invite_code,
+	query -- Client:getInvite
+)
 	local endpoint = f(endpoints.INVITE, invite_code)
-	return self:request("GET", endpoint, nil, query)
+	return self:request('GET', endpoint, nil, query)
 end
 
-function API:deleteInvite(invite_code) -- Invite:delete
+function API:deleteInvite(
+invite_code -- Invite:delete
+)
 	local endpoint = f(endpoints.INVITE, invite_code)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:acceptInvite(invite_code, payload) -- not exposed, invalidates tokens
+function API:acceptInvite(
+invite_code,
+	payload -- not exposed, invalidates tokens
+)
 	local endpoint = f(endpoints.INVITE, invite_code)
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
 function API:getCurrentUser() -- API:authenticate
 	local endpoint = endpoints.USER_ME
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:getUser(user_id) -- Client:getUser
+function API:getUser(
+user_id -- Client:getUser
+)
 	local endpoint = f(endpoints.USER, user_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:modifyCurrentUser(payload) -- Client:_modify
+function API:modifyCurrentUser(
+payload -- Client:_modify
+)
 	local endpoint = endpoints.USER_ME
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
 function API:getCurrentUserGuilds() -- not exposed, use cache
 	local endpoint = endpoints.USER_ME_GUILDS
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:leaveGuild(guild_id) -- Guild:leave
+function API:leaveGuild(
+guild_id -- Guild:leave
+)
 	local endpoint = f(endpoints.USER_ME_GUILD, guild_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
 function API:getUserDMs() -- not exposed, use cache
 	local endpoint = endpoints.USER_ME_CHANNELS
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:createDM(payload) -- User:getPrivateChannel fallback
+function API:createDM(
+payload -- User:getPrivateChannel fallback
+)
 	local endpoint = endpoints.USER_ME_CHANNELS
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
-function API:createGroupDM(payload) -- Client:createGroupChannel
+function API:createGroupDM(
+payload -- Client:createGroupChannel
+)
 	local endpoint = endpoints.USER_ME_CHANNELS
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
 function API:getUsersConnections() -- Client:getConnections
 	local endpoint = endpoints.USER_ME_CONNECTIONS
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
 function API:listVoiceRegions() -- Client:listVoiceRegions
 	local endpoint = endpoints.VOICE_REGIONS
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:createWebhook(channel_id, payload) -- GuildTextChannel:createWebhook
+function API:createWebhook(
+channel_id,
+	payload -- GuildTextChannel:createWebhook
+)
 	local endpoint = f(endpoints.CHANNEL_WEBHOOKS, channel_id)
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
-function API:getChannelWebhooks(channel_id) -- GuildTextChannel:getWebhooks
+function API:getChannelWebhooks(
+channel_id -- GuildTextChannel:getWebhooks
+)
 	local endpoint = f(endpoints.CHANNEL_WEBHOOKS, channel_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:getGuildWebhooks(guild_id) -- Guild:getWebhooks
+function API:getGuildWebhooks(
+guild_id -- Guild:getWebhooks
+)
 	local endpoint = f(endpoints.GUILD_WEBHOOKS, guild_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:getWebhook(webhook_id) -- Client:getWebhook
+function API:getWebhook(
+webhook_id -- Client:getWebhook
+)
 	local endpoint = f(endpoints.WEBHOOK, webhook_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:getWebhookWithToken(webhook_id, webhook_token) -- not exposed, needs webhook client
+function API:getWebhookWithToken(
+webhook_id,
+	webhook_token -- not exposed, needs webhook client
+)
 	local endpoint = f(endpoints.WEBHOOK_TOKEN, webhook_id, webhook_token)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:modifyWebhook(webhook_id, payload) -- Webhook:_modify
+function API:modifyWebhook(
+webhook_id,
+	payload -- Webhook:_modify
+)
 	local endpoint = f(endpoints.WEBHOOK, webhook_id)
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
-function API:modifyWebhookWithToken(webhook_id, webhook_token, payload) -- not exposed, needs webhook client
+function API:modifyWebhookWithToken(
+webhook_id,
+	webhook_token,
+	payload -- not exposed, needs webhook client
+)
 	local endpoint = f(endpoints.WEBHOOK_TOKEN, webhook_id, webhook_token)
-	return self:request("PATCH", endpoint, payload)
+	return self:request('PATCH', endpoint, payload)
 end
 
-function API:deleteWebhook(webhook_id) -- Webhook:delete
+function API:deleteWebhook(
+webhook_id -- Webhook:delete
+)
 	local endpoint = f(endpoints.WEBHOOK, webhook_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:deleteWebhookWithToken(webhook_id, webhook_token) -- not exposed, needs webhook client
+function API:deleteWebhookWithToken(
+webhook_id,
+	webhook_token -- not exposed, needs webhook client
+)
 	local endpoint = f(endpoints.WEBHOOK_TOKEN, webhook_id, webhook_token)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:executeWebhook(webhook_id, webhook_token, payload) -- not exposed, needs webhook client
+function API:executeWebhook(
+webhook_id,
+	webhook_token,
+	payload -- not exposed, needs webhook client
+)
 	local endpoint = f(endpoints.WEBHOOK_TOKEN, webhook_id, webhook_token)
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
-function API:executeSlackCompatibleWebhook(webhook_id, webhook_token, payload) -- not exposed, needs webhook client
+function API:executeSlackCompatibleWebhook(
+webhook_id,
+	webhook_token,
+	payload -- not exposed, needs webhook client
+)
 	local endpoint = f(endpoints.WEBHOOK_TOKEN_SLACK, webhook_id, webhook_token)
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
-function API:executeGitHubCompatibleWebhook(webhook_id, webhook_token, payload) -- not exposed, needs webhook client
+function API:executeGitHubCompatibleWebhook(
+webhook_id,
+	webhook_token,
+	payload -- not exposed, needs webhook client
+)
 	local endpoint = f(endpoints.WEBHOOK_TOKEN_GITHUB, webhook_id, webhook_token)
-	return self:request("POST", endpoint, payload)
+	return self:request('POST', endpoint, payload)
 end
 
 function API:getGateway() -- Client:run
 	local endpoint = endpoints.GATEWAY
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
 function API:getGatewayBot() -- Client:run
 	local endpoint = endpoints.GATEWAY_BOT
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
 function API:getCurrentApplicationInformation() -- Client:run
 	local endpoint = endpoints.OAUTH2_APPLICATION_ME
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
+end
+
+function API:registerApplicationCommands(
+id,
+	payload -- Client:run
+)
+	local endpoint = f(endpoints.APPLICATION_COMMANDS, id)
+	return self:request('PUT', endpoint, payload)
 end
 
 function API:createInteractionResponse(id, token, payload, files)
-  local endpoint = f(endpoints.INTERACTION_CALLBACK, id, token)
-  return self:request("POST", endpoint, payload, nil, files)
+	local endpoint = f(endpoints.INTERACTION_CALLBACK, id, token)
+	return self:request('POST', endpoint, payload, nil, files)
 end
 
-function API:getOriginalInteractionResponse(application_id, interaction_token) -- MessagingInteraction:getReply
+function API:getOriginalInteractionResponse(
+application_id,
+	interaction_token -- MessagingInteraction:getReply
+)
 	local endpoint = f(endpoints.WEBHOOK_TOKEN_MESSAGES_ORIGINAL, application_id, interaction_token)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:editOriginalInteractionResponse(application_id, interaction_token, payload, files) -- MessagingInteraction:updateReply
+function API:editOriginalInteractionResponse(
+application_id,
+	interaction_token,
+	payload,
+	files -- MessagingInteraction:updateReply
+)
 	local endpoint = f(endpoints.WEBHOOK_TOKEN_MESSAGES_ORIGINAL, application_id, interaction_token)
-	return self:request("PATCH", endpoint, payload, nil, files)
+	return self:request('PATCH', endpoint, payload, nil, files)
 end
 
-function API:deleteOriginalInteractionResponse(application_id, interaction_token) -- MessagingInteraction:deleteReply
+function API:deleteOriginalInteractionResponse(
+application_id,
+	interaction_token -- MessagingInteraction:deleteReply
+)
 	local endpoint = f(endpoints.WEBHOOK_TOKEN_MESSAGES_ORIGINAL, application_id, interaction_token)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:createFollowupMessage(application_id, interaction_token, payload, files) -- MessagingInteraction:followup
+function API:createFollowupMessage(
+application_id,
+	interaction_token,
+	payload,
+	files -- MessagingInteraction:followup
+)
 	local endpoint = f(endpoints.WEBHOOK_TOKEN, application_id, interaction_token)
-	return self:request("POST", endpoint, payload, nil, files)
+	return self:request('POST', endpoint, payload, nil, files)
 end
 
-function API:getFollowupMessage(application_id, interaction_token, message_id) -- MessagingInteraction:getFollowupMessage
+function API:getFollowupMessage(
+application_id,
+	interaction_token,
+	message_id -- MessagingInteraction:getFollowupMessage
+)
 	local endpoint = f(endpoints.WEBHOOK_TOKEN_MESSAGE, application_id, interaction_token, message_id)
-	return self:request("GET", endpoint)
+	return self:request('GET', endpoint)
 end
 
-function API:editFollowupMessage(application_id, interaction_token, message_id, payload, files) -- MessagingInteraction:updateFollowup
+function API:editFollowupMessage(
+application_id,
+	interaction_token,
+	message_id,
+	payload,
+	files -- MessagingInteraction:updateFollowup
+)
 	local endpoint = f(endpoints.WEBHOOK_TOKEN_MESSAGE, application_id, interaction_token, message_id)
-	return self:request("PATCH", endpoint, payload, nil, files)
+	return self:request('PATCH', endpoint, payload, nil, files)
 end
 
-function API:deleteFollowupMessage(application_id, interaction_token, message_id) -- MessagingInteraction:deleteFollowup
+function API:deleteFollowupMessage(
+application_id,
+	interaction_token,
+	message_id -- MessagingInteraction:deleteFollowup
+)
 	local endpoint = f(endpoints.WEBHOOK_TOKEN_MESSAGE, application_id, interaction_token, message_id)
-	return self:request("DELETE", endpoint)
+	return self:request('DELETE', endpoint)
 end
 
-function API:createWebhookMessage(id, token, payload, files) -- same as executeWebhook but allows files
+function API:createWebhookMessage(
+id,
+	token,
+	payload,
+	files -- same as executeWebhook but allows files
+)
 	local endpoint = f(endpoints.INTERACTION_WEBHOOK, id, token)
-	return self:request("POST", endpoint, payload, nil, files)
+	return self:request('POST', endpoint, payload, nil, files)
 end
 
 function API:getWebhookMessage(id, token, msg_id)
-  local endpoint = f(endpoints.INTERACTION_MESSAGES, id, token, msg_id)
-  return self:request("GET", endpoint)
+	local endpoint = f(endpoints.INTERACTION_MESSAGES, id, token, msg_id)
+	return self:request('GET', endpoint)
 end
 
 function API:deleteWebhookMessage(id, token, msg_id)
-  local endpoint = f(endpoints.INTERACTION_MESSAGES, id, token, msg_id)
-  return self:request("DELETE", endpoint)
+	local endpoint = f(endpoints.INTERACTION_MESSAGES, id, token, msg_id)
+	return self:request('DELETE', endpoint)
 end
 
 function API:editWebhookMessage(id, token, msg_id, payload, files)
-  local endpoint = f(endpoints.INTERACTION_MESSAGES, id, token, msg_id)
-  return self:request("PATCH", endpoint, payload, nil, files)
+	local endpoint = f(endpoints.INTERACTION_MESSAGES, id, token, msg_id)
+	return self:request('PATCH', endpoint, payload, nil, files)
 end
 
 -- end of auto-generated methods --

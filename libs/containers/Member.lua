@@ -86,7 +86,6 @@ operation. If you need to check multiple permissions at once, use the
 `getPermissions` method and check the resulting object.
 ]=]
 function Member:hasPermission(channel, perm)
-
 	if not perm then
 		perm = channel
 		channel = nil
@@ -121,7 +120,6 @@ function Member:hasPermission(channel, perm)
 	end
 
 	if channel then
-
 		local overwrites = channel.permissionOverwrites
 
 		local overwrite = overwrites:get(self.id)
@@ -161,11 +159,9 @@ function Member:hasPermission(channel, perm)
 				return false
 			end
 		end
-
 	end
 
 	return rolePermissions:has(n)
-
 end
 
 --[=[
@@ -178,7 +174,6 @@ the guild, or for a specific channel if one is provided. If you just need to
 check one permission, use the `hasPermission` method.
 ]=]
 function Member:getPermissions(channel)
-
 	local guild = self.guild
 	if channel then
 		if not isInstance(channel, GuildChannel) or channel.guild ~= guild then
@@ -203,7 +198,6 @@ function Member:getPermissions(channel)
 	end
 
 	if channel then
-
 		local overwrites = channel.permissionOverwrites
 
 		local everyone = overwrites:get(guild.id)
@@ -230,11 +224,9 @@ function Member:getPermissions(channel)
 			ret = overwrite:getDeniedPermissions():complement(ret)
 			ret = ret:union(overwrite:getAllowedPermissions())
 		end
-
 	end
 
 	return ret
-
 end
 
 --[=[
@@ -246,7 +238,9 @@ end
 taken. Note that the everyone role cannot be explicitly added.
 ]=]
 function Member:addRole(id)
-	if self:hasRole(id) then return true end
+	if self:hasRole(id) then
+		return true
+	end
 	id = Resolver.roleId(id)
 	local data, err = self.client._api:addGuildMemberRole(self._parent._id, self.id, id)
 	if data then
@@ -254,7 +248,7 @@ function Member:addRole(id)
 		if roles then
 			insert(roles, id)
 		else
-			self._roles_raw = {id}
+			self._roles_raw = { id }
 		end
 		return true
 	else
@@ -271,7 +265,9 @@ end
 action is taken. Note that the everyone role cannot be removed.
 ]=]
 function Member:removeRole(id)
-	if not self:hasRole(id) then return true end
+	if not self:hasRole(id) then
+		return true
+	end
 	id = Resolver.roleId(id)
 	local data, err = self.client._api:removeGuildMemberRole(self._parent._id, self.id, id)
 	if data then
@@ -307,7 +303,9 @@ guild's default role in addition to any explicitly assigned roles.
 ]=]
 function Member:hasRole(id)
 	id = Resolver.roleId(id)
-	if id == self._parent._id then return true end -- @everyone
+	if id == self._parent._id then
+		return true
+	end -- @everyone
 	local roles = self._roles and self._roles._array or self._roles_raw
 	if roles then
 		for _, v in ipairs(roles) do
@@ -331,9 +329,9 @@ function Member:setNickname(nick)
 	nick = nick or ''
 	local data, err
 	if self.id == self.client._user._id then
-		data, err = self.client._api:modifyCurrentUsersNick(self._parent._id, {nick = nick})
+		data, err = self.client._api:modifyCurrentUsersNick(self._parent._id, { nick = nick })
 	else
-		data, err = self.client._api:modifyGuildMember(self._parent._id, self.id, {nick = nick})
+		data, err = self.client._api:modifyGuildMember(self._parent._id, self.id, { nick = nick })
 	end
 	if data then
 		self._nick = nick ~= '' and nick or nil
@@ -356,7 +354,8 @@ Not supplying an ID will result in the member being disconnected from the channe
 ]=]
 function Member:setVoiceChannel(id)
 	id = id and Resolver.channelId(id)
-	local data, err = self.client._api:modifyGuildMember(self._parent._id, self.id, {channel_id = id or json.null})
+	local data, err =
+		self.client._api:modifyGuildMember(self._parent._id, self.id, { channel_id = id or json.null })
 	if data then
 		return true
 	else
@@ -371,7 +370,7 @@ end
 @d Mutes the member in its guild.
 ]=]
 function Member:mute()
-	local data, err = self.client._api:modifyGuildMember(self._parent._id, self.id, {mute = true})
+	local data, err = self.client._api:modifyGuildMember(self._parent._id, self.id, { mute = true })
 	if data then
 		self._mute = true
 		return true
@@ -387,7 +386,7 @@ end
 @d Unmutes the member in its guild.
 ]=]
 function Member:unmute()
-	local data, err = self.client._api:modifyGuildMember(self._parent._id, self.id, {mute = false})
+	local data, err = self.client._api:modifyGuildMember(self._parent._id, self.id, { mute = false })
 	if data then
 		self._mute = false
 		return true
@@ -403,7 +402,7 @@ end
 @d Deafens the member in its guild.
 ]=]
 function Member:deafen()
-	local data, err = self.client._api:modifyGuildMember(self._parent._id, self.id, {deaf = true})
+	local data, err = self.client._api:modifyGuildMember(self._parent._id, self.id, { deaf = true })
 	if data then
 		self._deaf = true
 		return true
@@ -419,7 +418,7 @@ end
 @d Undeafens the member in its guild.
 ]=]
 function Member:undeafen()
-	local data, err = self.client._api:modifyGuildMember(self._parent._id, self.id, {deaf = false})
+	local data, err = self.client._api:modifyGuildMember(self._parent._id, self.id, { deaf = false })
 	if data then
 		self._deaf = false
 		return true
@@ -463,7 +462,10 @@ function Member:unban(reason)
 end
 
 function Member:_timeout(val)
-	local data, err = self.client._api:modifyGuildMember(self._parent._id, self.id, {communication_disabled_until = val or json.null})
+	local data, err =
+		self.client._api:modifyGuildMember(self._parent._id, self.id, {
+			communication_disabled_until = val or json.null,
+		})
 	if data then
 		self._communication_disabled_until = val ~= json.null and val or nil
 		return true

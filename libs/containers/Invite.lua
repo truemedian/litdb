@@ -112,13 +112,21 @@ end
 --[=[@p guildBannerURL string/nil The URL that can be used to view the guild's banner, if one is set.]=]
 function get.guildBannerURL(self)
 	local banner = self._guild_banner
-	return banner and format('https://cdn.discordapp.com/banners/%s/%s.png', self._guild_id, banner) or nil
+	return banner and format(
+		'https://cdn.discordapp.com/banners/%s/%s.png',
+		self._guild_id,
+		banner
+	) or nil
 end
 
 --[=[@p guildSplashURL string/nil The URL that can be used to view the guild's splash, if one is set.]=]
 function get.guildSplashURL(self)
 	local splash = self._guild_splash
-	return splash and format('https://cdn.discordapp.com/splashs/%s/%s.png', self._guild_id, splash) or nil
+	return splash and format(
+		'https://cdn.discordapp.com/splashs/%s/%s.png',
+		self._guild_id,
+		splash
+	) or nil
 end
 
 --[=[@p guildDescription string/nil The guild's custom description, if one is set.]=]

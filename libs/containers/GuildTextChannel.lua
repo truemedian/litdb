@@ -34,7 +34,7 @@ end
 in length.
 ]=]
 function GuildTextChannel:createWebhook(name)
-	local data, err = self.client._api:createWebhook(self._id, {name = name})
+	local data, err = self.client._api:createWebhook(self._id, { name = name })
 	if data then
 		return Webhook(data, self.client)
 	else
@@ -73,7 +73,7 @@ function GuildTextChannel:bulkDelete(messages)
 	if #messages == 1 then
 		data, err = self.client._api:deleteMessage(self._id, messages[1])
 	else
-		data, err = self.client._api:bulkDeleteMessages(self._id, {messages = messages})
+		data, err = self.client._api:bulkDeleteMessages(self._id, { messages = messages })
 	end
 	if data then
 		return true
@@ -91,7 +91,7 @@ end
 to remove the topic.
 ]=]
 function GuildTextChannel:setTopic(topic)
-	return self:_modify({topic = topic or json.null})
+	return self:_modify({ topic = topic or json.null })
 end
 
 --[=[
@@ -103,7 +103,7 @@ end
 Passing 0 or `nil` will clear the limit.
 ]=]
 function GuildTextChannel:setRateLimit(limit)
-	return self:_modify({rate_limit_per_user = limit or json.null})
+	return self:_modify({ rate_limit_per_user = limit or json.null })
 end
 
 --[=[
@@ -114,7 +114,7 @@ end
 until the user explicitly requests to view them.
 ]=]
 function GuildTextChannel:enableNSFW()
-	return self:_modify({nsfw = true})
+	return self:_modify({ nsfw = true })
 end
 
 --[=[
@@ -125,7 +125,7 @@ end
 until the user explicitly requests to view them.
 ]=]
 function GuildTextChannel:disableNSFW()
-	return self:_modify({nsfw = false})
+	return self:_modify({ nsfw = false })
 end
 
 --[=[@p topic string/nil The channel's topic. This should be between 1 and 1024 characters.]=]

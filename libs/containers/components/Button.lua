@@ -1,6 +1,6 @@
-local Component = require("../abstract/Component")
-local resolver = require("../../resolver/components")
-local enums = require("enums")
+local Component = require('../abstract/Component')
+local resolver = require('../../resolver/components')
+local enums = require('enums')
 local class = require('class')
 local buttonStyle = enums.buttonStyle
 local componentType = enums.componentType
@@ -21,75 +21,76 @@ local componentType = enums.componentType
 ---@type fun(data: Button-Resolvable, actionRow?: number)
 ---<!tag:interface> <!method-tags:mem>
 ---
-local Button = class("Button", Component)
+local Button = class('Button', Component)
 
 function Button:__init(data, actionRow)
-  -- Validate input into appropriate structure
-  data = self._validate(data, actionRow) or {}
+	-- Validate input into appropriate structure
+	data = self._validate(data, actionRow) or {}
 
-  -- At least one of the two fields must be always supplied
-  local id, url = data.id, data.url
-  if (id and url) or (not id and not url) then
-    error("either one of id/url fields must be supplied") -- TODO: Either use assert everywhere or error everywhere
-  end
+	-- At least one of the two fields must be always supplied
+	local id, url = data.id, data.url
+	if (id and url) or (not id and not url) then
+		error('either one of id/url fields must be supplied') -- TODO: Either use assert everywhere or error everywhere
+	end
 
-  -- Auto defaulting button style when needed, otherwise resolving it
-  if url and not data.style then
-    data.style = buttonStyle.link
-  elseif id and not data.style then
-    data.style = buttonStyle.primary
-  end
+	-- Auto defaulting button style when needed, otherwise resolving it
+	if url and not data.style then
+		data.style = buttonStyle.link
+	elseif id and not data.style then
+		data.style = buttonStyle.primary
+	end
 
-  -- Base constructor initializing
-  Component.__init(self, data, componentType.button)
+	-- Base constructor initializing
+	Component.__init(self, data, componentType.button)
 
-  -- Properly load rest of data
-  self:_load(data)
+	-- Properly load rest of data
+	self:_load(data)
 end
 
 function Button._validate(data, actionRow)
-  if type(data) ~= "table" then
-    data = {id = data}
-  end
-  if actionRow then
-    data.actionRow = actionRow
-  end
-  return data
+	if type(data) ~= 'table' then
+		data = { id = data }
+	end
+	if actionRow then
+		data.actionRow = actionRow
+	end
+	return data
 end
 
-local eligibilityError = "Cannot have a Button in an Action Row that also contains Select Menu component!"
+local eligibilityError =
+	'Cannot have a Button in an Action Row that also contains Select Menu component!'
 function Button._eligibilityCheck(c)
-  return c.type == componentType.button, eligibilityError
+	return c.type == componentType.button, eligibilityError
 end
 
 ---<!ignore>
 ---Changes the Button instance properties according to provided data.
 ---@param data table
 function Button:_load(data)
-  -- TODO: Is there a shortcut to those repetitive checks?
-  -- make it as generalized as possible.
-  -- Load style
-  if data.style then
-    self:style(data.style)
-  end
-  -- Load label
-  if data.label then
-    self:label(data.label)
-  end
-  -- Load emoji
-  if data.emoji then
-    self:emoji(data.emoji)
-  end
-  -- Load url
-  if data.url then
-    self:url(data.url)
-  end
-  -- Load disabled
-  if data.disabled then
-    self:disable()
-  elseif data.disabled == false then
-    self:enable()
-  end
+	-- TODO: Is there a shortcut to those repetitive checks?
+	-- make it as generalized as possible.
+	-- Load style
+	if data.style then
+		self:style(data.style)
+	end
+	-- Load label
+	if data.label then
+		self:label(data.label)
+	end
+	-- Load emoji
+	if data.emoji then
+		self:emoji(data.emoji)
+	end
+	-- Load url
+	if data.url then
+		self:url(data.url)
+	end
+	-- Load disabled
+	if data.disabled then
+		self:disable()
+	elseif data.disabled == false then
+		self:enable()
+	end
 end
 
 ---Sets the `style` attribute of the Button.
@@ -99,8 +100,8 @@ end
 ---@param style string|number
 ---@return Button self
 function Button:style(style)
-  style = resolver.buttonStyle(style)
-  return self:_set("style", style or buttonStyle.primary)
+	style = resolver.buttonStyle(style)
+	return self:_set('style', style or buttonStyle.primary)
 end
 
 ---Sets the `label` field of the Button. Must be in the range 0 < `label` < 81.
@@ -109,9 +110,12 @@ end
 ---@param label string
 ---@return Button self
 function Button:label(label)
-  label = tostring(label)
-  assert(label and #label <= 80 and #label > 0, "label must be a string in the range 1-80 inclusive")
-  return self:_set("label", label)
+	label = tostring(label)
+	assert(
+		label and #label <= 80 and #label > 0,
+		'label must be a string in the range 1-80 inclusive'
+	)
+	return self:_set('label', label)
 end
 
 ---Sets the `url` for a Link Button. If Button's style was not `link` it will be forcibly changed to that.
@@ -121,9 +125,11 @@ end
 ---@param url string
 ---@return Button self
 function Button:url(url)
-  url = tostring(url)
-  if self._data.style ~= 5 then self:_set("style", 5) end
-  return self:_set("url", url)
+	url = tostring(url)
+	if self._data.style ~= 5 then
+		self:_set('style', 5)
+	end
+	return self:_set('url', url)
 end
 
 ---@alias Emoji-ID-Resolvable string|userdata
@@ -138,8 +144,8 @@ end
 ---@param animated? boolean
 ---@return Button self
 function Button:emoji(emoji, id, animated)
-  emoji = resolver.emoji(emoji, id, animated)
-  return self:_set("emoji", emoji)
+	emoji = resolver.emoji(emoji, id, animated)
+	return self:_set('emoji', emoji)
 end
 
 return Button

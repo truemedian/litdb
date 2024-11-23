@@ -46,113 +46,91 @@ local function unknown(self)
 	return nil, 'unknown audit log action type: ' .. self._action_type
 end
 
-local targets = setmetatable({
-
-	[actionType.guildUpdate] = function(self)
-		return self._parent
-	end,
-
-	[actionType.channelCreate] = function(self)
-		return self._parent:getChannel(self._target_id)
-	end,
-
-	[actionType.channelUpdate] = function(self)
-		return self._parent:getChannel(self._target_id)
-	end,
-
-	[actionType.channelDelete] = function(self)
-		return self._parent:getChannel(self._target_id)
-	end,
-
-	[actionType.channelOverwriteCreate] = function(self)
-		return self._parent:getChannel(self._target_id)
-	end,
-
-	[actionType.channelOverwriteUpdate] = function(self)
-		return self._parent:getChannel(self._target_id)
-	end,
-
-	[actionType.channelOverwriteDelete] = function(self)
-		return self._parent:getChannel(self._target_id)
-	end,
-
-	[actionType.memberKick] = function(self)
-		return self._parent._parent:getUser(self._target_id)
-	end,
-
-	[actionType.memberPrune] = function()
-		return nil
-	end,
-
-	[actionType.memberBanAdd] = function(self)
-		return self._parent._parent:getUser(self._target_id)
-	end,
-
-	[actionType.memberBanRemove] = function(self)
-		return self._parent._parent:getUser(self._target_id)
-	end,
-
-	[actionType.memberUpdate] = function(self)
-		return self._parent:getMember(self._target_id)
-	end,
-
-	[actionType.memberRoleUpdate] = function(self)
-		return self._parent:getMember(self._target_id)
-	end,
-
-	[actionType.roleCreate] = function(self)
-		return self._parent:getRole(self._target_id)
-	end,
-
-	[actionType.roleUpdate] = function(self)
-		return self._parent:getRole(self._target_id)
-	end,
-
-	[actionType.roleDelete] = function(self)
-		return self._parent:getRole(self._target_id)
-	end,
-
-	[actionType.inviteCreate] = function()
-		return nil
-	end,
-
-	[actionType.inviteUpdate] = function()
-		return nil
-	end,
-
-	[actionType.inviteDelete] = function()
-		return nil
-	end,
-
-	[actionType.webhookCreate] = function(self)
-		return self._parent._parent._webhooks:get(self._target_id)
-	end,
-
-	[actionType.webhookUpdate] = function(self)
-		return self._parent._parent._webhooks:get(self._target_id)
-	end,
-
-	[actionType.webhookDelete] = function(self)
-		return self._parent._parent._webhooks:get(self._target_id)
-	end,
-
-	[actionType.emojiCreate] = function(self)
-		return self._parent:getEmoji(self._target_id)
-	end,
-
-	[actionType.emojiUpdate] = function(self)
-		return self._parent:getEmoji(self._target_id)
-	end,
-
-	[actionType.emojiDelete] = function(self)
-		return self._parent:getEmoji(self._target_id)
-	end,
-
-	[actionType.messageDelete] = function(self)
-		return self._parent._parent:getUser(self._target_id)
-	end,
-
-}, {__index = function() return unknown	end})
+local targets = setmetatable(
+	{
+		[actionType.guildUpdate] = function(self)
+			return self._parent
+		end,
+		[actionType.channelCreate] = function(self)
+			return self._parent:getChannel(self._target_id)
+		end,
+		[actionType.channelUpdate] = function(self)
+			return self._parent:getChannel(self._target_id)
+		end,
+		[actionType.channelDelete] = function(self)
+			return self._parent:getChannel(self._target_id)
+		end,
+		[actionType.channelOverwriteCreate] = function(self)
+			return self._parent:getChannel(self._target_id)
+		end,
+		[actionType.channelOverwriteUpdate] = function(self)
+			return self._parent:getChannel(self._target_id)
+		end,
+		[actionType.channelOverwriteDelete] = function(self)
+			return self._parent:getChannel(self._target_id)
+		end,
+		[actionType.memberKick] = function(self)
+			return self._parent._parent:getUser(self._target_id)
+		end,
+		[actionType.memberPrune] = function()
+			return nil
+		end,
+		[actionType.memberBanAdd] = function(self)
+			return self._parent._parent:getUser(self._target_id)
+		end,
+		[actionType.memberBanRemove] = function(self)
+			return self._parent._parent:getUser(self._target_id)
+		end,
+		[actionType.memberUpdate] = function(self)
+			return self._parent:getMember(self._target_id)
+		end,
+		[actionType.memberRoleUpdate] = function(self)
+			return self._parent:getMember(self._target_id)
+		end,
+		[actionType.roleCreate] = function(self)
+			return self._parent:getRole(self._target_id)
+		end,
+		[actionType.roleUpdate] = function(self)
+			return self._parent:getRole(self._target_id)
+		end,
+		[actionType.roleDelete] = function(self)
+			return self._parent:getRole(self._target_id)
+		end,
+		[actionType.inviteCreate] = function()
+			return nil
+		end,
+		[actionType.inviteUpdate] = function()
+			return nil
+		end,
+		[actionType.inviteDelete] = function()
+			return nil
+		end,
+		[actionType.webhookCreate] = function(self)
+			return self._parent._parent._webhooks:get(self._target_id)
+		end,
+		[actionType.webhookUpdate] = function(self)
+			return self._parent._parent._webhooks:get(self._target_id)
+		end,
+		[actionType.webhookDelete] = function(self)
+			return self._parent._parent._webhooks:get(self._target_id)
+		end,
+		[actionType.emojiCreate] = function(self)
+			return self._parent:getEmoji(self._target_id)
+		end,
+		[actionType.emojiUpdate] = function(self)
+			return self._parent:getEmoji(self._target_id)
+		end,
+		[actionType.emojiDelete] = function(self)
+			return self._parent:getEmoji(self._target_id)
+		end,
+		[actionType.messageDelete] = function(self)
+			return self._parent._parent:getUser(self._target_id)
+		end,
+	},
+	{ __index = function()
+		return unknown
+	end }
+)
 
 --[=[
 @m getTarget

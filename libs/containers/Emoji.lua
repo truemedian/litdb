@@ -53,7 +53,7 @@ end
 @d Sets the emoji's name. The name must be between 2 and 32 characters in length.
 ]=]
 function Emoji:setName(name)
-	return self:_modify({name = name or json.null})
+	return self:_modify({ name = name or json.null })
 end
 
 --[=[
@@ -65,7 +65,7 @@ end
 ]=]
 function Emoji:setRoles(roles)
 	roles = Resolver.roleIds(roles)
-	return self:_modify({roles = roles or json.null})
+	return self:_modify({ roles = roles or json.null })
 end
 
 --[=[

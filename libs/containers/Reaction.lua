@@ -56,7 +56,7 @@ but the internally referenced user objects may be updated. You must call this
 method again to guarantee that the objects are update to date.
 ]=]
 function Reaction:getUsers(limit)
-	return getUsers(self, limit and {limit = limit})
+	return getUsers(self, limit and { limit = limit })
 end
 
 --[=[
@@ -72,7 +72,10 @@ method again to guarantee that the objects are update to date.
 ]=]
 function Reaction:getUsersBefore(id, limit)
 	id = Resolver.userId(id)
-	return getUsers(self, {before = id, limit = limit})
+	return getUsers(self, {
+		before = id,
+		limit = limit,
+	})
 end
 
 --[=[
@@ -88,7 +91,10 @@ updated. You must call this method again to guarantee that the objects are updat
 ]=]
 function Reaction:getUsersAfter(id, limit)
 	id = Resolver.userId(id)
-	return getUsers(self, {after = id, limit = limit})
+	return getUsers(self, {
+		after = id,
+		limit = limit,
+	})
 end
 
 --[=[

@@ -40,7 +40,7 @@ Callbacks registered with this method will automatically be wrapped as a new
 coroutine when they are called. Returns the original callback for convenience.
 ]=]
 function Emitter:on(name, fn)
-	return new(self, name, {fn = fn})
+	return new(self, name, { fn = fn })
 end
 
 --[=[
@@ -53,7 +53,10 @@ Callbacks registered with this method will automatically be wrapped as a new
 coroutine when they are called. Returns the original callback for convenience.
 ]=]
 function Emitter:once(name, fn)
-	return new(self, name, {fn = fn, once = true})
+	return new(self, name, {
+		fn = fn,
+		once = true,
+	})
 end
 
 --[=[
@@ -66,7 +69,10 @@ Callbacks registered with this method are not automatically wrapped as a
 coroutine. Returns the original callback for convenience.
 ]=]
 function Emitter:onSync(name, fn)
-	return new(self, name, {fn = fn, sync = true})
+	return new(self, name, {
+		fn = fn,
+		sync = true,
+	})
 end
 
 --[=[
@@ -79,7 +85,11 @@ Callbacks registered with this method are not automatically wrapped as a corouti
 Returns the original callback for convenience.
 ]=]
 function Emitter:onceSync(name, fn)
-	return new(self, name, {fn = fn, once = true, sync = true})
+	return new(self, name, {
+		fn = fn,
+		once = true,
+		sync = true,
+	})
 end
 
 --[=[
@@ -127,7 +137,9 @@ end
 ]=]
 function Emitter:getListeners(name)
 	local listeners = self._listeners[name]
-	if not listeners then return function() end end
+	if not listeners then
+		return function() end
+	end
 	local i = 0
 	return function()
 		while i < #listeners do
@@ -147,7 +159,9 @@ end
 ]=]
 function Emitter:getListenerCount(name)
 	local listeners = self._listeners[name]
-	if not listeners then return 0 end
+	if not listeners then
+		return 0
+	end
 	local n = 0
 	for _, listener in ipairs(listeners) do
 		if listener then

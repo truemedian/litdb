@@ -22,7 +22,6 @@ function Sticker:_load(data)
 end
 
 function Sticker:_loadMore(data)
-	
 end
 
 function Sticker:_modify(payload)
@@ -43,7 +42,7 @@ end
 @d Sets the stickers's name. The name must be between 2 and 30 characters in length.
 ]=]
 function Sticker:setName(name)
-	return self:_modify({name = name or json.null})
+	return self:_modify({ name = name or json.null })
 end
 
 --[=[
@@ -54,7 +53,7 @@ end
 @d Sets the stickers's description. The description must be between 2 and 30 characters in length.
 ]=]
 function Sticker:setDescription(description)
-	return self:_modify({description = description or json.null})
+	return self:_modify({ description = description or json.null })
 end
 
 --[=[
@@ -65,7 +64,7 @@ end
 @d Sets the stickers's tags. The tags can only be up to 200 characters long.
 ]=]
 function Sticker:setTags(tags)
-	return self:_modify({tags = tags or json.null})
+	return self:_modify({ tags = tags or json.null })
 end
 
 --[=[

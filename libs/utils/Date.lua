@@ -25,8 +25,18 @@ local US_PER_S = US_PER_MS * MS_PER_S
 local DISCORD_EPOCH = constants.DISCORD_EPOCH
 
 local months = {
-	Jan = 1, Feb = 2, Mar = 3, Apr = 4, May = 5, Jun = 6,
-	Jul = 7, Aug = 8, Sep = 9, Oct = 10, Nov = 11, Dec = 12
+	Jan = 1,
+	Feb = 2,
+	Mar = 3,
+	Apr = 4,
+	May = 5,
+	Jun = 6,
+	Jul = 7,
+	Aug = 8,
+	Sep = 9,
+	Oct = 10,
+	Nov = 11,
+	Dec = 12,
 }
 
 local function offset() -- difference between *t and !*t
@@ -42,7 +52,6 @@ local function check(self, other)
 end
 
 function Date:__init(seconds, micro)
-
 	local f
 	seconds = tonumber(seconds)
 	if seconds then
@@ -65,7 +74,6 @@ function Date:__init(seconds, micro)
 
 	self._s = seconds
 	self._us = floor(micro + 0.5)
-
 end
 
 function Date:__tostring()
@@ -86,15 +94,18 @@ function Date:toString(fmt)
 	return date(fmt, self._s)
 end
 
-function Date:__eq(other) check(self, other)
+function Date:__eq(other)
+	check(self, other)
 	return self._s == other._s and self._us == other._us
 end
 
-function Date:__lt(other) check(self, other)
+function Date:__lt(other)
+	check(self, other)
 	return self:toMicroseconds() < other:toMicroseconds()
 end
 
-function Date:__le(other) check(self, other)
+function Date:__le(other)
+	check(self, other)
 	return self:toMicroseconds() <= other:toMicroseconds()
 end
 
@@ -133,13 +144,17 @@ with Discord's timestamp format, microseconds are also provided as a second
 return value.
 ]=]
 function Date.parseISO(str)
-	local year, month, day, hour, min, sec, other = str:match(
-		'(%d+)-(%d+)-(%d+).(%d+):(%d+):(%d+)(.*)'
-	)
+	local year, month, day, hour, min, sec, other =
+		str:match('(%d+)-(%d+)-(%d+).(%d+):(%d+):(%d+)(.*)')
 	other = other:match('%.%d+')
-	return Date.parseTableUTC {
-		day = day, month = month, year = year,
-		hour = hour, min = min, sec = sec, isdst = false,
+	return Date.parseTableUTC{
+		day = day,
+		month = month,
+		year = year,
+		hour = hour,
+		min = min,
+		sec = sec,
+		isdst = false,
 	}, other and other * US_PER_S or 0
 end
 
@@ -151,12 +166,15 @@ end
 @d Converts an RFC 2822 string (an HTTP Date header) into a Unix time in seconds.
 ]=]
 function Date.parseHeader(str)
-	local day, month, year, hour, min, sec = str:match(
-		'%a+, (%d+) (%a+) (%d+) (%d+):(%d+):(%d+) GMT'
-	)
-	return Date.parseTableUTC {
-		day = day, month = months[month], year = year,
-		hour = hour, min = min, sec = sec, isdst = false,
+	local day, month, year, hour, min, sec = str:match('%a+, (%d+) (%a+) (%d+) (%d+):(%d+):(%d+) GMT')
+	return Date.parseTableUTC{
+		day = day,
+		month = months[month],
+		year = year,
+		hour = hour,
+		min = min,
+		sec = sec,
+		isdst = false,
 	}
 end
 
@@ -170,7 +188,7 @@ decimal points may be present, though only the first 3 (milliseconds) should be
 considered accurate.
 ]=]
 function Date.parseSnowflake(id)
-	return (id / 2^22 + DISCORD_EPOCH) / MS_PER_S
+	return (id / 2 ^ 22 + DISCORD_EPOCH) / MS_PER_S
 end
 
 --[=[
@@ -311,7 +329,7 @@ end
 @d Constructs a new Date object from the Discord timestamp format `<t:seconds:style>`.
 ]=]
 function Date.fromDiscordTimestamp(str)
-	return Date((Date.parseDiscordTimestamp(str)))
+	return Date(Date.parseDiscordTimestamp(str))
 end
 
 --[=[
@@ -354,7 +372,7 @@ Due to the lack of native 64-bit support, the result may lack precision.
 In other words, `Date.fromSnowflake(id):toSnowflake() == id` may be `false`.
 ]=]
 function Date:toSnowflake()
-	local n = (self:toMilliseconds() - DISCORD_EPOCH) * 2^22
+	local n = (self:toMilliseconds() - DISCORD_EPOCH) * 2 ^ 22
 	return format('%f', n):match('%d*')
 end
 

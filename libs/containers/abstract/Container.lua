@@ -13,7 +13,11 @@ local format = string.format
 
 local Container, get = require('class')('Container')
 
-local types = {['string'] = true, ['number'] = true, ['boolean'] = true}
+local types = {
+	string = true,
+	number = true,
+	boolean = true,
+}
 
 local function load(self, data)
 	-- assert(type(data) == 'table') -- debug

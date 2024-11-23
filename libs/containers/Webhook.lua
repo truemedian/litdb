@@ -63,7 +63,7 @@ end
 @d Sets the webhook's name. This must be between 2 and 32 characters in length.
 ]=]
 function Webhook:setName(name)
-	return self:_modify({name = name or json.null})
+	return self:_modify({ name = name or json.null })
 end
 
 --[=[
@@ -75,7 +75,7 @@ end
 ]=]
 function Webhook:setAvatar(avatar)
 	avatar = avatar and Resolver.base64(avatar)
-	return self:_modify({avatar = avatar or json.null})
+	return self:_modify({ avatar = avatar or json.null })
 end
 
 --[=[

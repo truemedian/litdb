@@ -10,7 +10,7 @@ local Message = require('containers/Message')
 local WeakCache = require('iterables/WeakCache')
 local SecondaryCache = require('iterables/SecondaryCache')
 local Resolver = require('client/Resolver')
-local rawComponents = require("../../resolver/components").rawComponents
+local rawComponents = require('../../resolver/components').rawComponents
 local fs = require('fs')
 
 local splitPath = pathjoin.splitPath
@@ -56,7 +56,10 @@ end
 cache shortcut; an HTTP request is made each time this method is called.
 ]=]
 function TextChannel:getFirstMessage()
-	local data, err = self.client._api:getChannelMessages(self._id, {after = self._id, limit = 1})
+	local data, err = self.client._api:getChannelMessages(self._id, {
+		after = self._id,
+		limit = 1,
+	})
 	if data then
 		if data[1] then
 			return self._messages:_insert(data[1])
@@ -76,7 +79,7 @@ end
 cache shortcut; an HTTP request is made each time this method is called.
 ]=]
 function TextChannel:getLastMessage()
-	local data, err = self.client._api:getChannelMessages(self._id, {limit = 1})
+	local data, err = self.client._api:getChannelMessages(self._id, { limit = 1 })
 	if data then
 		if data[1] then
 			return self._messages:_insert(data[1])
@@ -107,7 +110,7 @@ objects found in the channel. While the cache will never automatically gain or
 lose objects, the objects that it contains may be updated by gateway events.
 ]=]
 function TextChannel:getMessages(limit)
-	return getMessages(self, limit and {limit = limit})
+	return getMessages(self, limit and { limit = limit })
 end
 
 --[=[
@@ -123,7 +126,10 @@ by gateway events.
 ]=]
 function TextChannel:getMessagesAfter(id, limit)
 	id = Resolver.messageId(id)
-	return getMessages(self, {after = id, limit = limit})
+	return getMessages(self, {
+		after = id,
+		limit = limit,
+	})
 end
 
 --[=[
@@ -139,7 +145,10 @@ by gateway events.
 ]=]
 function TextChannel:getMessagesBefore(id, limit)
 	id = Resolver.messageId(id)
-	return getMessages(self, {before = id, limit = limit})
+	return getMessages(self, {
+		before = id,
+		limit = limit,
+	})
 end
 
 --[=[
@@ -155,7 +164,10 @@ by gateway events.
 ]=]
 function TextChannel:getMessagesAround(id, limit)
 	id = Resolver.messageId(id)
-	return getMessages(self, {around = id, limit = limit})
+	return getMessages(self, {
+		around = id,
+		limit = limit,
+	})
 end
 
 --[=[
@@ -197,7 +209,7 @@ local function parseFile(obj, files)
 			return nil, err
 		end
 		files = files or {}
-		insert(files, {remove(splitPath(obj)), data})
+		insert(files, { remove(splitPath(obj)), data })
 	elseif type(obj) == 'table' and type(obj[1]) == 'string' and type(obj[2]) == 'string' then
 		files = files or {}
 		insert(files, obj)
@@ -237,11 +249,9 @@ sent as the message content. If it is a table, more advanced formatting is
 allowed. See [[managing messages]] for more information.
 ]=]
 function TextChannel:send(content)
-
 	local data, err
 
 	if type(content) == 'table' then
-
 		local tbl = content
 		content = tbl.content
 
@@ -306,40 +316,44 @@ function TextChannel:send(content)
 
 		local components
 		if tbl.components then
-			assert(type(tbl.components) == "table", "bad argument #2 to sendComponents (expected a Components|table value)")
+			assert(
+				type(tbl.components) == 'table',
+				'bad argument #2 to sendComponents (expected a Components|table value)'
+			)
 			components = rawComponents(tbl.components)
 		end
 
 		local refMessage, refMention
 		if tbl.reference then
-			refMessage = {message_id = Resolver.messageId(tbl.reference.message)}
+			refMessage = { message_id = Resolver.messageId(tbl.reference.message) }
 			refMention = {
-				parse = {'users', 'roles', 'everyone'},
+				parse = { 'users', 'roles', 'everyone' },
 				replied_user = not not tbl.reference.mention,
 			}
 		end
 
 		local sticker
 		if tbl.sticker then
-			sticker = {Resolver.stickerId(tbl.sticker)}
+			sticker = { Resolver.stickerId(tbl.sticker) }
 		end
 
-		data, err = self.client._api:createMessage(self._id, {
-			content = content,
-			tts = tbl.tts,
-			nonce = tbl.nonce,
-			embeds = embeds,
-			message_reference = refMessage,
-			allowed_mentions = refMention,
-			sticker_ids = sticker,
-			flags = tbl.silent and 2^12 or nil,
-			components = components
-		}, files)
-
+		data, err = self.client._api:createMessage(
+			self._id,
+			{
+				content = content,
+				tts = tbl.tts,
+				nonce = tbl.nonce,
+				embeds = embeds,
+				message_reference = refMessage,
+				allowed_mentions = refMention,
+				sticker_ids = sticker,
+				flags = tbl.silent and 2 ^ 12 or nil,
+				components = components,
+			},
+			files
+		)
 	else
-
-		data, err = self.client._api:createMessage(self._id, {content = content})
-
+		data, err = self.client._api:createMessage(self._id, { content = content })
 	end
 
 	if data then
@@ -347,7 +361,6 @@ function TextChannel:send(content)
 	else
 		return nil, err
 	end
-
 end
 
 --[=[
@@ -359,7 +372,7 @@ end
 @d Sends a message to the channel with content formatted with `...` via `string.format`
 ]=]
 function TextChannel:sendf(content, ...)
-	local data, err = self.client._api:createMessage(self._id, {content = format(content, ...)})
+	local data, err = self.client._api:createMessage(self._id, { content = format(content, ...) })
 	if data then
 		return self._messages:_insert(data)
 	else

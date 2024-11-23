@@ -17,39 +17,39 @@ local wrap = coroutine.wrap
 
 local ID_DELAY = constants.ID_DELAY
 
-local DISPATCH              = 0
-local HEARTBEAT             = 1
-local IDENTIFY              = 2
-local STATUS_UPDATE         = 3
-local VOICE_STATE_UPDATE    = 4
+local DISPATCH = 0
+local HEARTBEAT = 1
+local IDENTIFY = 2
+local STATUS_UPDATE = 3
+local VOICE_STATE_UPDATE = 4
 -- local VOICE_SERVER_PING = 5 -- TODO
-local RESUME                = 6
-local RECONNECT             = 7
+local RESUME = 6
+local RECONNECT = 7
 local REQUEST_GUILD_MEMBERS = 8
-local INVALID_SESSION       = 9
-local HELLO                 = 10
-local HEARTBEAT_ACK         = 11
-local GUILD_SYNC            = 12
+local INVALID_SESSION = 9
+local HELLO = 10
+local HEARTBEAT_ACK = 11
+local GUILD_SYNC = 12
 
 local ignore = {
-	['CALL_DELETE'] = true,
-	['CHANNEL_PINS_ACK'] = true,
-	['GUILD_INTEGRATIONS_UPDATE'] = true,
-	['MESSAGE_ACK'] = true,
-	['PRESENCES_REPLACE'] = true,
-	['USER_SETTINGS_UPDATE'] = true,
-	['USER_GUILD_SETTINGS_UPDATE'] = true,
-	['SESSIONS_REPLACE'] = true,
-	['INVITE_CREATE'] = true,
-	['INVITE_DELETE'] = true,
-	['INTEGRATION_CREATE'] = true,
-	['INTEGRATION_UPDATE'] = true,
-	['INTEGRATION_DELETE'] = true,
-	['EMBEDDED_ACTIVITY_UPDATE'] = true,
-	['GIFT_CODE_UPDATE'] = true,
-	['GUILD_JOIN_REQUEST_UPDATE'] = true,
-	['GUILD_JOIN_REQUEST_DELETE'] = true,
-	['APPLICATION_COMMAND_PERMISSIONS_UPDATE'] = true,
+	CALL_DELETE = true,
+	CHANNEL_PINS_ACK = true,
+	GUILD_INTEGRATIONS_UPDATE = true,
+	MESSAGE_ACK = true,
+	PRESENCES_REPLACE = true,
+	USER_SETTINGS_UPDATE = true,
+	USER_GUILD_SETTINGS_UPDATE = true,
+	SESSIONS_REPLACE = true,
+	INVITE_CREATE = true,
+	INVITE_DELETE = true,
+	INTEGRATION_CREATE = true,
+	INTEGRATION_UPDATE = true,
+	INTEGRATION_DELETE = true,
+	EMBEDDED_ACTIVITY_UPDATE = true,
+	GIFT_CODE_UPDATE = true,
+	GUILD_JOIN_REQUEST_UPDATE = true,
+	GUILD_JOIN_REQUEST_DELETE = true,
+	APPLICATION_COMMAND_PERMISSIONS_UPDATE = true,
 }
 
 local Shard = require('class')('Shard', WebSocket)
@@ -99,7 +99,6 @@ function Shard:handleDisconnect(url, path)
 end
 
 function Shard:handlePayload(payload)
-
 	local client = self._client
 
 	local s = payload.s
@@ -114,23 +113,16 @@ function Shard:handlePayload(payload)
 	end
 
 	if op == DISPATCH then
-
 		self._seq = s
 		if not ignore[t] then
 			EventHandler[t](d, client, self)
 		end
-
 	elseif op == HEARTBEAT then
-
 		self:heartbeat()
-
 	elseif op == RECONNECT then
-
 		self:info('Discord has requested a reconnection')
 		self:disconnect(true)
-
 	elseif op == INVALID_SESSION then
-
 		if payload.d and self._session_id then
 			self:info('Session invalidated, resuming...')
 			self:resume()
@@ -139,9 +131,7 @@ function Shard:handlePayload(payload)
 			sleep(random(1000, 5000))
 			self:identify()
 		end
-
 	elseif op == HELLO then
-
 		self:info('Received HELLO')
 		self:startHeartbeat(d.heartbeat_interval)
 		if self._session_id then
@@ -149,17 +139,11 @@ function Shard:handlePayload(payload)
 		else
 			self:identify()
 		end
-
 	elseif op == HEARTBEAT_ACK then
-
 		client:emit('heartbeat', self._id, self._sw.milliseconds)
-
 	elseif op then
-
 		self:warning('Unhandled WebSocket payload OP %i', op)
-
 	end
-
 end
 
 local function loop(self)
@@ -193,7 +177,6 @@ function Shard:heartbeat()
 end
 
 function Shard:identify()
-
 	local client = self._client
 	local mutex = client._mutex
 	local options = client._options
@@ -207,31 +190,38 @@ function Shard:identify()
 	self._seq = nil
 	self._session_id = nil
 	self._ready = false
-	self._loading = {guilds = {}, chunks = {}, syncs = {}}
+	self._loading = {
+		guilds = {},
+		chunks = {},
+		syncs = {},
+	}
 
-	return self:_send(IDENTIFY, {
-		token = client._token,
-		properties = {
-			['$os'] = jit.os,
-			['$browser'] = 'Discordia',
-			['$device'] = 'Discordia',
-			['$referrer'] = '',
-			['$referring_domain'] = '',
+	return self:_send(
+		IDENTIFY,
+		{
+			token = client._token,
+			properties = {
+				['$os'] = jit.os,
+				['$browser'] = 'Discordia',
+				['$device'] = 'Discordia',
+				['$referrer'] = '',
+				['$referring_domain'] = '',
+			},
+			compress = options.compress,
+			large_threshold = options.largeThreshold,
+			shard = { self._id, client._total_shard_count },
+			presence = next(client._presence) and client._presence,
+			intents = client._intents,
 		},
-		compress = options.compress,
-		large_threshold = options.largeThreshold,
-		shard = {self._id, client._total_shard_count},
-		presence = next(client._presence) and client._presence,
-		intents = client._intents,
-	}, true)
-
+		true
+	)
 end
 
 function Shard:resume()
 	return self:_send(RESUME, {
 		token = self._client._token,
 		session_id = self._session_id,
-		seq = self._seq
+		seq = self._seq,
 	})
 end
 

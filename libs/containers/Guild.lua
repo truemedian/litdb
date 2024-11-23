@@ -55,14 +55,12 @@ function Guild:_loadMore(data)
 end
 
 function Guild:_makeAvailable(data)
-
 	self._roles:_load(data.roles)
 	self._emojis:_load(data.emojis)
 	self._stickers:_load(data.stickers)
 	self:_loadMore(data)
 
 	if not data.channels then return end -- incomplete guild
-
 	local states = self._voice_states
 	for _, state in ipairs(data.voice_states) do
 		states[state.user_id] = state
@@ -84,7 +82,6 @@ function Guild:_makeAvailable(data)
 	end
 
 	return self:_loadMembers(data)
-
 end
 
 function Guild:_loadMembers(data)
@@ -148,7 +145,7 @@ function Guild:sync()
 	if shard._loading then
 		shard._loading.syncs[self._id] = true
 	end
-	return shard:syncGuilds({self._id})
+	return shard:syncGuilds({ self._id })
 end
 
 --[=[
@@ -231,7 +228,10 @@ end
 characters in length.
 ]=]
 function Guild:createTextChannel(name)
-	local data, err = self.client._api:createGuildChannel(self._id, {name = name, type = channelType.text})
+	local data, err = self.client._api:createGuildChannel(self._id, {
+		name = name,
+		type = channelType.text,
+	})
 	if data then
 		return self._text_channels:_insert(data)
 	else
@@ -248,7 +248,10 @@ end
 characters in length.
 ]=]
 function Guild:createVoiceChannel(name)
-	local data, err = self.client._api:createGuildChannel(self._id, {name = name, type = channelType.voice})
+	local data, err = self.client._api:createGuildChannel(self._id, {
+		name = name,
+		type = channelType.voice,
+	})
 	if data then
 		return self._voice_channels:_insert(data)
 	else
@@ -265,7 +268,10 @@ end
 characters in length.
 ]=]
 function Guild:createCategory(name)
-	local data, err = self.client._api:createGuildChannel(self._id, {name = name, type = channelType.category})
+	local data, err = self.client._api:createGuildChannel(self._id, {
+		name = name,
+		type = channelType.category,
+	})
 	if data then
 		return self._categories:_insert(data)
 	else
@@ -282,7 +288,7 @@ end
 in length.
 ]=]
 function Guild:createRole(name)
-	local data, err = self.client._api:createGuildRole(self._id, {name = name})
+	local data, err = self.client._api:createGuildRole(self._id, { name = name })
 	if data then
 		return self._roles:_insert(data)
 	else
@@ -301,7 +307,10 @@ in length. The image must not be over 256kb, any higher will return a 400 Bad Re
 ]=]
 function Guild:createEmoji(name, image)
 	image = Resolver.base64(image)
-	local data, err = self.client._api:createGuildEmoji(self._id, {name = name, image = image})
+	local data, err = self.client._api:createGuildEmoji(self._id, {
+		name = name,
+		image = image,
+	})
 	if data then
 		return self._emojis:_insert(data)
 	else
@@ -323,7 +332,12 @@ be a PNG, APNG, or LOTTIE file, and must be under 500kb and 320x320 pixels.
 ]=]
 function Guild:createSticker(name, description, tags, file)
 	file = Resolver.base64(file)
-	local data, err = self.client._api:createGuildSticker(self._id, {name = name, description = description, tags = tags, file = file})
+	local data, err = self.client._api:createGuildSticker(self._id, {
+		name = name,
+		description = description,
+		tags = tags,
+		file = file,
+	})
 	if data then
 		return self._stickers:_insert(data)
 	else
@@ -339,7 +353,7 @@ end
 @d Sets the guilds name. This must be between 2 and 100 characters in length.
 ]=]
 function Guild:setName(name)
-	return self:_modify({name = name or json.null})
+	return self:_modify({ name = name or json.null })
 end
 
 --[=[
@@ -351,7 +365,7 @@ end
 of acceptable regions.
 ]=]
 function Guild:setRegion(region)
-	return self:_modify({region = region or json.null})
+	return self:_modify({ region = region or json.null })
 end
 
 --[=[
@@ -363,7 +377,7 @@ end
 enumeration for acceptable values.
 ]=]
 function Guild:setVerificationLevel(verification_level)
-	return self:_modify({verification_level = verification_level or json.null})
+	return self:_modify({ verification_level = verification_level or json.null })
 end
 
 --[=[
@@ -375,7 +389,9 @@ end
 enumeration for acceptable values.
 ]=]
 function Guild:setNotificationSetting(default_message_notifications)
-	return self:_modify({default_message_notifications = default_message_notifications or json.null})
+	return self:_modify({
+		default_message_notifications = default_message_notifications or json.null,
+	})
 end
 
 --[=[
@@ -387,7 +403,7 @@ end
 enumeration for acceptable values.
 ]=]
 function Guild:setExplicitContentSetting(explicit_content_filter)
-	return self:_modify({explicit_content_filter = explicit_content_filter or json.null})
+	return self:_modify({ explicit_content_filter = explicit_content_filter or json.null })
 end
 
 --[=[
@@ -398,7 +414,7 @@ end
 @d Sets the guild's AFK timeout in seconds.
 ]=]
 function Guild:setAFKTimeout(afk_timeout)
-	return self:_modify({afk_timeout = afk_timeout or json.null})
+	return self:_modify({ afk_timeout = afk_timeout or json.null })
 end
 
 --[=[
@@ -410,7 +426,7 @@ end
 ]=]
 function Guild:setAFKChannel(id)
 	id = id and Resolver.channelId(id)
-	return self:_modify({afk_channel_id = id or json.null})
+	return self:_modify({ afk_channel_id = id or json.null })
 end
 
 --[=[
@@ -422,7 +438,7 @@ end
 ]=]
 function Guild:setSystemChannel(id)
 	id = id and Resolver.channelId(id)
-	return self:_modify({system_channel_id = id or json.null})
+	return self:_modify({ system_channel_id = id or json.null })
 end
 
 --[=[
@@ -435,7 +451,7 @@ can do this.
 ]=]
 function Guild:setOwner(id)
 	id = id and Resolver.userId(id)
-	return self:_modify({owner_id = id or json.null})
+	return self:_modify({ owner_id = id or json.null })
 end
 
 --[=[
@@ -447,7 +463,7 @@ end
 ]=]
 function Guild:setIcon(icon)
 	icon = icon and Resolver.base64(icon)
-	return self:_modify({icon = icon or json.null})
+	return self:_modify({ icon = icon or json.null })
 end
 
 --[=[
@@ -459,7 +475,7 @@ end
 ]=]
 function Guild:setBanner(banner)
 	banner = banner and Resolver.base64(banner)
-	return self:_modify({banner = banner or json.null})
+	return self:_modify({ banner = banner or json.null })
 end
 
 --[=[
@@ -471,7 +487,7 @@ end
 ]=]
 function Guild:setSplash(splash)
 	splash = splash and Resolver.base64(splash)
-	return self:_modify({splash = splash or json.null})
+	return self:_modify({ splash = splash or json.null })
 end
 
 --[=[
@@ -483,7 +499,7 @@ end
 were to be executed.
 ]=]
 function Guild:getPruneCount(days)
-	local data, err = self.client._api:getGuildPruneCount(self._id, days and {days = days} or nil)
+	local data, err = self.client._api:getGuildPruneCount(self._id, days and { days = days } or nil)
 	if data then
 		return data.pruned
 	else
@@ -674,7 +690,7 @@ end
 ]=]
 function Guild:kickUser(id, reason)
 	id = Resolver.userId(id)
-	local query = reason and {reason = reason}
+	local query = reason and { reason = reason }
 	local data, err = self.client._api:removeGuildMember(self._id, id, query)
 	if data then
 		return true
@@ -694,7 +710,7 @@ end
 is the number of days to consider when purging messages, up to 7.
 ]=]
 function Guild:banUser(id, reason, days)
-	local query = reason and {reason = reason}
+	local query = reason and { reason = reason }
 	if days then
 		query = query or {}
 		query['delete-message-days'] = days
@@ -718,7 +734,7 @@ end
 ]=]
 function Guild:unbanUser(id, reason)
 	id = Resolver.userId(id)
-	local query = reason and {reason = reason}
+	local query = reason and { reason = reason }
 	local data, err = self.client._api:removeGuildBan(self._id, id, query)
 	if data then
 		return true
@@ -730,7 +746,7 @@ end
 --[=[@p shardId number The ID of the shard on which this guild is served. If only one shard is in
 operation, then this will always be 0.]=]
 function get.shardId(self)
-	return floor(self._id / 2^22) % self.client._total_shard_count
+	return floor(self._id / 2 ^ 22) % self.client._total_shard_count
 end
 
 --[=[@p name string The guild's name. This should be between 2 and 100 characters in length.]=]

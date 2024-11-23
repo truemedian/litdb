@@ -47,7 +47,7 @@ end
 @d Sets the channel's name. This must be between 2 and 100 characters in length.
 ]=]
 function GuildChannel:setName(name)
-	return self:_modify({name = name or json.null})
+	return self:_modify({ name = name or json.null })
 end
 
 --[=[
@@ -59,7 +59,7 @@ end
 ]=]
 function GuildChannel:setCategory(id)
 	id = Resolver.channelId(id)
-	return self:_modify({parent_id = id or json.null})
+	return self:_modify({ parent_id = id or json.null })
 end
 
 local function sorter(a, b)
@@ -71,7 +71,6 @@ local function sorter(a, b)
 end
 
 local function getSortedChannels(self)
-
 	local channels
 	local t = self._type
 	if t == channelType.text or t == channelType.news then
@@ -84,12 +83,14 @@ local function getSortedChannels(self)
 
 	local ret = {}
 	for channel in channels:iter() do
-		insert(ret, {id = channel._id, position = channel._position})
+		insert(ret, {
+			id = channel._id,
+			position = channel._position,
+		})
 	end
 	sort(ret, sorter)
 
 	return ret
-
 end
 
 local function setSortedChannels(self, channels)
@@ -111,7 +112,6 @@ channel should be moved, clamped to the highest position, with a default of 1 if
 it is omitted. This will also normalize the positions of all channels.
 ]=]
 function GuildChannel:moveUp(n)
-
 	n = tonumber(n) or 1
 	if n < 0 then
 		return self:moveDown(-n)
@@ -133,7 +133,6 @@ function GuildChannel:moveUp(n)
 	end
 
 	return setSortedChannels(self, channels)
-
 end
 
 --[=[
@@ -146,7 +145,6 @@ channel should be moved, clamped to the lowest position, with a default of 1 if
 it is omitted. This will also normalize the positions of all channels.
 ]=]
 function GuildChannel:moveDown(n)
-
 	n = tonumber(n) or 1
 	if n < 0 then
 		return self:moveUp(-n)
@@ -168,7 +166,6 @@ function GuildChannel:moveDown(n)
 	end
 
 	return setSortedChannels(self, channels)
-
 end
 
 --[=[
@@ -229,9 +226,17 @@ function GuildChannel:getPermissionOverwriteFor(obj)
 		return nil, 'Invalid Role or Member: ' .. tostring(obj)
 	end
 	local overwrites = self._permission_overwrites
-	return overwrites:get(id) or overwrites:_insert(setmetatable({
-		id = id, type = type, allow = 0, deny = 0
-	}, {__jsontype = 'object'}))
+	return overwrites:get(id) or overwrites:_insert(
+		setmetatable(
+			{
+				id = id,
+				type = type,
+				allow = 0,
+				deny = 0,
+			},
+			{ __jsontype = 'object' }
+		)
+	)
 end
 
 --[=[

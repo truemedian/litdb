@@ -28,7 +28,7 @@ function UserPresence:__hash()
 	return self._user._id
 end
 
-local activities = setmetatable({}, {__mode = 'v'})
+local activities = setmetatable({}, { __mode = 'v' })
 
 function UserPresence:_loadPresence(presence)
 	self._status = presence.status

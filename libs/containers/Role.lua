@@ -66,7 +66,10 @@ local function getSortedRoles(self)
 	local ret = {}
 	for role in guild.roles:iter() do
 		if role._id ~= id then
-			insert(ret, {id = role._id, position = role._position})
+			insert(ret, {
+				id = role._id,
+				position = role._position,
+			})
 		end
 	end
 	sort(ret, sorter)
@@ -75,7 +78,10 @@ end
 
 local function setSortedRoles(self, roles)
 	local id = self._parent._id
-	insert(roles, {id = id, position = 0})
+	insert(roles, {
+		id = id,
+		position = 0,
+	})
 	local data, err = self.client._api:modifyGuildRolePositions(id, roles)
 	if data then
 		return true
@@ -94,8 +100,9 @@ role should be moved, clamped to the lowest position, with a default of 1 if
 it is omitted. This will also normalize the positions of all roles. Note that
 the default everyone role cannot be moved.
 ]=]
-function Role:moveDown(n) -- TODO: fix attempt to move roles that cannot be moved
-
+function Role:moveDown(
+n -- TODO: fix attempt to move roles that cannot be moved
+)
 	n = tonumber(n) or 1
 	if n < 0 then
 		return self:moveDown(-n)
@@ -117,7 +124,6 @@ function Role:moveDown(n) -- TODO: fix attempt to move roles that cannot be move
 	end
 
 	return setSortedRoles(self, roles)
-
 end
 
 --[=[
@@ -130,8 +136,9 @@ role should be moved, clamped to the highest position, with a default of 1 if
 it is omitted. This will also normalize the positions of all roles. Note that
 the default everyone role cannot be moved.
 ]=]
-function Role:moveUp(n) -- TODO: fix attempt to move roles that cannot be moved
-
+function Role:moveUp(
+n -- TODO: fix attempt to move roles that cannot be moved
+)
 	n = tonumber(n) or 1
 	if n < 0 then
 		return self:moveUp(-n)
@@ -153,7 +160,6 @@ function Role:moveUp(n) -- TODO: fix attempt to move roles that cannot be moved
 	end
 
 	return setSortedRoles(self, roles)
-
 end
 
 --[=[
@@ -164,7 +170,7 @@ end
 @d Sets the role's name. The name must be between 1 and 100 characters in length.
 ]=]
 function Role:setName(name)
-	return self:_modify({name = name or json.null})
+	return self:_modify({ name = name or json.null })
 end
 
 --[=[
@@ -176,7 +182,7 @@ end
 ]=]
 function Role:setColor(color)
 	color = color and Resolver.color(color)
-	return self:_modify({color = color or json.null})
+	return self:_modify({ color = color or json.null })
 end
 
 --[=[
@@ -188,7 +194,7 @@ end
 ]=]
 function Role:setPermissions(permissions)
 	permissions = permissions and Resolver.permissions(permissions)
-	return self:_modify({permissions = permissions or json.null})
+	return self:_modify({ permissions = permissions or json.null })
 end
 
 --[=[
@@ -199,7 +205,7 @@ end
 list.
 ]=]
 function Role:hoist()
-	return self:_modify({hoist = true})
+	return self:_modify({ hoist = true })
 end
 
 --[=[
@@ -209,7 +215,7 @@ end
 @d Causes member with this role to display amongst other unhoisted members.
 ]=]
 function Role:unhoist()
-	return self:_modify({hoist = false})
+	return self:_modify({ hoist = false })
 end
 
 --[=[
@@ -219,7 +225,7 @@ end
 @d Allows anyone to mention this role in text messages.
 ]=]
 function Role:enableMentioning()
-	return self:_modify({mentionable = true})
+	return self:_modify({ mentionable = true })
 end
 
 --[=[
@@ -229,7 +235,7 @@ end
 @d Disallows anyone to mention this role in text messages.
 ]=]
 function Role:disableMentioning()
-	return self:_modify({mentionable = false})
+	return self:_modify({ mentionable = false })
 end
 
 --[=[

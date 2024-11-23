@@ -56,7 +56,9 @@ end
 
 local function setPermissions(self, allow, deny)
 	local data, err = self.client._api:editChannelPermissions(self._parent._id, self._id, {
-		allow = allow, deny = deny, type = self._type
+		allow = allow,
+		deny = deny,
+		type = self._type,
 	})
 	if data then
 		self._allow, self._deny = allow, deny
@@ -138,7 +140,8 @@ end
 ]=]
 function PermissionOverwrite:allowPermissions(...)
 	local allowed, denied = getPermissions(self)
-	allowed:enable(...); denied:disable(...)
+	allowed:enable(...)
+	denied:disable(...)
 	return setPermissions(self, allowed.value, denied.value)
 end
 
@@ -151,7 +154,8 @@ end
 ]=]
 function PermissionOverwrite:denyPermissions(...)
 	local allowed, denied = getPermissions(self)
-	allowed:disable(...); denied:enable(...)
+	allowed:disable(...)
+	denied:enable(...)
 	return setPermissions(self, allowed.value, denied.value)
 end
 
@@ -164,7 +168,8 @@ end
 ]=]
 function PermissionOverwrite:clearPermissions(...)
 	local allowed, denied = getPermissions(self)
-	allowed:disable(...); denied:disable(...)
+	allowed:disable(...)
+	denied:disable(...)
 	return setPermissions(self, allowed.value, denied.value)
 end
 
@@ -176,7 +181,8 @@ end
 ]=]
 function PermissionOverwrite:allowAllPermissions()
 	local allowed, denied = getPermissions(self)
-	allowed:enableAll(); denied:disableAll()
+	allowed:enableAll()
+	denied:disableAll()
 	return setPermissions(self, allowed.value, denied.value)
 end
 
@@ -188,7 +194,8 @@ end
 ]=]
 function PermissionOverwrite:denyAllPermissions()
 	local allowed, denied = getPermissions(self)
-	allowed:disableAll(); denied:enableAll()
+	allowed:disableAll()
+	denied:enableAll()
 	return setPermissions(self, allowed.value, denied.value)
 end
 
@@ -200,7 +207,8 @@ end
 ]=]
 function PermissionOverwrite:clearAllPermissions()
 	local allowed, denied = getPermissions(self)
-	allowed:disableAll(); denied:disableAll()
+	allowed:disableAll()
+	denied:disableAll()
 	return setPermissions(self, allowed.value, denied.value)
 end
 
@@ -210,7 +218,8 @@ function get.type(self)
 		return self._type
 	elseif self._type == 1 then
 		return 'member'
-	else -- 0
+	else
+		-- 0
 		return 'role'
 	end
 end

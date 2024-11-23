@@ -32,7 +32,13 @@ function User:getAvatarURL(size, ext)
 	if avatar then
 		ext = ext or avatar:find('a_') == 1 and 'gif' or 'png'
 		if size then
-			return format('https://cdn.discordapp.com/avatars/%s/%s.%s?size=%s', self._id, avatar, ext, size)
+			return format(
+				'https://cdn.discordapp.com/avatars/%s/%s.%s?size=%s',
+				self._id,
+				avatar,
+				ext,
+				size
+			)
 		else
 			return format('https://cdn.discordapp.com/avatars/%s/%s.%s', self._id, avatar, ext)
 		end
@@ -67,11 +73,13 @@ channel is not cached an HTTP request is made to open one.
 function User:getPrivateChannel()
 	local id = self._id
 	local client = self.client
-	local channel = client._private_channels:find(function(e) return e._recipient._id == id end)
+	local channel = client._private_channels:find(function(e)
+		return e._recipient._id == id
+	end)
 	if channel then
 		return channel
 	else
-		local data, err = client._api:createDM({recipient_id = id})
+		local data, err = client._api:createDM({ recipient_id = id })
 		if data then
 			return client._private_channels:_insert(data)
 		else
@@ -142,7 +150,7 @@ end
 
 --[=[@p tag string The user's username if unique or username and discriminator concatenated by an `#`.]=]
 function get.tag(self)
-	if self._discriminator == "0" then
+	if self._discriminator == '0' then
 		return self._username
 	else
 		return self._username .. '#' .. self._discriminator
@@ -151,7 +159,7 @@ end
 
 function get.fullname(self)
 	self.client:_deprecated(self.__name, 'fullname', 'tag')
-	if self._discriminator == "0" then
+	if self._discriminator == '0' then
 		return self._username
 	else
 		return self._username .. '#' .. self._discriminator
@@ -167,7 +175,7 @@ end
 human-readable representation.]=]
 function get.defaultAvatar(self)
 	if self._discriminator == '0' then
-		return (self._id / 2^22) % 6
+		return (self._id / 2 ^ 22) % 6
 	else
 		return self._discriminator % 5
 	end

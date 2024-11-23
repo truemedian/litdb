@@ -28,7 +28,7 @@ end
 @d Sets the channel's name. This must be between 1 and 100 characters in length.
 ]=]
 function GroupChannel:setName(name)
-	return self:_modify({name = name or json.null})
+	return self:_modify({ name = name or json.null })
 end
 
 --[=[
@@ -40,7 +40,7 @@ end
 ]=]
 function GroupChannel:setIcon(icon)
 	icon = icon and Resolver.base64(icon)
-	return self:_modify({icon = icon or json.null})
+	return self:_modify({ icon = icon or json.null })
 end
 
 --[=[

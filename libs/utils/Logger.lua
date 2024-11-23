@@ -19,29 +19,30 @@ local stdout = _G.process.stdout.handle ---@diagnostic disable-line: undefined-f
 local openSync, writeSync = fs.openSync, fs.writeSync
 
 -- local BLACK   = 30
-local RED     = 31
-local GREEN   = 32
-local YELLOW  = 33
+local RED = 31
+local GREEN = 32
+local YELLOW = 33
 -- local BLUE    = 34
 -- local MAGENTA = 35
-local CYAN    = 36
+local CYAN = 36
 -- local WHITE   = 37
 
-local config = {
-	{'[ERROR]  ', RED},
-	{'[WARNING]', YELLOW},
-	{'[INFO]   ', GREEN},
-	{'[DEBUG]  ', CYAN},
-}
+local config =
+	{ { '[ERROR]  ', RED }, { '[WARNING]', YELLOW }, { '[INFO]   ', GREEN }, { '[DEBUG]  ', CYAN } }
 
 local function table_args(is_file, d, tag, entry, msg)
 	local res = { d, tag[1], entry, msg }
-	if entry == nil then res = { d, tag[1], msg } end
-	if not is_file then res[2] = tag[3] end
+	if entry == nil then
+		res = { d, tag[1], msg }
+	end
+	if not is_file then
+		res[2] = tag[3]
+	end
 	return res
 end
 
-do -- parse config
+do
+	-- parse config
 	local bold = 1
 	for _, v in ipairs(config) do
 		v[3] = format('\27[%i;%im%s\27[0m', bold, v[2], v[1])
@@ -58,7 +59,7 @@ function Logger:__init(level, dateTime, file, typePad)
 end
 
 function Logger:pad_end(str, length)
-  return str .. string.rep(' ', length - #str)
+	return str .. string.rep(' ', length - #str)
 end
 
 --[=[
@@ -73,7 +74,6 @@ module and to a file if one was provided on initialization. The `msg, ...` pair
 is formatted according to `string.format` and returned if the message is logged.
 ]=]
 function Logger:log(level, entry, msg, ...)
-
 	if self._level < level then return end
 
 	local tag = config[level]
@@ -99,7 +99,6 @@ function Logger:log(level, entry, msg, ...)
 	stdout:write(format(str_format, table.unpack(args)))
 
 	return msg
-
 end
 
 return Logger

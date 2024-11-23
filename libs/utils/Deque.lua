@@ -50,7 +50,9 @@ end
 @d Removes and returns a value from the left side of the deque.
 ]=]
 function Deque:popLeft()
-	if self._first > self._last then return nil end
+	if self._first > self._last then
+		return nil
+	end
 	local obj = self._objects[self._first]
 	self._objects[self._first] = nil
 	self._first = self._first + 1
@@ -63,7 +65,9 @@ end
 @d Removes and returns a value from the right side of the deque.
 ]=]
 function Deque:popRight()
-	if self._first > self._last then return nil end
+	if self._first > self._last then
+		return nil
+	end
 	local obj = self._objects[self._last]
 	self._objects[self._last] = nil
 	self._last = self._last - 1

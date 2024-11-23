@@ -8,22 +8,22 @@ local class = require('class')
 ---@field actionRow number The Action Row this component is using.
 ---@type fun(data: table, type: number): Component
 ---<!tag:abstract> <!method-tags:mem>
-local Component, get = class("Component")
+local Component, get = class('Component')
 
 ---@type table
 local getter = get
 
 function Component:__init(data, type)
-  assert(data, "argument data must be supplied") -- always required.. ?
-  data.type = type
+	assert(data, 'argument data must be supplied') -- always required.. ?
+	data.type = type
 
-  self._data = data
-  self._actionRow = tonumber(data.actionRow)
+	self._data = data
+	self._actionRow = tonumber(data.actionRow)
 end
 
 function Component:_set(property, value)
-  self._data[property] = value
-  return self
+	self._data[property] = value
+	return self
 end
 
 ---Sets the provided field(s) value. If `property` is a table, `value` is ignored;
@@ -34,27 +34,25 @@ end
 ---@param value? any
 ---@return Component self
 function Component:set(property, value)
-  property = type(property) == "table" and property or {
-    [property] = value
-  }
+	property = type(property) == 'table' and property or { [property] = value }
 
-  ---@diagnostic disable: undefined-field
-  if self._load then
-    self:_load(property)
-  else
-    for k, v in pairs(property) do
-      self._data[k] = v
-    end
-  end
+	---@diagnostic disable: undefined-field
+	if self._load then
+		self:_load(property)
+	else
+		for k, v in pairs(property) do
+			self._data[k] = v
+		end
+	end
 
-  return self
+	return self
 end
 
 ---Returns the value of the provided `property` name.
 ---@param property string
 ---@return any
 function Component:get(property)
-  return self._data[property]
+	return self._data[property]
 end
 
 ---Sets the `disabled` field to `true`.
@@ -62,7 +60,7 @@ end
 ---Returns self.
 ---@return Component self
 function Component:disable()
-  return self:_set("disabled", true)
+	return self:_set('disabled', true)
 end
 
 ---Sets the `disabled` field to `false`.
@@ -70,11 +68,11 @@ end
 ---Returns self.
 ---@return Component self
 function Component:enable()
-  return self:_set("disabled", false)
+	return self:_set('disabled', false)
 end
 
 local function lowercase(m)
-  return '_' .. m:lower()
+	return '_' .. m:lower()
 end
 
 -- Tries to assume what the raw field names are and returns that assumption
@@ -87,29 +85,29 @@ end
 ---By design, user should never need to use this method.
 ---@return table
 function Component:raw()
-  local raw = {}
-  for k, v in pairs(self._data) do
-    raw[k:gsub('([A-Z])', lowercase)] = v
-  end
-  raw.custom_id, raw.id = raw.id, nil -- id field is always translated to custom_id in components
-  raw.action_row = nil -- discord never accept such a field, used internally only
-  return raw
+	local raw = {}
+	for k, v in pairs(self._data) do
+		raw[k:gsub('([A-Z])', lowercase)] = v
+	end
+	raw.custom_id, raw.id = raw.id, nil -- id field is always translated to custom_id in components
+	raw.action_row = nil -- discord never accept such a field, used internally only
+	return raw
 end
 
 function getter:type()
-  return self._data.type
+	return self._data.type
 end
 
 function getter:id()
-  return self._data.id
+	return self._data.id
 end
 
 function getter:disabled()
-  return self._data.disabled or false
+	return self._data.disabled or false
 end
 
 function getter:actionRow()
-  return self._actionRow
+	return self._actionRow
 end
 
 return Component

@@ -5,25 +5,45 @@ local unpack = string.unpack -- luacheck: ignore
 local rep = string.rep
 local yield, resume, running = coroutine.yield, coroutine.resume, coroutine.running
 
-local function onExit() end
+local function onExit()
+end
 
-local fmt = setmetatable({}, {
-	__index = function(self, n)
+local fmt = setmetatable(
+	{},
+	{ __index = function(self, n)
 		self[n] = '<' .. rep('i2', n)
 		return self[n]
-	end
-})
+	end }
+)
 
 local FFmpegProcess = require('class')('FFmpegProcess')
 
 function FFmpegProcess:__init(path, rate, channels)
-
 	local stdout = uv.new_pipe(false)
 
-	self._child = assert(uv.spawn('ffmpeg', {
-		args = {'-i', path, '-ar', rate, '-ac', channels, '-f', 's16le', 'pipe:1', '-loglevel', 'warning'},
-		stdio = {0, stdout, 2},
-	}, onExit), 'ffmpeg could not be started, is it installed and on your executable path?')
+	self._child = assert(
+		uv.spawn(
+			'ffmpeg',
+			{
+				args = {
+					'-i',
+					path,
+					'-ar',
+					rate,
+					'-ac',
+					channels,
+					'-f',
+					's16le',
+					'pipe:1',
+					'-loglevel',
+					'warning',
+				},
+				stdio = { 0, stdout, 2 },
+			},
+			onExit
+		),
+		'ffmpeg could not be started, is it installed and on your executable path?'
+	)
 
 	local buffer
 	local thread = running()
@@ -41,17 +61,14 @@ function FFmpegProcess:__init(path, rate, channels)
 	self._stdout = stdout
 
 	yield()
-
 end
 
 function FFmpegProcess:read(n)
-
 	local buffer = self._buffer
 	local stdout = self._stdout
 	local bytes = n * 2
 
 	if not self._closed and #buffer < bytes then
-
 		local thread = running()
 		stdout:read_start(function(err, chunk)
 			if err or not chunk then
@@ -65,16 +82,14 @@ function FFmpegProcess:read(n)
 			end
 		end)
 		yield()
-
 	end
 
 	if #buffer >= bytes then
 		self._buffer = buffer:sub(bytes + 1)
-		local pcm = {unpack(fmt[n], buffer)}
+		local pcm = { unpack(fmt[n], buffer) }
 		remove(pcm)
 		return pcm
 	end
-
 end
 
 function FFmpegProcess:close()

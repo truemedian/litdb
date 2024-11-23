@@ -11,7 +11,7 @@ local null = json.null
 
 local Cache = require('class')('Cache', Iterable)
 
-local meta = {__mode = 'v'}
+local meta = { __mode = 'v' }
 
 function Cache:__init(array, constructor, parent)
 	local objects = {}

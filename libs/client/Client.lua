@@ -77,7 +77,9 @@ local defaultOptions = {
 local function parseOptions(customOptions)
 	if type(customOptions) == 'table' then
 		local options = {}
-		for k, default in pairs(defaultOptions) do -- load options
+		for k, default in
+			pairs(defaultOptions) -- load options
+		do
 			local custom = customOptions[k]
 			if custom ~= nil then
 				options[k] = custom
@@ -85,11 +87,16 @@ local function parseOptions(customOptions)
 				options[k] = default
 			end
 		end
-		for k, v in pairs(customOptions) do -- validate options
+		for k, v in
+			pairs(customOptions) -- validate options
+		do
 			local default = type(defaultOptions[k])
 			local custom = type(v)
 			if default ~= custom then
-				return error(format('invalid client option %q (%s expected, got %s)', k, default, custom), 3)
+				return error(
+					format('invalid client option %q (%s expected, got %s)', k, default, custom),
+					3
+				)
 			end
 			if custom == 'number' and (v < 0 or v % 1 ~= 0) then
 				return error(format('invalid client option %q (number must be a positive integer)', k), 3)
@@ -147,7 +154,6 @@ function Client:_deprecated(clsName, before, after)
 end
 
 local function run(self, token)
-
 	self:info('Current version: %s', package.version)
 	self:info('Connecting to Discord...')
 
@@ -192,9 +198,7 @@ local function run(self, token)
 	end
 
 	if not url or not owner then
-
 		if user.bot then
-
 			local gateway, err2 = api:getGatewayBot()
 			if not gateway then
 				return self:error('Could not get gateway: ' .. err2)
@@ -209,10 +213,12 @@ local function run(self, token)
 			count = gateway.shards
 			owner = app.owner
 
-			cache[user.id] = {owner = owner, shards = count, timestamp = now}
-
+			cache[user.id] = {
+				owner = owner,
+				shards = count,
+				timestamp = now,
+			}
 		else
-
 			local gateway, err2 = api:getGateway()
 			if not gateway then
 				return self:error('Could not get gateway: ' .. err2)
@@ -222,21 +228,23 @@ local function run(self, token)
 			count = 1
 			owner = user
 
-			cache[user.id] = {timestamp = now}
-
+			cache[user.id] = { timestamp = now }
 		end
 
 		cache.url = url
 
 		writeFileSync(options.gatewayFile, encode(cache))
-
 	end
 
 	self._owner = users:_insert(owner)
 
 	if options.shardCount > 0 then
 		if count ~= options.shardCount then
-			self:warning('Requested shard count (%i) is different from recommended count (%i)', options.shardCount, count)
+			self:warning(
+				'Requested shard count (%i) is different from recommended count (%i)',
+				options.shardCount,
+				count
+			)
 		end
 		count = options.shardCount
 	end
@@ -274,7 +282,6 @@ local function run(self, token)
 		wrap(shard.connect)(shard, url, path)
 		shard:identifyWait()
 	end
-
 end
 
 --[=[
@@ -410,11 +417,11 @@ end
 @t http
 @p username string
 @r boolean
-@d Sets the client's username. This must be between 2 and 32 characters in
+@d Sets the client is username. This must be between 2 and 32 characters in
 length. This does not change the application name.
 ]=]
 function Client:setUsername(username)
-	return self:_modify({username = username or null})
+	return self:_modify({ username = username or null })
 end
 
 --[=[
@@ -422,12 +429,12 @@ end
 @t http
 @p avatar Base64-Resolvable
 @r boolean
-@d Sets the client's avatar. To remove the avatar, pass an empty string or nil.
+@d Sets the client is avatar. To remove the avatar, pass an empty string or nil.
 This does not change the application image.
 ]=]
 function Client:setAvatar(avatar)
 	avatar = avatar and Resolver.base64(avatar)
-	return self:_modify({avatar = avatar or null})
+	return self:_modify({ avatar = avatar or null })
 end
 
 --[=[
@@ -441,7 +448,7 @@ this does not return the created guild object; wait for the corresponding
 `guildCreate` event if you need the object.
 ]=]
 function Client:createGuild(name)
-	local data, err = self._api:createGuild({name = name})
+	local data, err = self._api:createGuild({ name = name })
 	if data then
 		return true
 	else
@@ -491,7 +498,7 @@ end
 static object that is not cached and is not updated by gateway events.
 ]=]
 function Client:getInvite(code, counts)
-	local data, err = self._api:getInvite(code, counts and {with_counts = true})
+	local data, err = self._api:getInvite(code, counts and { with_counts = true })
 	if data then
 		return Invite(data, self)
 	else
@@ -544,8 +551,8 @@ end
 @p id Channel-ID-Resolvable
 @r Channel
 @d Gets a channel object by ID. For guild channels, the current user must be in
-the channel's guild and the client must be running the appropriate shard that
-serves the channel's guild.
+the channel is guild and the client must be running the appropriate shard that
+serves the channel is guild.
 
 For private channels, the channel must have been previously opened and cached.
 If the channel is not cached, `User:getPrivateChannel` should be used instead.
@@ -554,7 +561,9 @@ function Client:getChannel(id)
 	id = Resolver.channelId(id)
 	local guild = self._channel_map[id]
 	if guild then
-		return guild._text_channels:get(id) or guild._voice_channels:get(id) or guild._categories:get(id)
+		return guild._text_channels:get(id) or guild._voice_channels:get(id) or guild._categories:get(
+			id
+		)
 	else
 		return self._private_channels:get(id) or self._group_channels:get(id)
 	end
@@ -565,8 +574,8 @@ end
 @t mem
 @p id Role-ID-Resolvable
 @r Role
-@d Gets a role object by ID. The current user must be in the role's guild and
-the client must be running the appropriate shard that serves the role's guild.
+@d Gets a role object by ID. The current user must be in the role is guild and
+the client must be running the appropriate shard that serves the role is guild.
 ]=]
 function Client:getRole(id)
 	id = Resolver.roleId(id)
@@ -579,8 +588,8 @@ end
 @t mem
 @p id Emoji-ID-Resolvable
 @r Emoji
-@d Gets an emoji object by ID. The current user must be in the emoji's guild and
-the client must be running the appropriate shard that serves the emoji's guild.
+@d Gets an emoji object by ID. The current user must be in the emoji is guild and
+the client must be running the appropriate shard that serves the emoji is guild.
 ]=]
 function Client:getEmoji(id)
 	id = Resolver.emojiId(id)
@@ -593,8 +602,8 @@ end
 @t mem
 @p id Sticker-ID-Resolvable
 @r Sticker
-@d Gets a sticker object by ID. The current user must be in the sticker's guild
-and the client must be running the appropriate shard that serves the sticker's guild.
+@d Gets a sticker object by ID. The current user must be in the sticker is guild
+and the client must be running the appropriate shard that serves the sticker is guild.
 ]=]
 function Client:getSticker(id)
 	id = Resolver.stickerId(id)
@@ -639,7 +648,7 @@ end
 local function updateStatus(self)
 	local presence = self._presence
 	presence.afk = presence.afk or null
-	presence.activities = presence.activity and {presence.activity} or null
+	presence.activities = presence.activity and { presence.activity } or null
 	presence.since = presence.since or null
 	presence.status = presence.status or null
 	for _, shard in pairs(self._shards) do
@@ -652,7 +661,7 @@ end
 @t ws
 @p status string
 @r nil
-@d Sets the current user's status on all shards that are managed by this client.
+@d Sets the current user status on all shards that are managed by this client.
 See the `status` enumeration for acceptable status values.
 ]=]
 function Client:setStatus(status)
@@ -680,14 +689,17 @@ end
 @t ws
 @p activity string/table
 @r nil
-@d Sets the current user's activity on all shards that are managed by this client.
+@d Sets the current user activity on all shards that are managed by this client.
 If a string is passed, it is treated as the activity name. If a table is passed, it
 must have a `name` field and may optionally have a `url` or `type` field. Pass `nil` to
 remove the activity status.
 ]=]
 function Client:setActivity(activity)
 	if type(activity) == 'string' then
-		activity = {name = activity, type = activityType.default}
+		activity = {
+			name = activity,
+			type = activityType.default,
+		}
 	elseif type(activity) == 'table' then
 		if type(activity.name) == 'string' then
 			if type(activity.type) ~= 'number' then
@@ -712,9 +724,9 @@ end
 @t ws
 @p afk boolean
 @r nil
-@d Set the current user's AFK status on all shards that are managed by this client.
+@d Set the current user AFK status on all shards that are managed by this client.
 This generally applies to user accounts and their push notifications.
-]=]
+--]=]
 function Client:setAFK(afk)
 	if type(afk) == 'boolean' then
 		self._presence.afk = afk
@@ -726,49 +738,47 @@ end
 
 local function buildPredicate(msg, typ, id, predicate)
 	local interactionType = enums.interactionType
-  predicate = type(predicate) == "function" and predicate or false
-  return function(inter, ...)
-    return
-      -- interaction corresponds to message component?
-      (inter.type == interactionType.messageComponent)
-      -- interaction was on same targeted message?
-      and (not msg or inter.message and inter.message.id == msg.id)
-      -- does component type match user provided one if any?
-      and (not typ or typ == inter.data.component_type)
-      -- does component id match user provided one if any?
-      and (not id or id == inter.data.custom_id)
-      -- is user provided predicate satisfied if any?
-      and (not predicate or predicate(inter, ...))
-  end
+	predicate = type(predicate) == 'function' and predicate or false
+	return function(inter, ...)
+		return -- interaction corresponds to message component?
+		(inter.type == interactionType.messageComponent) and (not msg or inter.message and inter.message.id == msg.id) and (not typ or typ == inter.data.component_type) and (not id or id == inter.data.custom_id) and (not predicate or predicate( -- interaction was on same targeted message?
+			-- does component type match user provided one if any?
+			-- does component id match user provided one if any?
+			-- is user provided predicate satisfied if any?
+			inter,
+			...
+		))
+	end
 end
 
----@alias Custom-ID-Resolvable string
-
----Equivalent to `client:waitFor("interactionCreate", timeout, predicate)`
----except that it pre-provides a predicate for ease of use.
----If `msg` is provided, only interactionCreate event that reference this Message will pass.
----`type` is the type of the component interaction see componentType enumeration for acceptable values,
----if none specified any will match.
----`id` is the component custom_id, if none provided any id will match,
----`timeout` behave similar to waitFor's, so do `predicate`.
----@param msg? Message
----@param typ? string|number
----@param id? Custom-ID-Resolvable
----@param timeout? number
----@param predicate? function
----@return boolean
----@return ...
+--[=[
+@m waitComponent
+@t ws
+@p msg Message
+@p typ string|number
+@p id string
+@p timeout number
+@p predicate function 
+@r nil
+@d Wait components to respond in interaction
+--]=]
 function Client:waitComponent(msg, typ, id, timeout, predicate)
 	local componentType = enums.componentType
-  if msg then
-    assert(#msg._components > 0, "Cannot wait for components on a message that does not even contain any components")
-    assert(msg.author == msg.client.user, "Cannot wait for components on a message not owned by this bot client")
-  end
+	if msg then
+		assert(
+			#msg._components > 0,
+			'Cannot wait for components on a message that does not even contain any components'
+		)
+		assert(
+			msg.author.id == msg.client.user.id or msg.user.id == msg.client.user.id,
+			'Cannot wait for components on a message not owned by this bot client'
+		)
+	end
 
-  typ = type(typ) == "number" and typ or componentType[typ]
-  predicate = buildPredicate(msg, typ, id, predicate)
+	typ = type(typ) == 'number' and typ or componentType[typ]
+	predicate = buildPredicate(msg, typ, id, predicate)
 
-  return self:waitFor("interactionCreate", timeout, predicate)
+	return self:waitFor('interactionCreate', timeout, predicate)
 end
 
 --[=[@p shardCount number/nil The number of shards that this client is managing.]=]
@@ -837,6 +847,11 @@ end
 user-accounts should have these.]=]
 function get.relationships(self)
 	return self._relationships
+end
+
+
+function get.components(self)
+  return self._components
 end
 
 return Client
