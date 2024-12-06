@@ -1,9 +1,34 @@
 local enums = {}
 
 enums.interactionType = {
-  ping                = 1,
-  applicationCommand  = 2,
-  messageComponent    = 3,
+  ping                            = 1,
+  applicationCommand              = 2,
+  messageComponent                = 3,
+  applicationCommandAutocomplete  = 4,
+  modalSubmit                     = 5,
+}
+
+enums.interactionContextType = {
+  guild           = 1,
+  botDm           = 2,
+  privateChannel  = 3,
+}
+
+enums.interactionCallbackType = {
+  pong                                  = 1,
+  channelMessage                        = 4,
+  deferredChannelMessage                = 5,
+  deferredUpdateMessage                 = 6,
+  updateMessage                         = 7,
+  applicationCommandAutocompleteResult  = 8,
+  modal                                 = 9,
+  premiumRequired                       = 10, -- deprecated
+  launchActivity                        = 12,
+}
+
+enums.applicationIntegrationType = {
+  guildInstall = 0,
+  userInstall  = 2,
 }
 
 enums.appCommandType = {
@@ -23,6 +48,7 @@ enums.appCommandOptionType = {
   role            = 8,
   mentionable     = 9,
   number          = 10,
+  attachment      = 11,
 }
 
 enums.appCommandPermissionType = {
@@ -34,25 +60,13 @@ enums.componentType = {
   actionRow   = 1,
   button      = 2,
   selectMenu  = 3,
-}
-
-enums.buttonStyle = {
-  primary   = 1,
-  secondary = 2,
-  success   = 3,
-  danger    = 4,
-  link      = 5,
+  textInput   = 4,
 }
 
 enums.messageFlag = {
-	crossposted           = 0x00000001,
-	isCrosspost           = 0x00000002,
-	suppressEmbeds        = 0x00000004,
-	sourceMessageDeleted  = 0x00000008,
-	urgent                = 0x00000010,
-  hasThread             = 0x00000020,
-  ephemeral             = 0x00000040,
-  loading               = 0x00000080,
+  hasThread = 0x00000020,
+  ephemeral = 0x00000040,
+  loading   = 0x00000080,
 }
 
 return enums
