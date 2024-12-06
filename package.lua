@@ -1,9 +1,9 @@
 return {
 	name = 'truemedian/litdb-fixup',
-	version = '0.0.3',
+	version = '0.0.10',
 	license = 'MIT',
 	files = {
 		'*',
-		'!*.dll',
+		'!*.disabled',
 	}
 }
