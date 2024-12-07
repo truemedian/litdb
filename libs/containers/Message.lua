@@ -1,16 +1,14 @@
---[=[
-@c Message
-@t patch
-@d A patched version of the Discordia Message class.
-]=]
-
 local null = require("json").null
-local Resolver = require("Resolver")
+local resolver = require("resolver")
 local discordia = require("discordia")
 
 local classes = discordia.class.classes
-local rawComponents = Resolver.rawComponents
+local rawComponents = resolver.rawComponents
 
+---The Discordia Message class patched to include additional features.
+---@class Message
+---@field components table The raw table representing the components attached to this Message. See [Discord's Component Structure](https://discord.com/developers/docs/interactions/message-components#component-object) for documentations of this field.
+---<!tag:patch>
 local Message = classes.Message
 local get = Message.__getters
 
@@ -23,58 +21,80 @@ do local oldLoad = Message._loadMore
   end
 end
 
---[=[
-@m updateComponents
-@t http
-@op components Components-Resolvable
-@op data table
-@r Message
-@d Similar to `Message:update(data)` except `data` is optional and mainly used to modify `components` field of a message.
-If `components` is set to falsy, all components on that message will be removed.
-`data` may be optionally supplied to override more fields such as `content`, `embed`, etc.
+---Sets the message's components.
+---If `components` is false or nil, the message's components are removed.
+---
+---Returns `true` on success, otherwise `nil, err`.
+---@param components? Components-Resolvable|boolean
+---@return boolean
+function Message:setComponents(components)
+  components = components and rawComponents(components) or {}
+  return self:_modify{components = components}
+end
 
-Returns the modified version of the Message.
-]=]
-function Message:updateComponents(comp, data)
-  data = type(data) == "table" or {}
-  if not comp then
-    data.components = null
+---Sets multiple properties of the message at the same time. Identical to the one in Discordia;
+---except supported fields are `components`, `content`, `embed` and `embeds`.
+---
+---Returns `true` on success, otherwise `nil, err`.
+---@param data table
+---@return boolean
+---<!tag:http>
+function Message:update(data)
+  local components = data.components and rawComponents(data.components)
+  return self:_modify{
+    components = components or {},
+    content = data.content or null,
+    embed = data.embed or null,
+    embeds = data.embeds or null,
+    allowed_mentions = {
+      parse = {'users', 'roles', 'everyone'},
+      replied_user = not not self._reply_target,
+    },
+  }
+end
+
+---<!ignore>
+---Similar to `Message:update(data)` except `data` is optional and mainly used to modify `components` field of a message.
+---If `components` is false/nil, all components on that message will be removed.
+---`data` may optionally be supplied to override other fields such as `content`, `embed`, etc.
+---
+---Returns the modified version of the Message.
+---@param components? Components-Resolvable|boolean
+---@param data? table
+---@return Message
+---@deprecated Use `Message:update()` instead.
+function Message:updateComponents(components, data)
+  self.client._deprecated("Message", "updateComponents", "update")
+  data = type(data) == "table" and data or {}
+  if not components then
+    data.components = {}
     return self:_modify(data)
   end
-  assert(type(comp) == "table", "bad argument #1 to updateComponents (expected a Components|falsy value)")
-  data.components = rawComponents(comp)
+  assert(components == true or type(components) == "table", "bad argument #1 to updateComponents (expected a Components|falsy value)")
+  data.components = rawComponents(components)
   return self:_modify(data)
 end
 
---[=[
-@m replyComponents
-@t http
-@p content string/table
-@p components Components-Resolvable/table
-@r Message
-@d Equivalent to `Message.channel:sendComponents(content, components)`.
-]=]
-function Message:replyComponents(...)
-  return self._parent:sendComponents(...)
+---Equivalent to `Message.channel:sendComponents(content, components)`.
+---@param content string|table
+---@param components? Components-Resolvable|table
+---@return Message
+---<!tag:http>
+function Message:replyComponents(content, components)
+  return self._parent:sendComponents(content, components)
 end
 
---[=[
-@m waitComponent
-@op type string/number
-@op id Custom-ID-Resolvable
-@op timeout number
-@op predicate function
-@r boolean
-@r ...
-@d Equivalent to `self.client:waitComponent(self, ...)`.
-]=]
-function Message:waitComponent(...)
-  return self.client:waitComponent(self, ...)
+---Equivalent to `Message.client:waitComponent(Message, ...)`.
+---@param type? string|number
+---@param id? Custom-ID-Resolvable
+---@param timeout? number
+---@param predicate? function
+---@return boolean
+---@return ...
+function Message:waitComponent(type, id, timeout, predicate)
+  return self.client:waitComponent(self, type, id, timeout, predicate)
 end
 
---[=[@p components table The raw table representing the components attached to this Message.
-See [Discord's Component Structure](https://discord.com/developers/docs/interactions/message-components#component-object)
-for documentations of this field. ]=]
 function get.components(self)
   return self._components
 end

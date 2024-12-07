@@ -9,12 +9,11 @@ local classes = class.classes
 local buttonStyle = enums.buttonStyle
 local componentType = enums.componentType
 
-local isSubclass = class.isSubclass
 local isInstance = class.isInstance
 
-local Resolver = {}
+local resolver = {}
 
-function Resolver.buttonStyle(style)
+function resolver.buttonStyle(style)
   local t = type(style)
   if t == "string" then
     return buttonStyle[style]
@@ -23,20 +22,24 @@ function Resolver.buttonStyle(style)
   end
 end
 
-function Resolver.buttonEmoji(emoji) -- Partial emoji object
-  if type(emoji) == "table" and emoji.name then
-    return {
-      animated = emoji.animated,
-      name = emoji.name,
-      id = emoji.id
-    }
-  end
+function resolver.emoji(emoji, id, animated) -- Partial emoji object
+  emoji = type(emoji) == "table" and emoji or {
+    id = id,
+    name = emoji,
+    animated = animated,
+  }
+  assert(type(emoji.name) == "string", "an emoji object must at least contain a string name field")
+  return {
+    id = emoji.id,
+    name = emoji.name,
+    animated = emoji.animated,
+  }
 end
 
-function Resolver.rawComponents(comp)
+function resolver.rawComponents(comp)
   if isInstance(comp, classes.Components) then
     return comp:raw()
-  elseif isSubclass(comp, classes.Component) then
+  elseif isInstance(comp, classes.Component) then
     return { -- Auto-wrap the component in an Action Row
       {
         type = componentType.actionRow,
@@ -48,18 +51,18 @@ function Resolver.rawComponents(comp)
   end
 end
 
-function Resolver.objComponents(data)
+function resolver.objComponents(data)
   local bases = {nil, classes.Button, classes.SelectMenu}
-  local nd, cell = classes.Components(), nil
+  local instance, cell = classes.Components(), nil
   for c = 1, #data do
     cell = data[c]
     if type(cell) ~= "table" then return end -- definitely an invalid component
-    cell.type = type(cell.type) == "number" and cell.type or componentType[cell.type]
-    if bases[cell.type] then
-      nd:_buildComponent(bases[cell.type], cell)
+    local cell_type = type(cell.type) == "number" and cell.type or componentType[cell.type]
+    if bases[cell_type] then
+      instance:_buildComponent(bases[cell_type], cell)
     end
   end
-  return nd
+  return instance
 end
 
-return Resolver
+return resolver
