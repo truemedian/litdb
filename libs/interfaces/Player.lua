@@ -1,0 +1,47 @@
+---Some lunalink additional config option
+---@class AudioFilterOptions
+---<!tag:properties>
+---@field clear 'clear' Clear all the filter
+---@field eightD 'eightD' eightD filter
+---@field speed 'speed' speed filter
+---@field karaoke 'karaoke' karaoke filter
+---@field nightcore 'nightcore' nightcore filter
+---@field pop 'pop' pop filter
+---@field vaporwave 'vaporwave' vaporwave filter
+---@field party 'party' party filter
+---@field earrape 'earrape' earrape filter
+---@field equalizer 'equalizer' equalizer filter
+---@field electronic 'electronic' electronic filter
+---@field radio 'radio' radio filter
+---@field tremolo 'tremolo' tremolo filter
+---@field treblebass 'treblebass' treblebass filter
+---@field vibrato 'vibrato' vibrato filter
+---@field china 'china' china filter
+---@field chimpunk 'darthvader' soft filter
+---@field daycore 'daycore' daycore filter
+---@field doubletime 'doubletime' doubletime filter
+---@field pitch 'pitch' pitch filter
+---@field rate 'rate' rate filter
+---@field slow 'slow' slow filter
+
+---The voice channel options interface for creating player
+---@class VoiceChannelOptions
+---<!tag:properties>
+---@field guildId string Target guild identify
+---@field shardId string Target guild shard identify
+---@field voiceId string Target guild voice channel identify
+---@field textId string Target guild text channel identify 
+---@field volume number Target volume ammount
+---@field nodeName string Target node name
+---@field deaf boolean Whenever the bot is deaf
+---@field mute boolean Whenever the bot is mute
+
+---Some avaliable options for play functions
+---@class PlayOptions
+---<!tag:properties>
+---@field noReplace boolean Don't replace the current track
+---@field pause boolean Whenever you want to pause the track or not
+---@field startTime number When you want to start the track
+---@field endTime number When you want to end the track
+---@field replaceCurrent boolean Whenever you want to replace the current track or not
+---@field position number The start position of the track

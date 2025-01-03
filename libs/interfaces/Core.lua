@@ -1,0 +1,14 @@
+---The rainlink search function result interface
+---@class SearchResult
+---<!tag:properties>
+---@field type SearchResultType The type of search results
+---@field playlistName 'string/nil' The name of playlist
+---@field tracks 'Table<[[Track]]>' A list of resoolved tracks
+
+---The rainlink search function options interface
+---@class SearchOptions
+---<!tag:properties>
+---@field requester unknown User info of who request the song
+---@field nodeName string Which node do user want to use (get using node name)
+---@field engine string Which search engine do user want to use (get using search engine name)
+---@field sourceID string Direct ID for source (bypass all plugins)

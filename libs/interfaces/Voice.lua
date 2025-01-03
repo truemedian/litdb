@@ -1,0 +1,14 @@
+---Represents the payload from a serverUpdate event
+---@class ServerUpdate
+---<!tag:properties>
+---@field token string A token to connect to discord voice server
+---@field guild_id string Target guild id
+---@field endpoint string Target endpoints
+
+---Represents the partial payload from a stateUpdate event
+---@class StateUpdatePartial
+---<!tag:properties>
+---@field channel_id string Target channel identifier
+---@field session_id string Target channel session identifier
+---@field self_deaf boolean Whenever the bot is deaf
+---@field self_mute boolean Whenever the bot is mute
