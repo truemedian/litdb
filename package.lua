@@ -1,18 +1,28 @@
 return {
+	version = "9.0.2",
+
 	name = "Lautenschlager-id/transfromage",
-	version = "9.0.0",
-	homepage = "https://github.com/Lautenschlager-id/Transfromage",
+	author = "Lautenschlager-id",
+
+	homepage = "https://github.com/Lautenschlager-id/transfromage",
+	license = "MIT",
+
+	files = { "*.lua" },
 	dependencies = {
 		"creationix/base64",
 		"creationix/coro-http",
 		"luvit/secure-socket",
-		"luvit/net",
 		"Lautenschlager-id/prepdir"
 	},
-	tags = { "transformice", "bot", "game", "api", "lua", "luvit", "fromage", "transfromage" },
-	license = "MIT",
-	author = "Lautenschlager-id",
-	files = {
-		"**.lua"
+	tags = {
+		"api",
+		"bot",
+		"fromage",
+		"game",
+		"lua",
+		"luvit",
+		"transformice",
+		"transfromage",
+		"atelier801"
 	}
 }
