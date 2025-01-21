@@ -1,5 +1,5 @@
 return {
-	version = "9.0.3",
+	version = "9.0.4",
 
 	name = "Lautenschlager-id/transfromage",
 	author = "Lautenschlager-id",
@@ -7,7 +7,7 @@ return {
 	homepage = "https://github.com/Lautenschlager-id/transfromage",
 	license = "MIT",
 
-	files = { "*.lua" },
+	files = { "*.lua", "libs/*.lua" },
 	dependencies = {
 		"creationix/base64",
 		"creationix/coro-http",
