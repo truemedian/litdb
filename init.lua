@@ -50,6 +50,10 @@ end
 
 local function fromISO(iso)
 	local year, month, day, hour, min, sec, ms = iso:match("(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+).(%d+)Z")
+
+	if not year or not month or not day or not hour or not min or not sec or not ms then
+		return
+	end
 	
 	local epoch = os.time({
 		year = tonumber(year),
@@ -104,13 +108,20 @@ local function User(data)
 	}
 end
 
+local function Error(code, message)
+	return {
+		code = code,
+		message = message
+	}
+end
+
 -- request handler
 
 function ropi:request(api, method, endpoint, headers, body, retryCount)
 	retryCount = retryCount or 0
 	
 	if retryCount >= MAX_RETRIES then
-		return false, "The resource is being ratelimited."
+		return false, Error(429, "The resource is being ratelimited.")
 	end
 
     local url = "https://" .. api .. ".roblox.com/v1/" .. endpoint
@@ -135,13 +146,17 @@ function ropi:request(api, method, endpoint, headers, body, retryCount)
 		
 		return ropi:request(api, method, endpoint, headers, body, retryCount + 1)
 	else
-		return false, response or result
+		return false, Error(result.code, result.reason)
 	end
 end
 
 -- api functions
 
 function ropi.GetAvatarHeadShot(id, opts, refresh)
+	if type(id) ~= "string" and type(id) ~= "number" then
+		return nil, Error(400, "An invalid ID was provided to GetAvatarHeadShot.")
+	end
+	
 	opts = opts or {}
 	id = tonumber(id) or 0
 
@@ -169,6 +184,10 @@ function ropi.GetAvatarHeadShot(id, opts, refresh)
 end
 
 function ropi.GetUser(id, refresh)
+	if type(id) ~= "string" and type(id) ~= "number" then
+		return nil, Error(400, "An invalid ID was provided to GetUser.")
+	end
+	
 	if not refresh then
 		local cached = fromCache(id)
 		if cached then
@@ -186,6 +205,10 @@ function ropi.GetUser(id, refresh)
 end
 
 function ropi.SearchUser(name, refresh)
+	if type(name) ~= "string" and type(id) ~= "number" then
+		return nil, Error(400, "An invalid name/ID was provided to SearchUser.")
+	end
+	
 	if tonumber(name) then
 		return ropi.GetUser(name, refresh)
 	end
