@@ -1,6 +1,6 @@
 --[[lit-meta
   name = "MrEntrasil/luadb"
-  version = "0.0.2"
+  version = "0.0.3"
   homepage = "https://github.com/MrEntrasil/luadb"
   description = "A local database management provider!"
   license = "MIT"

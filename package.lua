@@ -1,7 +1,8 @@
 return {
     name = "MrEntrasil/luadb",
     homepage = "https://github.com/MrEntrasil/luadb",
-    version = "0.0.2",
+    description = "A local database management provider!",
+    version = "0.0.3",
     files = {
       "*.lua",
     }
