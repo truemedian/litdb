@@ -167,7 +167,7 @@ function NodelinkTwo:convertV4trackResponse(nl2Data)
   for _, value in pairs(ignore_list) do
     if nl2Data.loadType == value then return nl2Data
     else
-      nl2Data.loadType = 'track'
+      nl2Data.loadType = 'playlist'
       return nl2Data
     end
   end
@@ -179,6 +179,27 @@ end
 
 function NodelinkTwo:updateSession(sessionId, mode, timeout)
   self:debug('WARNING: Nodelink doesn\'t support resuming, set resume to true is useless')
+end
+
+function NodelinkTwo:getLyric(player, trackName, language)
+  local track = player.queue.current and player.queue.current.encoded or nil
+  if trackName then
+    local nodeName = player.node.options.name
+    local res = player:search(trackName, {
+      nodeName = nodeName
+    })
+    if #res.tracks == 0 then return nil end
+    track = res.tracks[1].encoded
+  end
+  return self:requester({
+    path = '/loadlyrics',
+    params = {
+      encodedTrack = track,
+      language = language and language or 'en',
+    },
+    headers = { { 'content-type', 'application/json' } },
+    method = 'GET',
+  })
 end
 
 return NodelinkTwo

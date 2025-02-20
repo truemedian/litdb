@@ -8,7 +8,8 @@ local Cache = require('utils/Cache')
 local Functions = class('Functions', Cache)
 
 ---Initial class for Functions
-function Functions:__init()
+function Functions:__init(...)
+  self._bind_list = { ... }
   Cache.__init(self)
 end
 
@@ -19,8 +20,8 @@ end
 function Functions:exec(commandName, ...)
   local func = self:get(commandName)
   if not func then return nil end
-  local getData = func(...)
-  return getData
+  if self._bind_list then return func(table.unpack(self._bind_list), ...) end
+  return func(...)
 end
 
 return Functions

@@ -34,7 +34,6 @@ local NULL = json.null
 ---@field shardId string ID of the Shard that contains the guild that contains the connected voice channel
 ---@field filter AudioFilter Filter class to set, clear get the current filter data
 ---@field voice Voice Voice handler class
--- @field _sudoDestroy Core Main manager class
 
 local Player, get = class('Player')
 
@@ -69,7 +68,7 @@ function Player:__init(lunalink, voice, node)
   self._state = PlayerState.DESTROYED
   self._deaf = voice.deaf or false
   self._mute = voice.mute or false
-  self._functions = Functions()
+  self._functions = Functions(self)
   if (self._node.driver.playerFunctions.size ~= 0) then
     for _, value in pairs(self._node.driver.playerFunctions:full()) do
       self._functions:set(value[1], value[2])
@@ -213,7 +212,6 @@ function Player:play(track, options)
   self:checkDestroyed()
 
   if track and track.__name ~= 'LunalinkTrack' then
-    p(track.__name)
     error('track must be a LunalinkTrack')
   end
 
@@ -478,8 +476,8 @@ function Player:stop(destroy)
 		},
 	})
 
-	self._manager:emit(Events.TrackEnd, self, self._queue.current)
-  self._manager:emit(Events.PlayerStop, self)
+	self._lunalink:emit(Events.TrackEnd, self, self._queue.current)
+  self._lunalink:emit(Events.PlayerStop, self)
 
 	return self
 end
@@ -508,7 +506,7 @@ function Player:clean(emitEmpty)
   self._paused = true
   self._playing = false
   self._track = nil
-  self._data:clear()
+  if not self._data:get('sudo-destroy') then self._data:clear() end
   self._position = 0
   if emitEmpty then self._lunalink:emit(Events.QueueEmpty, self, self._queue) end
 end
@@ -545,7 +543,9 @@ function Player:send(data)
 end
 
 function Player:checkDestroyed()
-  assert(self._state ~= PlayerState.DESTROYED, 'Player is destroyed')
+  if self._state == PlayerState.DESTROYED then
+    error('Player is destroyed')
+  end
 end
 
 function Player:debug(logs, ...)

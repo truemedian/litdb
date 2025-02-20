@@ -1,7 +1,6 @@
 ---Some lunalink additional config option
 ---@class LunalinkConfig
 ---<!tag:properties>
----@field additionalDriver table Additional custom driver for rainlink (no need 'new' keyword when add). Example: `additionalDriver: Lavalink4`
 ---@field retryTimeout number Timeout before trying to reconnect (ms)
 ---@field retryCount number Number of times to try and reconnect to Lavalink before giving up
 ---@field voiceConnectionTimeout number  The retry timeout for voice manager when dealing connection to discord voice server (ms)
@@ -22,7 +21,7 @@
 ---@field library AbstractLibrary The discord library for using voice manager, example: discordjs, erisjs
 ---@field plugins LunalinkPlugin The rainlink plugins array. Check Plugin
 ---@field config LunalinkConfig Lunalink config options
-
+---@field additionalDriver table Additional custom driver for rainlink (no need 'new' keyword when add). Example: `additionalDriver: Lavalink4`
 
 ---Search fallback config
 ---@class SearchFallback

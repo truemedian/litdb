@@ -51,10 +51,10 @@ function Lunalink:__init(options)
   self._library = options.library:set(self)
 	self._options.config = merge_default(self.default_options, self._options.config)
 	if (
-		self._options.config.additionalDriver and
-		#self._options.config.additionalDriver ~= 0
+		self._options.additionalDriver and
+		#self._options.additionalDriver ~= 0
 	) then
-		for _, value in pairs(self._options.config.additionalDriver) do
+		for _, value in pairs(self._options.additionalDriver) do
 			table.insert(self._drivers, value)
 		end
 	end

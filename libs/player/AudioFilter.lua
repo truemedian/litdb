@@ -48,7 +48,7 @@ function AudioFilter:set(filter)
     log_debug = { 'All filters have been successfully reset to their default positions.', nil }
   end
 
-  self.debug(table.unpack(log_debug))
+  self:debug(table.unpack(log_debug))
 
   return self._player
 end
@@ -58,14 +58,22 @@ end
 function AudioFilter:clear()
   self:_checkDestroyed()
 
+  local empty = {}
+
+  local meta = {
+    __jsontype = "object"
+  }
+
+  setmetatable(empty, meta)
+
   self._player:send({
     guildId = self._player._guildId,
-    playerOptions = { filters = {} }
+    playerOptions = { filters = empty }
   })
 
   self._current = nil
 
-  self.debug('All filters have been successfully reset to their default positions.')
+  self:debug('All filters have been successfully reset to their default positions.')
 
   return self._player
 end
@@ -152,7 +160,7 @@ function AudioFilter:setRaw(filter)
 
   self._current = filter
 
-  self.debug('Custom filter has been successfully set. Data: %s', json.encode(filter))
+  self:debug('Custom filter has been successfully set. Data: %s', json.encode(filter))
 
   return self._player
 end

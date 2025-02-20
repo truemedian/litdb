@@ -467,6 +467,9 @@ for _, class in pairs(docs) do
 
 end
 
+local home = assert(fs.readFileSync('./README.md'))
+fs.writeFileSync('docs/Home.md', home)
+
 for f in coroutine.wrap(scan), './handwritten' do
 	local new_dir = 'docs/' .. string.match(f, 'handwritten/(.*)')
 	local d = assert(fs.readFileSync(f))

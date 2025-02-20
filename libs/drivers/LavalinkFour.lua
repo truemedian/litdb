@@ -163,7 +163,6 @@ function LavalinkFour:wsClose()
 end
 
 function LavalinkFour:updateSession(sessionId, mode, timeout)
-  error('driver function: updateSession missing')
   local options = {
     path = sf('/sessions/%s', sessionId),
     headers = {

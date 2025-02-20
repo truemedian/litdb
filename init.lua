@@ -1,6 +1,9 @@
 return {
   -- Export main class
   Core = require('Core'),
+  -- Export local decoder
+  AbstractDecoder = require('decoder/AbstractDecoder'),
+  LavalinkDecoder = require('decoder/LavalinkDecoder'),
   -- Export plugin,
   Plugin = require('plugins/Plugin'),
   SourcePlugin = require('plugins/SourcePlugin'),
