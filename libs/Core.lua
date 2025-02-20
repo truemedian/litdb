@@ -178,7 +178,7 @@ function Lunalink:search(query, options)
 
 	local directSearchPattern = 'directSearch=(.+)'
 	local isDirectSearch = string.match(query, directSearchPattern)
-	local isUrl = string.match(query, '^(https?://[%w-%.]+(%:[0-9]+)?)')
+	local isUrl = string.match(query, 'https?://')
 
 	local pluginSearch = self._searchPlugins:get(options.engine or nil)
 	if (
