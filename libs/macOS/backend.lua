@@ -1,6 +1,8 @@
 local ffi = require("ffi")
 local C = ffi.C
 
+local uv = require("uv")
+
 local bit = require("bit")
 local bor = bit.bor
 local lshift = bit.lshift
@@ -21,6 +23,8 @@ ffi.cdef [[
     void CFRunLoopRun(void);
     void CFRunLoopStop(CFRunLoopRef rl);
 
+    double CFRunLoopRunInMode(const void* mode, double seconds, bool returnAfterSourceHandled);
+
     void* CGEventTapCreate(
         int tap,
         int place,
@@ -37,25 +41,6 @@ ffi.cdef [[
 
     long long CGEventGetIntegerValueField(CGEventRef event, int field);
 
-    typedef uint16_t UniChar;
-    typedef UniChar* UniCharPtr;
-    typedef uint32_t UniCharCount;
-
-    typedef struct __TISInputSource * TISInputSourceRef;
-    typedef struct __CFString * CFStringRef;
-
-    TISInputSourceRef TISCopyCurrentKeyboardLayoutInputSource(void);
-    const void* TISGetInputSourceProperty(TISInputSourceRef inputSource, CFStringRef propertyKey);
-
-    CFStringRef CFStringCreateWithCharacters(void* alloc, const UniChar* chars, UniCharCount numChars);
-    bool CFStringGetCString(CFStringRef theString, char* buffer, long bufferSize, int encoding);
-
-    enum {
-        kCFStringEncodingUTF8 = 0x08000100
-    };
-
-    static const int kTISPropertyUnicodeKeyLayoutData = 0x75636872; // 'uchr' in ASCII as hex
-
     // used for mouse location
     typedef struct {
         double x;
@@ -64,34 +49,35 @@ ffi.cdef [[
 
     CGPoint CGEventGetLocation(CGEventRef event);
     // double CGEventGetDoubleValueField(CGEventRef event, int field); // used for ultra precise mouse readings
+
+    extern const void* kCFRunLoopDefaultMode;
 ]]
 
 local core = ffi.load("/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")
 
 local EVENT_TYPE = require("macOS/eventTypes")
-local button_map = {
+local MOUSEBUTTON_MAP = {
     [0] = "left",
     [1] = "right",
     [2] = "middle"
 }
 
 local function init(self)
-    local states = {}
     local function event(proxy, type, ref, userData)
         local keycode = tonumber(ffi.cast("uintptr_t", C.CGEventGetIntegerValueField(ref, 9))) -- 9 = kCGKeyboardEventKeycode
         -- if not keycode then return end
 
         if type == EVENT_TYPE.KEY_DOWN then
-            if not states[keycode] then
+            if not self._states[keycode] then
                 ---@diagnostic disable-next-line: need-check-nil
-                states[keycode] = true
+                self._states[keycode] = true
 
                 self:emit("key_press", keycode)
             end
         elseif type == EVENT_TYPE.KEY_UP then
-            if states[keycode] then
+            if self._states[keycode] then
                 ---@diagnostic disable-next-line: need-check-nil
-                states[keycode] = nil
+                self._states[keycode] = nil
 
                 self:emit("key_release", keycode)
             end
@@ -102,7 +88,12 @@ local function init(self)
         local x = location.x
         local y = location.y
 
-        local side = button_map[mouse_button] or "unknown"
+        if x == nil or y == nil then return ref end
+
+        self._last_mouseX = x
+        self._last_mouseY = y
+
+        local side = MOUSEBUTTON_MAP[mouse_button] or "unknown"
 
         if type == EVENT_TYPE.MOUSE_MOVED then
             self:emit("mouse_move", x, y)
@@ -131,8 +122,6 @@ local function init(self)
 
     local c_callback = ffi.cast("CGEventTapCallBack", event)
 
-    -- we are interested in key down & key up
-    -- TODO: also implement mouse events
     local event_mask = bor(
         lshift(1, EVENT_TYPE.KEY_DOWN),
         lshift(1, EVENT_TYPE.KEY_UP),
@@ -158,7 +147,7 @@ local function init(self)
     end
 
     -- the name is slightly deceptive, it doesnt listen for literal "taps" on desktop
-    -- just enables listening to key events
+    -- just enables listening to key events and mouse, etc
     core.CGEventTapEnable(event_tap, true)
 
     -- attaching our "tap" to the run loop
@@ -166,7 +155,28 @@ local function init(self)
     core.CFRunLoopAddSource(core.CFRunLoopGetCurrent(), source, C.kCFRunLoopCommonModes)
 end
 
+local timer
+local function runLoop()
+    if timer then return end
+
+    local interval_ms = 10
+    timer = uv.new_timer()
+
+    timer:start(0, interval_ms, function()
+        core.CFRunLoopRunInMode(C.kCFRunLoopDefaultMode, interval_ms / 1000, false)
+    end)
+end
+
+local function stopLoop()
+    if timer then
+        timer:stop()
+        timer:close()
+        timer = nil
+    end
+end
+
 return {
     init = init,
-    runLoop = core.CFRunLoopRun
+    runLoop = runLoop,
+    stopLoop = stopLoop
 }
