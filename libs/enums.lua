@@ -118,10 +118,10 @@ enums.macOS = enum {
     TAB = 48,
 
     -- arrow keys
-    UP_ARROW = 126,
-    DOWN_ARROW = 125,
-    LEFT_ARROW = 123,
-    RIGHT_ARROW = 124
+    ARROW_UP = 126,
+    ARROW_DOWN = 125,
+    ARROW_LEFT = 123,
+    ARROW_RIGHT = 124
 }
 
 return enums
