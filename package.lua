@@ -1,6 +1,6 @@
 return {
     name = "Richy-Z/input",
-    version = "1.0.1",
+    version = "1.1.0",
     description = "Cross-platform keyboard and mouse library for Luvit",
     tags = { "keyboard", "mouse", "input", "press", "touch", "cross-platform" },
     license = "Apache 2.0",
@@ -8,10 +8,14 @@ return {
     homepage = "https://github.com/Richy-Z/input",
     dependencies = {},
     files = {
+        -- includes
         "**.lua",
+
+        -- excludes
         "!examples*",
         "!tests*",
         "!.vscode*",
-        "!.github"
+        "!.github",
+        "!example.lua"
     }
 }

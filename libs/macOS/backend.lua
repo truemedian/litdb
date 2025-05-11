@@ -55,11 +55,25 @@ ffi.cdef [[
     };
 
     static const int kTISPropertyUnicodeKeyLayoutData = 0x75636872; // 'uchr' in ASCII as hex
+
+    // used for mouse location
+    typedef struct {
+        double x;
+        double y;
+    } CGPoint;
+
+    CGPoint CGEventGetLocation(CGEventRef event);
+    // double CGEventGetDoubleValueField(CGEventRef event, int field); // used for ultra precise mouse readings
 ]]
 
 local core = ffi.load("/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices")
 
 local EVENT_TYPE = require("macOS/eventTypes")
+local button_map = {
+    [0] = "left",
+    [1] = "right",
+    [2] = "middle"
+}
 
 local function init(self)
     local states = {}
@@ -83,6 +97,35 @@ local function init(self)
             end
         end
 
+        local mouse_button = tonumber(ffi.cast("uintptr_t", C.CGEventGetIntegerValueField(ref, 23))) -- kCGMouseEventButtonNumber
+        local location = core.CGEventGetLocation(ref)
+        local x = location.x
+        local y = location.y
+
+        local side = button_map[mouse_button] or "unknown"
+
+        if type == EVENT_TYPE.MOUSE_MOVED then
+            self:emit("mouse_move", x, y)
+        elseif type == EVENT_TYPE.MOUSE_DOWN then
+            self:emit("mouse_down", side, x, y)
+        elseif type == EVENT_TYPE.MOUSE_UP then
+            self:emit("mouse_up", side, x, y)
+        elseif type == EVENT_TYPE.MOUSE_DRAGGED then
+            self:emit("mouse_drag", side, x, y)
+        elseif type == EVENT_TYPE.MOUSE_WHEEL then
+            -- ultra precise mouse scroll readings
+            -- local scroll_x = core.CGEventGetDoubleValueField(ref, 93)         -- kCGScrollWheelEventDeltaAxis1
+            -- local scroll_y = core.CGEventGetDoubleValueField(ref, 94)         -- kCGScrollWheelEventDeltaAxis2
+
+            local scroll_x = tonumber(C.CGEventGetIntegerValueField(ref, 93)) -- horizontal
+            local scroll_y = tonumber(C.CGEventGetIntegerValueField(ref, 94)) -- vertical
+            local is_smooth = C.CGEventGetIntegerValueField(ref, 96) == 1     -- smooth scroll
+
+            if scroll_x == 0 and scroll_y == 0 then return ref end
+
+            self:emit("mouse_scroll", scroll_x, scroll_y, is_smooth)
+        end
+
         return ref -- return unmodified event
     end
 
@@ -92,7 +135,12 @@ local function init(self)
     -- TODO: also implement mouse events
     local event_mask = bor(
         lshift(1, EVENT_TYPE.KEY_DOWN),
-        lshift(1, EVENT_TYPE.KEY_UP)
+        lshift(1, EVENT_TYPE.KEY_UP),
+        lshift(1, EVENT_TYPE.MOUSE_DOWN),
+        lshift(1, EVENT_TYPE.MOUSE_UP),
+        lshift(1, EVENT_TYPE.MOUSE_MOVED),
+        lshift(1, EVENT_TYPE.MOUSE_DRAGGED),
+        lshift(1, EVENT_TYPE.MOUSE_WHEEL)
     )
 
     local event_tap = core.CGEventTapCreate(
