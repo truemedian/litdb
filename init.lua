@@ -2,6 +2,7 @@ local input = {
     _handlers = {},
     _initialized = false,
     _states = {},
+    _mouseStates = {},
     _last_mouseX = -1,
     _last_mouseY = -1,
     enums = require("enums")
@@ -57,6 +58,10 @@ end
 
 function input:isDown(key)
     return self._states[key] ~= nil
+end
+
+function input:isMouseDown(side)
+    return self._mouseStates[side] ~= nil
 end
 
 return input
