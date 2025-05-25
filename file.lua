@@ -1,11 +1,11 @@
 --[[lit-meta
     name = "Richy-Z/base32"
-    version = "0.1.2"
+    version = "0.1.3"
     dependencies = {}
     description = "Base32 implementation for Luvit"
     tags = { "base32", "rfc4648", "encoding", "decoding" }
     license = "Apache 2"
-    author = { name = "Richy Z", email = "hello@richy.lol" }
+    author = { name = "Richard Ziupsnys", email = "hello@richy.lol" }
     homepage = "https://github.com/Richy-Z/base32"
   ]]
 
