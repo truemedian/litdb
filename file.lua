@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "Richy-Z/string-extensions"
-    version = "0.1.3"
+    version = "0.1.4"
     dependencies = {}
     description = "Small extensions to Lua's default string library"
     tags = { "strings", "split", "regex", "random" }
@@ -9,15 +9,40 @@
     homepage = "https://github.com/Richy-Z/luvit-batteries"
   ]]
 
+local gmatch = string.gmatch
+local find = string.find
+local sub = string.sub
+
+local insert = table.insert
+local concat = table.concat
+
+local random = math.random
+
+-- yes, I know that 'injecting' my own custom functions into default libraries isn't entirely ideal
+-- but its part of actually making the string library more useful
+-- also for that built-in feel
+
 return function()
+    function string.startswith(str, prefix)
+        return str:sub(1, #prefix) == prefix
+    end
+
+    function string.endswith(str, suffix)
+        return suffix == "" or str:sub(- #suffix) == suffix
+    end
+
+    function string.trim(str)
+        return str:match("^%s*(.-)%s*$")
+    end
+
     function string.split(input, separator)
         if separator == nil then
             separator = "%s"
         end
 
         local out = {}
-        for str in string.gmatch(input, "([^" .. separator .. "]+)") do
-            table.insert(out, str)
+        for str in gmatch(input, "([^" .. separator .. "]+)") do
+            insert(out, str)
         end
 
         return out
@@ -30,16 +55,41 @@ return function()
 
         local out = {}
         local start = 1
-        local sep_start, sep_end = string.find(input, separator, start, true)
+        local sep_start, sep_end = find(input, separator, start, true)
 
         while sep_start do
-            table.insert(out, string.sub(input, start, sep_start - 1))
+            insert(out, sub(input, start, sep_start - 1))
             start = sep_end + 1
-            sep_start, sep_end = string.find(input, separator, start, true)
+            sep_start, sep_end = find(input, separator, start, true)
         end
 
-        table.insert(out, string.sub(input, start))
+        insert(out, sub(input, start))
         return out
+    end
+
+    function string.wrap(str, limit)
+        limit = limit or 80
+        local out = {}
+        local line = ""
+
+        for word in str:gmatch("%S+") do
+            if #line + #word + 1 > limit then
+                insert(out, line)
+                line = word
+            else
+                if #line > 0 then
+                    line = line .. " " .. word
+                else
+                    line = word
+                end
+            end
+        end
+
+        if #line > 0 then
+            insert(out, line)
+        end
+
+        return concat(out, "\n")
     end
 
     function string.deregexify(str)
@@ -57,13 +107,13 @@ return function()
 
         local charsetLen = #customCharset
 
-        local random = ""
+        local r = ""
 
         for _ = 1, length do
-            local index = math.random(1, charsetLen)
-            random = random .. customCharset:sub(index, index)
+            local index = random(1, charsetLen)
+            r = r .. customCharset:sub(index, index)
         end
 
-        return random
+        return r
     end
 end
