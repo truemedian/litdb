@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "Richy-Z/string-extensions"
-    version = "0.1.4"
+    version = "0.1.5"
     dependencies = {}
     description = "Small extensions to Lua's default string library"
     tags = { "strings", "split", "regex", "random" }
@@ -33,6 +33,11 @@ return function()
 
     function string.trim(str)
         return str:match("^%s*(.-)%s*$")
+    end
+
+    function string.zfill(str, width)
+        str = tostring(str)
+        return string.rep("0", width - #str) .. str
     end
 
     function string.split(input, separator)
