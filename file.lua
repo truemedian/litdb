@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "Richy-Z/clock"
-    version = "0.2.1"
+    version = "0.2.2"
     dependencies = {}
     description = "A simple library to get precise UNIX time and other utility functions"
     tags = { "clock", "time", "unix", "iso8601", "timestamp", "ffi", "milliseconds" }
@@ -91,8 +91,6 @@ end
 -- tests
 assert(math.floor(iso8601_parse("2025-05-27T23:45:12.123Z")) == 1748389512) ---@diagnostic disable-line: param-type-mismatch
 -- p(iso8601_parse("2025-05-27T23:45:12.123Z"))
-
-p(iso8601_parse("2025-05-27T23:45:12.123Z"))
 
 return {
     epoch = epoch,
