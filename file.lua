@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "Richy-Z/logger"
-    version = "1.0.3"
+    version = "1.0.4"
     dependencies = {"luvit/fs"}
     description = "A lightweight per-instance logging utility"
     tags = { "logger", "logs", "logging", "stdout", "error" }
@@ -9,16 +9,16 @@
     homepage = "https://github.com/Richy-Z/luvit-batteries"
   ]]
 
---[=[
+--[[
 Portions of this file are based on 'Logger' by SinisterRectus
 It was originally licensed under the MIT license
 https://github.com/SinisterRectus/Discordia/blob/master/libs/utils/Logger.lua
 
 Modifications made in this version:
-- Refactored into a stateless design, allowing multiple logger instances
+- Rewrote into a stateless design, allowing multiple logger instances
   even when using Lua’s require() caching
 - Added shortcut methods (:error, :info, :debug, :p, etc.) for convenience
-]=]
+]]
 
 local fs                  = require("fs")
 
