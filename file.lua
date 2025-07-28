@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "Richy-Z/string-extensions"
-    version = "0.1.6"
+    version = "0.2.0"
     dependencies = {}
     description = "Small extensions to Lua's default string library"
     tags = { "strings", "split", "regex", "random" }
@@ -8,6 +8,10 @@
     author = { name = "Richard Ziupsnys", email = "hello@richy.lol" }
     homepage = "https://github.com/Richy-Z/luvit-batteries"
   ]]
+
+-- yes, I know that 'injecting' my own custom functions into default libraries isn't entirely ideal
+-- but its part of actually making the string library more useful
+-- also for that built-in feel
 
 local gmatch = string.gmatch
 local find = string.find
@@ -18,17 +22,6 @@ local insert = table.insert
 local concat = table.concat
 
 local random = math.random
-
--- yes, I know that 'injecting' my own custom functions into default libraries isn't entirely ideal
--- but its part of actually making the string library more useful
--- also for that built-in feel
-
-
-
-
-
-
-
 
 -- Returns `true` if `str` starts with `prefix`.
 --
@@ -220,6 +213,51 @@ function string.random(length, charset)
     end
 
     return r
+end
+
+-- Returns the [Levenshtein distance](https://en.wikipedia.org/wiki/Levenshtein_distance) between two strings - the minimum number of edits (insertions, deletions, or subtitutions) required to transform the `first` string into the `second` string.
+--
+-- This is useful for fuzzy matching, typo tolerance, and somewhat measuring similarity between two strings.
+--
+-- > **NOTE!!!**
+-- > Empty strings return the length of the other string as distance.
+--
+-- ```lua
+-- print(string.levenshtein("kitten", "sitting")) -- 3
+-- print(string.levenshtein("cat", "cut"))        -- 1
+-- print(string.levenshtein("banana", "banana"))  -- 0
+-- ```
+--
+-- The function internally builds a distance matrix that tracks how much "effort" it takes to align each character of `first` with each character of `second`. Every mismatch adds a penalty (`+1`), unless the characters match (in which case it is `+0`). The bottom-right cell of the matrix (table) holds the final answer, which is the total number of edits needed.
+---@param first string
+---@param second string
+---@return integer distance Levenshtein distance between `first` and `second`
+function string.levenshtein(first, second)
+    local len1, len2 = #first, #second
+    if len1 == 0 then return len2 end
+    if len2 == 0 then return len1 end
+
+    local matrix = {}
+    for i = 0, len1 do
+        matrix[i] = {}
+        matrix[i][0] = i
+    end
+    for j = 0, len2 do
+        matrix[0][j] = j
+    end
+
+    for i = 1, len1 do
+        for j = 1, len2 do
+            local cost = (first:sub(i, i) == second:sub(j, j)) and 0 or 1
+            matrix[i][j] = math.min(
+                matrix[i - 1][j] + 1,       -- deletion
+                matrix[i][j - 1] + 1,       -- insertion
+                matrix[i - 1][j - 1] + cost -- substitution
+            )
+        end
+    end
+
+    return matrix[len1][len2]
 end
 
 -- for legacy compatibility to not break old scripts which rely on running this as a function instead of plain requiring
