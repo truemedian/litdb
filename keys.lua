@@ -119,7 +119,7 @@ setmetatable(dofuncB, {__index={
 }})
 
 local base = {
-	42,
+	43,
 	['char']=0,
 	['new']=1,
 	['string']=1,
@@ -175,10 +175,12 @@ local base = {
 	['values']=36,
 	['index']=36,
 	['definekey']=37,
+	['defineconst']=37,
 	['exec']=38,
 	['args']=39,
 	['func']=40,
-	['cn']=41
+	['cn']=41,
+	['concat']=42
 }
 
 local funcs = {
@@ -486,6 +488,12 @@ local funcs = {
 	end,
 	function(a) -- cn
 		return a:pg(cn)
+	end,
+	function(a) -- concat
+		a:ap()
+		local b = a:interpreter(a:na(0))
+		a:ap()
+		return b .. a:interpreter(a:na(0))
 	end
 }
 

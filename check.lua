@@ -26,6 +26,10 @@ local function check(a, b)
 				table.insert(e, f[1])
 				f[a[c+1]]=f[1]
 				f[1]=f[1]+1
+			elseif a[c]=='defineconst' then
+				table.remove(e, #e)
+				k=k+2
+				if type(a[c+2])=='number' then f[a[c+1]]=a[c+2] else f[a[c+1]]=f[a[c+2]] end
 			elseif a[c]=='do' then
 				table.insert(h, 1, #e+1)
 			elseif a[c]=='od' then
