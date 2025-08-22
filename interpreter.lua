@@ -115,7 +115,7 @@ function runner:interpreter(a)
 end
 
 function runner:execnext()
-	if type(self.archive)~='userdata' then return end
+	if type(self.archive)=='string' then return end
 	self.archive:seek("set", self.pos)
 	local b=self.archive:read(1)
 	if b then

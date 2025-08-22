@@ -10,7 +10,16 @@ return {
 	compileToTable=function(e)
 		if not e then error("Argument missing in compileToTable") end
 		if not type(e)=='string' then error("First argument: String expected, got " .. type(e)) end
-		return b(a(e), c)
+		local g, h = b(a(e), c)
+		local f = {}
+		if g then
+			for i=1, #h do
+				if type(h[i])=='number' then table.insert(f, string.char(h[i])) else for j=1, #h[i] do table.insert(f, string.sub(h[i], j, j)) end end
+			end
+			return g, f
+		else
+			return g, h
+		end
 	end,
 	compileToArchive=function(e, f)
 		if not e then error("First argument missing in compileToArchive") end
