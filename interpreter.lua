@@ -153,7 +153,7 @@ local function createRunner(a)
 	end
 	c.debug=not not a
 	c.id=b
-	c:ps(3, require("valuesType"):new())
+	c:ps(3, require("./valuesType"):new())
 	c:ps(4, false)
 	return c
 end

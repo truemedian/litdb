@@ -1,3 +1,5 @@
+if not _G.SKLConstants then _G.SKLConstants={} end
+if not _G.SKLFuncs then _G.SKLFuncs={} end
 require("./hexConstants")
 local a = require("./lexer")
 local b = require("./check")
@@ -27,7 +29,7 @@ return {
 		end
 	end,
 	runFromTable=function(e, f)
-		if not e then error("Argument missing in runFromTable")
+		if not e then error("Argument missing in runFromTable") end
 		if f and not type(f)=='function' then error("Second argument expect function in runFromTable") end
 		if not type(e)=='table' then error("First argument: Table expected, got " .. type(e)) end
 		local g = d(f)
@@ -39,7 +41,7 @@ return {
 			seek=function(i, j, k)
 				i.pos=k
 			end
-		})
+		}})
 		local h=true
 		repeat
 			h=g:execnext()
