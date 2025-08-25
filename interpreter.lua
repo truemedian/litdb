@@ -36,34 +36,34 @@ function runner:sz(a)
 end
 
 function runner:ps(a, b)
-	self.processVar[a+1]=b
-	if self.debug then _G[self.id]:update(self) _G[self.id]:updated({5, a+1, b}) end
+	self.processVar[a]=b
+	if self.debug then _G[self.id]:update(self) _G[self.id]:updated({5, a, b}) end
 	return self
 end
 
 function runner:pg(a)
-	if self.debug then _G[self.id]:updated({6, a+1}) end
-	return self.processVar[a+1]
+	if self.debug then _G[self.id]:updated({6, a}) end
+	return self.processVar[a]
 end
 
 function runner:pm(a, b, c)
 	if c then
-		self.runningVars[b+1]=self.processVar[a+1]
+		self.runningVars[b+1]=self.processVar[a]
 	else
-		self.processVar[b+1]=self.processVar[a+1]
+		self.processVar[b]=self.processVar[a]
 	end
-	if self.debug then _G[self.id]:update(self) _G[self.id]:updated({6, a+1, b+1, c}) end
+	if self.debug then _G[self.id]:update(self) _G[self.id]:updated({6, a, b, c}) end
 	return self
 end
 
 function runner:pr(a)
 	self.processVar[a+1]=nil
-	if self.debug then _G[self.id]:update(self) _G[self.id]:updated({7, a+1}) end
+	if self.debug then _G[self.id]:update(self) _G[self.id]:updated({7, a}) end
 	return self
 end
 
 function runner:pz(a)
-	if a then return #self.processVar[a+1] else return #self.processVar end
+	if a then return #self.processVar[a] else return #self.processVar end
 end
 
 function runner:ap()

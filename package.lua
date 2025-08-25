@@ -1,6 +1,6 @@
 return {
 	name = "PipocaLeca75/SKLLuaTool",
-	version = "1.0.3",
+	version = "1.1.0",
 	description = "compilador e interpretador de SKL",
 	tags = { "SKL", "lua", "tool" },
 	license = "MIT",

@@ -1,5 +1,6 @@
 if not _G.SKLConstants then _G.SKLConstants={} end
 if not _G.SKLFuncs then _G.SKLFuncs={} end
+if not _G.SKLFuncsNames then _G.SKLFuncsNames={} end
 require("./hexConstants")
 local a = require("./lexer")
 local b = require("./check")
@@ -33,6 +34,7 @@ return {
 				if type(h[i])=='number' then f:write(string.char(h[i])) else f:write(h[i]) end
 			end
 			f:close()
+			return g, h
 		else
 			return g, h
 		end
@@ -55,7 +57,7 @@ return {
 		repeat
 			h=g:execnext()
 		until not h
-		return g:pg(0)
+		return g:pg(1)
 	end,
 	runFromArchive=function(e, f)
 		if not e then error("Argument missing in runFromArchive") end
@@ -67,6 +69,6 @@ return {
 		repeat
 			h=g:execnext()
 		until not h
-		return g:pg(0)
+		return g:pg(1)
 	end
 }

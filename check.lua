@@ -57,7 +57,7 @@ local function check(a, b)
 				table.insert(e, 0)
 				table.insert(e, a[c][1])
 			elseif #a[c][1]>255 then
-				local q, r = math.modf(#a[c][1]/256)
+				local q, r = math.modf((#a[c][1]-2)/256)
 				table.insert(e, 2)
 				table.insert(e, q)
 				table.insert(e, r*256)
@@ -66,7 +66,7 @@ local function check(a, b)
 				end
 			else
 				table.insert(e, 1)
-				table.insert(e, #a[c][1])
+				table.insert(e, #a[c][1]-2)
 				for g=1, #a[c][1] do
 					table.insert(e, string.sub(a[c][1], g, g))
 				end

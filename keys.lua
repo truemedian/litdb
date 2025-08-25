@@ -1,9 +1,9 @@
 local values = require("./valuesType")
-local retorno = 0
-local funcao = 1
-local args = 2
-local cn = 3
-local doif = 4
+local retorno = 1
+local funcao = 2
+local args = 3
+local cn = 4
+local doif = 5
 
 local valuesfuncs = {
 	[3]=function(a)
@@ -191,7 +191,7 @@ local funcs = {
 	end,
 	function(a) -- string
 		local c = ""
-		local b = a:na()
+		local b = a:na()+2
 		a:ap()
 		for d=1, b do
 			c=c .. string.char(a:na())
@@ -202,7 +202,7 @@ local funcs = {
 	function(a) -- longstring
 		local c = ""
 		a:ap()
-		local b = (a:na(0)*256)+a:na()
+		local b = (a:na(0)*256)+a:na()+2
 		a:ap()
 		for d=1, b do
 			c=c .. string.char(a:na())
@@ -497,11 +497,11 @@ local funcs = {
 	end
 }
 
-if _G.SKLFuncs then
-	for a, b in pairs(_G.SKLFuncs) do
-		base[a]=base[1]
+if _G.SKLFuncsNames then
+	for a=1, #_G.SKLFuncsNames do
+		base[_G.SKLFuncsNames[a]]=base[1]
 		base[1]=base[1]+1
-		table.insert(funcs, b)
+		table.insert(funcs, _G.SKLFuncs[a])
 	end
 end
 

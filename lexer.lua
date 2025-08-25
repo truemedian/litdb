@@ -12,7 +12,9 @@ local function lexer(code)
 	end
 	for f in string.gmatch(code, '([^%s]+)') do
 		if tonumber(f, 10) then
-			f=tonumber(f, 10)
+			if not string.sub(f, 1, 2)=="0x" then
+				f=tonumber(f, 10)
+			end
 		end
 		table.insert(b, f)
 	end
