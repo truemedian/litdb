@@ -17,7 +17,7 @@ function values:remove(a)
 end
 
 function values:value(a)
-	return self.a[a]
+	if a then return self.a[a] else return self:size() end
 end
 
 function values:index(a)

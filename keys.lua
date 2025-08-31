@@ -21,34 +21,52 @@ local valuesfuncs = {
 	end,
 	[7]=function(a)
 		a:ap()
-		local b = a:interpreter(a:na(0))
-		a:ap()
 		local c = a:interpreter(a:na(0))
+		a:ap()
+		local b = a:interpreter(a:na(0))
 		return c:value(b)
 	end,
 	[23]=function(a)
 		a:ap()
-		local b = a:interpreter(a:na(0))
-		a:ap()
 		local c = a:interpreter(a:na(0))
+		a:ap()
+		local b = a:interpreter(a:na(0))
 		return c:add(b)
 	end,
 	[36]=function(a)
 		a:ap()
-		local b = a:interpreter(a:na(0))
-		a:ap()
 		local c = a:interpreter(a:na(0))
+		a:ap()
+		local b = a:interpreter(a:na(0))
 		return c:index(b)
 	end,
 	[20]=function(a)
 		a:ap()
-		local b = a:interpreter(a:na(0))
-		a:ap()
 		local c = a:interpreter(a:na(0))
+		a:ap()
+		local b = a:interpreter(a:na(0))
 		return c:remove(b)
 	end,
 	[1]=function(a)
 		return values:new()
+	end,
+	[39]=function(a)
+		local b = values:new()
+		a:ap()
+		b.a = {a:interpreter(a:na(0))}
+		return b
+	end,
+	[14]=function(a)
+		a:ap()
+		local b = a:interpreter(a:na(0))
+		a:ap()
+		local c = a:interpreter(a:na(0))
+		local d, e = next(b.a, c)
+		if d then
+			return values:new():add(d):add(e)
+		else
+			return values:new()
+		end
 	end
 }
 
@@ -137,6 +155,7 @@ local base = {
 	['else']=12,
 	['while']=13,
 	['for']=14,
+	['next']=14,
 	['do']=15,
 	['od']=16,
 	['return']=17,
@@ -457,9 +476,19 @@ local funcs = {
 		local c = a:interpreter(a:na(0))
 		local d = function(var)
 			local e = values:new()
-			for f=1, c.qntargs do
+			local f = c.qntargs < 0
+			for f=1, math.abs(c.qntargs) do
 				a:ap()
-				e:add(a:interpreter(a:na(0)))
+				if f then
+					local g = a:na(0)
+					if g~=18 then
+						e:add(a:interpreter(g))
+					else
+						break
+					end
+				else
+					e:add(a:interpreter(a:na(0)))
+				end
 			end
 			return c.func:execasfunc(e, var)
 		end
@@ -470,9 +499,19 @@ local funcs = {
 		a:ap()
 		local b = a:interpreter(a:na(0))
 		local e = values:new()
-		for f=1, c.qntargs do
+		local f = b.qntargs < 0
+		for f=1, math.abs(b.qntargs) do
 			a:ap()
-			e:add(a:interpreter(a:na(0)))
+			if f then
+				local g = a:na(0)
+				if g~=18 then
+					e:add(a:interpreter(g))
+				else
+					break
+				end
+			else
+				e:add(a:interpreter(a:na(0)))
+			end
 		end
 		return b.func:execasfunc(e, a)
 	end,

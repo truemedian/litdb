@@ -1,5 +1,8 @@
 local function check(a, b)
-	local f = b
+	local f = {}
+	for ww, www in pairs(b) do
+		f[ww]=www
+	end
 	local e = {}
 	local h = {}
 	local c=1
