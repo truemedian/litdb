@@ -118,7 +118,8 @@ xml.to_table = function(data)
                 local j = data:find(">", i)
                 if not j then break end
                 local tag = data:sub(i+2, j-1)
-                if #stack > 0 and stack[#stack].tag == tag then
+
+                if current.tag == tag then
                     current = table.remove(stack)
                 end
                 i = j + 1
@@ -129,27 +130,26 @@ xml.to_table = function(data)
                 local tag, attrs_str = tag_part:match("^(%S+)%s*(.*)$")
                 local attrs = {}
                 if attrs_str and #attrs_str > 0 then
-                    for k, v in attrs_str:gmatch('(%S+)=%"(.-)%"') do
+                    for k, v in attrs_str:gmatch('([%w:_-]+)%s*=%s*"(.-)"') do
                         attrs[k] = v
                     end
                 end
-                local is_self_closing = data:sub(j-1, j-1) == "/"
+                local is_self_closing = tag_part:sub(-1) == "/"
 
                 local node = { tag = tag, attributes = attrs, content = {} }
+                table.insert(current.content, node)
+
                 if not is_self_closing then
-                    table.insert(current.content, node)
                     table.insert(stack, current)
                     current = node
-                else
-                    table.insert(current.content, node)
                 end
                 i = j + 1
             end
         else
             local j = data:find("<", i)
             if not j then break end
-            local content = data:sub(i, j-1):match("^%s*(.-)%s*$")
-            if #content > 0 then
+            local content = data:sub(i, j-1)
+            if content:match("%S") then
                 table.insert(current.content, content)
             end
             i = j

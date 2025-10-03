@@ -2,8 +2,12 @@
 -- direct/router
 -- @code-nuage
 
-local http = require("coro-http")
+local pathJoin = require("pathjoin").pathJoin
 
+local http = require("coro-http")
+local fs = require("coro-fs")
+
+local mime = require("./mime.lua")
 local reasons = require("./reasons.lua")
 
 --+    UTILS     +--
@@ -45,6 +49,14 @@ local function get_color_from_method(method)
     }
 
     return method_colors[method] or colors.gray
+end
+
+local function guess_mime(path)
+    local ext = path:match("%.([%w]+)$")
+    if ext and mime[ext] then
+        return mime[ext]
+    end
+    return "application/octet-stream"
 end
 
 --+     ROUTER     +--
@@ -102,6 +114,40 @@ function router:set_route(route, method, controller)
     return self
 end
 
+function router:publicize(dirpath, route_base)
+    assert(type(dirpath) == "string", "Argument <dirpath> must be a string.")
+    route_base = route_base or ""
+
+    for entry in fs.scandir(dirpath) do
+        local fullpath = pathJoin(dirpath, entry.name)
+
+        if entry.type == "file" then
+            local route_path = route_base .. "/" .. entry.name
+
+            self:set_route(route_path, "GET", function(_, res)
+                local content, err = fs.readFile(fullpath)
+
+                if not content then
+                    res:set_status(500)
+                    res:set_header("Content-Type", "text/plain")
+                    res:set_body("Internal server error: " .. err)
+                    return
+                end
+
+                res:set_status(200)
+                res:set_header("Content-Type", guess_mime(fullpath))
+                res:set_body(content)
+            end)
+
+        elseif entry.type == "directory" then
+            self:publicize(fullpath, route_base .. "/" .. entry.name)
+        end
+    end
+
+    return self
+end
+
+
 function router:set_not_found(controller)
     self.not_found_controller = controller
     return self
@@ -138,7 +184,7 @@ end
 
 function router:display_request(req, res)
     print("--+     " .. colors.blue .. req["Path"] .. colors.reset .. "     +--" .. colors.reset ..
-    "\nClient: " .. colors.blue .. req["Headers"]["user-agent"] .. colors.reset ..
+    "\nClient: " .. colors.blue .. (req["Headers"]["User-Agent"] or "?") .. colors.reset ..
     "\nMethod: " .. get_color_from_method(req["Method"]) .. req["Method"] .. colors.reset ..
     "\nPath: " .. colors.blue .. req["Path"] .. colors.reset ..
     "\nStatus-Code: " .. get_color_from_status_code(res["Status-Code"]) .. res["Status-Code"] .. colors.reset ..
