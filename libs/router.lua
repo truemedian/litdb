@@ -207,11 +207,13 @@ function router:insert_log(req, res)
         "Date: " .. os.date("%Y/%m/%dT%H:%M:%S")
     }
 
-    local log = table.concat(log_data, "")
+    local log = table.concat(log_data, " ")
 
     local file = fs.open(self.log_file, "a")
-    fs.write(file, log .. "\n")
-    fs.close(file)
+    if file then
+        fs.write(file, log .. "\n")
+        fs.close(file)
+    end
 end
 
 --+ REQUEST +--
@@ -359,6 +361,9 @@ function router:start()
         self:handle_request(req, res)
         if self.verbosity then
             self:display_request(req, res)
+        end
+        if self.log_file then
+            self:insert_log(req, res)
         end
 
         local headers = {}
