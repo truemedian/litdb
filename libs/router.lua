@@ -71,6 +71,7 @@ function router.new()
     i.host = nil
     i.port = nil
     i.verbosity = false
+    i.log_file = nil
 
     return i
 end
@@ -84,6 +85,12 @@ end
 function router:set_verbosity(verbosity)
     assert(type(verbosity) == "boolean", "Argument <verbosity> must be a boolean.")
     self.verbosity = verbosity
+    return self
+end
+
+function router:set_log_file(path)
+    assert(type(path) == "string", "Argument <path> must be a string.")
+    self.log_file = path
     return self
 end
 
@@ -189,6 +196,22 @@ function router:display_request(req, res)
     "\nPath: " .. colors.blue .. req["Path"] .. colors.reset ..
     "\nStatus-Code: " .. get_color_from_status_code(res["Status-Code"]) .. res["Status-Code"] .. colors.reset ..
     "\n--+" .. string.rep(" ", #req["Path"] + 10) .. "+--\n")
+end
+
+function router:insert_log(req, res)
+    local log_data = {
+        "Path: " .. req["Path"],
+        "Client: " .. (req["Headers"]["User-Agent"] or "?"),
+        "Method: " .. req["Method"],
+        "Status-Code: " .. res["Status-Code"],
+        "Date: " .. os.date("%Y/%m/%dT%H:%M:%S")
+    }
+
+    local log = table.concat(log_data, "")
+
+    local file = fs.open(self.log_file, "a")
+    fs.write(file, log .. "\n")
+    fs.close(file)
 end
 
 --+ REQUEST +--
@@ -334,7 +357,9 @@ function router:start()
         local res = response.new()
 
         self:handle_request(req, res)
-        self:display_request(req, res)
+        if self.verbosity then
+            self:display_request(req, res)
+        end
 
         local headers = {}
         for name, value in pairs(res:get_headers()) do

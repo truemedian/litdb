@@ -1,6 +1,6 @@
 return {
     name = "code-nuage/direct",
-    version = "0.0.2",
+    version = "0.0.3",
     description = "A fullstack framework",
     tags = { "lua", "lit", "luvit" },
     license = "MIT",

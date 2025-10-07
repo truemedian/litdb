@@ -3,12 +3,12 @@
 -- A Lua web microframework
 -- @code-nuage
 
-local html = require("./html.lua")
-local loader = require("./loader.lua")
-local mime = require("./mime.lua")
-local reasons = require("./reasons.lua")
-local router = require("./router.lua")
-local xml = require("./xml.lua")
+local html = require("./libs/html.lua")
+local loader = require("./libs/loader.lua")
+local mime = require("./libs/mime.lua")
+local reasons = require("./libs/reasons.lua")
+local router = require("./libs/router.lua")
+local xml = require("./libs/xml.lua")
 
 local direct = {
     ["html"] = html,
