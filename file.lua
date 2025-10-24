@@ -1,80 +1,67 @@
 --[[lit-meta
 	name = 'Corotyest/task'
-	version = '0.0.2'
-	author = 'Quichk'
+	version = '1.0.0'
+	author = 'Corotyest'
 ]]
-
-local threads = {}
 
 local uv = require 'uv'
 local bind = require 'utils'.bind
 
+local threads = {}
 local _task = {}
 
---- Return whatever the current thread is active.
----@param self table
+--- Return whether the current thread is active
 ---@return boolean
-function _task.isActive(self) return self._active == true end
+function _task:isActive()
+	return self._active == true
+end
 
---- Start the current thread (if it is not active).
----@param self table
+--- Start the current thread (if it is not active)
 ---@return table
-function _task.start(self)
-	local t = self._timer
-	return function(base, callback, ...)
-		if self.isActive() then return nil end
-		local ist = type(base) == 'table'
-		local v1, v2 = ist and base[1] or base, ist and base[2] or base
-		uv.timer_start(
-			t, v1, v2, bind(callback, ...)
-		)
+function _task:start(base, callback, ...)
+	if self:isActive() then return nil end
 
-		return self
-	end
+	local ist = type(base) == 'table'
+	local v1, v2 = ist and base[1] or base, ist and base[2] or 0
+
+	uv.timer_start(self._timer, v1, v2, bind(callback, ...))
+	self._active = true
+	return self
 end
 
---- Stop the current handle to be started (if it is active).
----@param self table
+--- Stop the current handle to be started (if it is active)
 ---@return table
-function _task.stop(self)
-	local t = self._timer
-	return function()
-		if not self.isActive() then return nil end
-		if uv.is_closing(t) then
-			return self
-		end
+function _task:stop()
+	if not self:isActive() then return nil end
+	if uv.is_closing(self._timer) then return self end
 
-		uv.timer_stop(t); uv.close(t); self._active = false
-
-		return self
-	end
+	uv.timer_stop(self._timer)
+	uv.close(self._timer)
+	self._active = false
+	return self
 end
 
---- Clear the current handle.
----@param self table
-function _task.clear(self)
-	if self.isActive() and self.stop() or not self.isActive() then
-		threads[self] = nil
-	end
+--- Clear the current handle
+function _task:clear()
+	if self:isActive() then self:stop() end
+	threads[self] = nil
 end
 
+-- Metatable __index
 _task.__index = function(self, k)
-	if not threads[self] then return error('This thread has cleared', 2) end
+	if not threads[self] then
+		return error('This thread has cleared', 2)
+	end
 
 	local value = rawget(_task, k)
 	if type(value) == 'function' then
-		value = value(self)
-		if type(value) == 'function' then
-			return value
-		else
-			return function() return value end
-		end
+		return value
 	else
 		return value
 	end
 end
 
---- Check whatever param `t` is a handle.
+--- Check whether param `t` is a handle
 ---@param t any
 ---@return boolean
 local function isThread(t)
@@ -82,77 +69,69 @@ local function isThread(t)
 	return threads[t] == true
 end
 
---- Creates a handle in base `_task`.
+--- Creates a handle in base `_task`
 ---@return table
 local function newHandle()
 	local thread = setmetatable({
 		_timer = uv.new_timer(),
-		_new_handle = newHandle
 	}, _task)
 	threads[thread] = true
 	return thread
 end
 
---- Wait certain time to `fn` execution after this delay spawn the function.
---- If there is no errros return a table with the handle information.
+local running, resume, yield = coroutine.running, coroutine.resume, coroutine.yield
+
+--- Tries to resume a thread and throws error if fails
+---@param thread thread
+---@vararg any
+local function assertResume(thread, ...)
+	local success, err = resume(thread, ...)
+	if not success then
+		error(debug.traceback(thread, err), 0)
+	end
+end
+
+--- Wait certain time before executing a function (non-blocking) delay is in miliseconds.
 ---@param delay number
 ---@param fn function
 ---@vararg any
 ---@return table
 local function delay(delay, fn, ...)
-	local type1, type2 = type(delay), type(fn)
-	if type1 ~= 'number' then
-		return error('bad argument #1 for delay', 2)
-	elseif type2 ~= 'function' then
-		return error('bad argument #2 for delay', 2)
+	if type(delay) ~= 'number' then
+		error('bad argument #1 for delay', 2)
+	elseif type(fn) ~= 'function' then
+		error('bad argument #2 for delay', 2)
 	end
 
 	local handle = newHandle()
-
-	handle.start( { delay, 0 }, function(...)
-		fn(handle, ...); handle.clear()
+	handle:start({ delay, 0 }, function(...)
+		fn(handle, ...)
+		handle:clear()
 	end, ...)
-
 	return handle
 end
 
-local running, resume, yield = coroutine.running, coroutine.resume, coroutine.yield
-
---- Tries to resume a thread as except it throw an error.
----@param thread thread
----@vararg any
-local function assertResume(thread, ...)
-	local success, error = resume(thread, ...)
-	if not success then
-		return error(debug.traceback(thread, error), 0)
-	end
-end
-
---- Put the givened or currently running `thread` into a sleep period.
---- If there is no errors return a table with the handle information.
+--- Put the currently running thread into a sleep period (non-blocking) delay is in miliseconds.
 ---@param delay number
 ---@param thread thread
 ---@return table
 local function sleep(delay, thread, ...)
-	local type1, type2 = type(delay), type(thread)
-	if type1 ~= 'number' then
-		return error('bad argument #1 for sleep', 2)
-	elseif type2 ~= 'thread' then
-		thread = running()
-		if type(thread) ~= 'thread' then
-			return nil, 'bad argument #2 for sleep'
-		end
+	if type(delay) ~= 'number' then
+		error('bad argument #1 for sleep', 2)
+	end
+
+	thread = thread or running()
+	if type(thread) ~= 'thread' then
+		return nil, 'bad argument #2 for sleep'
 	end
 
 	local handle = newHandle()
-
-	handle.start( { delay, 0 }, function(...)
-		handle.clear(); return assertResume(thread, handle, ...)
+	handle:start({ delay, 0 }, function(...)
+		handle:clear()
+		assertResume(thread, handle, ...)
 	end, ...)
-
 	return yield()
 end
-
 
 return {
 	assertResume = assertResume,
