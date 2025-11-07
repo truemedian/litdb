@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "code-nuage/direct-server"
-    version = "0.0.1"
+    version = "0.0.2"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-server.lua"
     dependencies = {
         "luvit/net",
@@ -36,59 +36,58 @@ function M.start_server(host, port, handler)
         local buffer = ""
 
         local function process_request()
-            while true do
-                local message, extra = decoder(buffer)
-                if not message then break end
-                buffer = extra or ""
+            local message, index = decoder(buffer, 1)
+
+            while message do
+                buffer = buffer:sub(index or (#buffer + 1))
 
                 if message.method then
                     local headers = message.headers or {}
                     local body = ""
 
-                    if tonumber(headers["content-length"]) then
-                        local length = tonumber(headers["content-length"])
-                        if #buffer >= length then
-                            body = buffer:sub(1, length)
-                            buffer = buffer:sub(length + 1)
-                        else
+                    local content_length = tonumber(headers["content-length"])
+                    if content_length then
+                        if #buffer < content_length then
                             return
                         end
+                        body = buffer:sub(1, content_length)
+                        buffer = buffer:sub(content_length + 1)
                     end
 
-                    local request_payload = {
+                    local req = {
                         method = message.method,
                         path = message.path,
                         headers = headers,
                         body = body
                     }
 
-                    local response_payload = handler(request_payload)
-                    local code = response_payload.code or 500
-                    local reason = reasons[code] or "Unknown reason"
-                    local res_headers = response_payload.headers or {}
-                    local res_body = response_payload.body or ""
+                    local res = handler(req)
+                    local code = res.code or 500
+                    local reason = reasons[code] or "Unknown Reason"
+                    local res_headers = res.headers or {}
+                    local res_body = res.body or ""
 
                     res_headers["Content-Length"] = tostring(#res_body)
+                    local keep_alive = message.keepAlive
+                    res_headers["Connection"] = keep_alive and "keep-alive" or "close"
 
-                    if message.keepAlive then
-                        res_headers["Connection"] = "keep-alive"
-                    else
-                        res_headers["Connection"] = "close"
-                    end
-
-                    local header_chunk = encoder({
+                    local head_chunk = encoder({
                         code = code,
                         reason = reason,
                         headers = res_headers
                     })
-                    local body_chunk = encoder(res_body)
 
-                    socket:write(header_chunk, function()
-                        socket:write(body_chunk, function()
+                    socket:write(head_chunk)
+                    socket:write(res_body, function()
+                        if not keep_alive then
                             socket:shutdown()
-                        end)
+                        else
+                            decoder = codec.decoder()
+                        end
                     end)
                 end
+
+                message, index = decoder(buffer, 1)
             end
         end
 
