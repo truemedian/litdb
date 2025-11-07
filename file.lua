@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "code-nuage/direct-router"
-    version = "0.1.0"
+    version = "0.1.1"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-router.lua"
     dependencies = {
         "code-nuage/direct-server"
@@ -113,6 +113,9 @@ function M:add_plugin(plugin)
     assert(type(plugin) == "table",
         "Argument <plugin>: Must be a table.")
     table.insert(self.plugins, plugin)
+    if type(plugin["on_load"]) == "function" then
+        plugin["on_load"](self)
+    end
     return self
 end
 
