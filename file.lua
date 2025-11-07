@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "code-nuage/direct-verbosity"
-    version = "0.0.1"
+    version = "0.0.2"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-verbosity.lua"
     description = "The verbosity plugin of the direct web microframework."
     tags = { "direct", "plugin" }
@@ -14,6 +14,7 @@
 --+                  +--
 
 local M = {}
+M._NAME = "direct-verbosity"
 
 local colors = {
     ["RESET"] = "\27[0m",
@@ -51,6 +52,20 @@ local code_colors = {
 
 local function get_code_color(code)
     return code_colors[math.floor(code / 100)] or colors["GRAY"]
+end
+
+function M.on_load(app)
+    local plugins = app:get_plugins()
+
+    for _, p in ipairs(plugins) do
+        if p._NAME then
+            print(string.format(
+                colors["BOLD"] .. colors["BLUE"] .. "--+          +--\n" ..
+                colors["RESET"] .. "Plugin " .. colors["BOLD"] .. colors["GREEN"] .. "%s" .. colors["RESET"] .. " loaded\n" ..
+                colors["BOLD"] .. colors["BLUE"] .. "--+          +--\n",
+                p._NAME))
+        end
+    end
 end
 
 function M.on_start(host, port)
