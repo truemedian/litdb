@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "code-nuage/direct-logs"
-    version = "0.0.1"
+    version = "0.0.2"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-logs.lua"
     description = "The logs plugin of the direct web microframework."
     tags = { "direct", "plugin" }
@@ -17,6 +17,7 @@
 local fs = require("fs")
 
 local M = {}
+M._NAME = "direct-logs"
 M.path = "logs.txt"
 
 function M.set_path(path)
@@ -24,6 +25,8 @@ function M.set_path(path)
         "Argument <path>: Must be a string.")
     M.path = path
 end
+
+
 
 function M.on_start(host, port)
     local log = string.format(
