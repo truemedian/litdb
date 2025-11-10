@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "code-nuage/direct-publicize"
-    version = "0.0.1"
+    version = "0.0.2"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-publicize.lua"
     dependencies = {
         "luvit/fs",
@@ -20,36 +20,33 @@
 
 --+ Dependencies +--
 local fs = require("fs")
-local path_join = require("pathjoin").pathjoin
+local path_join = require("pathjoin").pathJoin
 
 local mime = require("direct-mime")
 
 local M = {}
 M._NAME = "direct-publicize"
-M.path = "./Public"
+M.path = path_join(require("uv").cwd(), "Public")
 
-function M.on_load(app, directory, route_prefix)
-    route_prefix = route_prefix or ""
+function M.on_load(app, directory, path_prefix)
+    path_prefix = path_prefix or ""
+    directory = directory or M.path
 
-    local entries = {}
-    for entry in fs.scandir(directory) do
-        table.insert(entries, entry)
-    end
-
-    for i, entry in ipairs(entries) do
-        local last = (i == #entries)
-
-        if entry.type == "file" then
-            local route = route_prefix .. "/" .. entry.name
-            app:set_route(route, "GET", function(req, res)
-                local data = fs.readFile(path_join(directory, entry.name))
-                res:set_code(200)
-                res:set_header("Content-Type", mime.guess(entry.name))
-                res:set_body(data or "")
-            end)
-        elseif entry.type == "directory" then
-            M.on_load(app, path_join(directory, entry.name),
-                route_prefix .. "/" .. entry.name)
+    for entry in fs.scandirSync(directory) do
+        local full_path = path_join(directory, entry)
+        local stat = fs.statSync(full_path)
+        if stat then
+            if stat.type == "file" then
+                local route = path_prefix .. "/" .. entry
+                app:add_route(route, "GET", function(req, res)
+                    local data = fs.readFileSync(full_path)
+                    res:set_code(200)
+                    res:set_header("Content-Type", mime.guess(entry))
+                    res:set_body(data or "")
+                end)
+            elseif stat.type == "directory" then
+                M.on_load(app, full_path, path_prefix .. "/" .. entry)
+            end
         end
     end
 end
