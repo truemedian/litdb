@@ -1,7 +1,10 @@
 --[[lit-meta
     name = "code-nuage/direct-logs"
-    version = "0.0.2"
+    version = "0.1.0"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-logs.lua"
+    dependencies = {
+        "luvit/coro-fs"
+    }
     description = "The logs plugin of the direct web microframework."
     tags = { "direct", "plugin" }
     license = "MIT"
@@ -14,7 +17,7 @@
 --+             +--
 
 --+ Dependencies +--
-local fs = require("fs")
+local fs = require("coro-fs")
 
 local M = {}
 M._NAME = "direct-logs"
@@ -26,6 +29,12 @@ function M.set_path(path)
     M.path = path
 end
 
+local function append_log(message)
+    coroutine.wrap(function()
+        local ok, err = fs.appendFile(M.path, message)
+    end)()
+end
+
 
 
 function M.on_start(host, port)
@@ -35,12 +44,7 @@ function M.on_start(host, port)
         tostring(port),
         os.date()
     )
-    fs.open(M.path, "a+", function(err, fd)
-    if err then return end
-        fs.write(fd, 0, log, function(err2)
-            fs.close(fd, function(err3) end)
-        end)
-    end)
+    append_log(log)
 end
 
 function M.on_request(req, _)
@@ -50,12 +54,7 @@ function M.on_request(req, _)
         req:get_path(),
         req:get_headers()["user-agent"] or "No agent"
     )
-    fs.open(M.path, "a+", function(err, fd)
-    if err then return end
-        fs.write(fd, 0, log, function(err2)
-            fs.close(fd, function(err3) end)
-        end)
-    end)
+    append_log(log)
 end
 
 return M
