@@ -1,10 +1,9 @@
 --[[lit-meta
     name = "code-nuage/direct-server"
-    version = "0.0.2"
+    version = "0.1.0"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-server.lua"
     dependencies = {
-        "luvit/net",
-        "luvit/http-codec",
+        "luvit/coro-http",
         "code-nuage/direct-reasons"
     }
     description = "The server of the direct web microframework."
@@ -19,91 +18,89 @@
 --+               +--
 
 -- direct-server.lua
-local net = require("net")
-local codec = require("http-codec")
+local http = require("coro-http")
 local reasons = require("direct-reasons")
 
 local M = {}
+M.__index = M
 
-function M.start_server(host, port, handler)
+--+     Server     +--
+function M.new()
+    return setmetatable({}, M)
+end
+
+-- Getters
+function M:get_host()
+    return self.host or "0.0.0.0"
+end
+
+function M:get_port()
+    return self.port or 8080
+end
+
+-- Setters
+function M:set_host(host)
+    assert(type(host) == "string",
+        "Argument <host>: Must be a string.")
+    self.host = host
+    return self
+end
+
+function M:set_port(port)
+    assert(type(port) == "number",
+        "Argument <port>: Must be a number.")
+    self.port = port
+    return self
+end
+
+function M:start(handler)
     assert(type(handler) == "function", "Argument <handler>: Must be a function.")
-    host = host or "0.0.0.0"
-    port = port or 8080
-
-    local server = net.createServer(function(socket)
-        local decoder = codec.decoder()
-        local encoder = codec.encoder()
-        local buffer = ""
-
-        local function process_request()
-            local message, index = decoder(buffer, 1)
-
-            while message do
-                buffer = buffer:sub(index or (#buffer + 1))
-
-                if message.method then
-                    local headers = message.headers or {}
-                    local body = ""
-
-                    local content_length = tonumber(headers["content-length"])
-                    if content_length then
-                        if #buffer < content_length then
-                            return
-                        end
-                        body = buffer:sub(1, content_length)
-                        buffer = buffer:sub(content_length + 1)
-                    end
-
-                    local req = {
-                        method = message.method,
-                        path = message.path,
-                        headers = headers,
-                        body = body
-                    }
-
-                    local res = handler(req)
-                    local code = res.code or 500
-                    local reason = reasons[code] or "Unknown Reason"
-                    local res_headers = res.headers or {}
-                    local res_body = res.body or ""
-
-                    res_headers["Content-Length"] = tostring(#res_body)
-                    local keep_alive = message.keepAlive
-                    res_headers["Connection"] = keep_alive and "keep-alive" or "close"
-
-                    local head_chunk = encoder({
-                        code = code,
-                        reason = reason,
-                        headers = res_headers
-                    })
-
-                    socket:write(head_chunk)
-                    socket:write(res_body, function()
-                        if not keep_alive then
-                            socket:shutdown()
-                        else
-                            decoder = codec.decoder()
-                        end
-                    end)
-                end
-
-                message, index = decoder(buffer, 1)
-            end
-        end
-
-        socket:on("data", function(chunk)
-            buffer = buffer .. chunk
-            process_request()
-        end)
-
-        socket:on("error", function(err)
-            print("Socket error:", err)
-            socket:shutdown()
-        end)
+    local host = self:get_host()
+    local port = self:get_port()
+    local server = http.createServer(host, port,
+    function(request_headers, request_body)
+        local request_payload = self:parse_request(request_headers, request_body)
+        local response_payload = handler(request_payload)
+        local res_headers, res_body = self:bundle_response(response_payload)
+        return res_headers, res_body
     end)
-
-    server:listen(port, host)
     return server
+end
+
+function M:parse_request(request_headers, request_body)
+    local method, path, body
+    local headers = {}
+
+    method = request_headers.method or "Unknown method"
+    path = request_headers.path or "/"
+    body = request_body
+
+    for _, header in ipairs(request_headers) do
+        headers[header[1]] = header[2]
+    end
+
+    return {
+        method = method,
+        path = path,
+        body = body,
+        headers = headers
+    }
+end
+
+function M:bundle_response(response)
+    local body
+    local headers = {}
+
+    headers = {
+        code = response.code,
+        reason = reasons[response.code] or "Unknown HTTP status"
+    }
+    for key, value in pairs(response.headers) do
+        table.insert(headers, {key, value})
+    end
+
+    body = response.body
+    return headers, body
 end
 
 return M
