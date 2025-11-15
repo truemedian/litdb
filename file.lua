@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "code-nuage/direct-router"
-    version = "0.1.1"
+    version = "0.1.2"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-router.lua"
     dependencies = {
         "code-nuage/direct-server"
@@ -35,7 +35,10 @@ end
 function M:start()
     local host, port = self:get_host(), self:get_port()
     self:hook("on_start", host, port)
-    server.start_server(host, port, function(request_payload)
+    local app = server.new()
+    :set_host(self:get_host())
+    :set_port(self:get_port())
+    app:start(function(request_payload)
         local req, res = M.request.new(request_payload), M.response.new()
         local method, path = req:get_method(), req:get_path()
         self:get_route(method, path)(req, res)
