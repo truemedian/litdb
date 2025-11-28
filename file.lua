@@ -1,7 +1,10 @@
 --[[lit-meta
     name = "code-nuage/direct-verbosity"
-    version = "0.0.4"
+    version = "0.0.5"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-verbosity.lua"
+    dependencies = {
+        "code-nuage/direct-colors"
+    }
     description = "The verbosity plugin of the direct web microframework."
     tags = { "direct", "plugin" }
     license = "MIT"
@@ -13,78 +16,70 @@
 --  @code-nuage       --
 --+                  +--
 
+--+ Dependencies +--
+local colors = require("direct-colors")
+
 local M = {}
 M._NAME = "direct-verbosity"
 
-local colors = {
-    ["RESET"] = "\27[0m",
-    ["BOLD"] = "\27[1m",
-    ["DIM"] = "\27[2m",
-    ["ITALIC"] = "\27[3m",
-    ["UNDERLINE"] = "\27[4m",
-
-    ["RED"] = "\27[31m",
-    ["GREEN"] = "\27[32m",
-    ["YELLOW"] = "\27[33m",
-    ["BLUE"] = "\27[34m",
-    ["MAGENTA"] = "\27[35m",
-    ["CYAN"] = "\27[36m",
-    ["GRAY"] = "\27[90m"
+local color = {
+    {color = "BLUE", variant = "BOLD"},
+    {color = "GREEN", variant = "BOLD"}
 }
 
 local method_colors = {
-    ["GET"] = colors["GREEN"],
-    ["POST"] = colors["YELLOW"],
-    ["PUT"] = colors["BLUE"],
-    ["PATCH"] = colors["BLUE"],
-    ["DELETE"] = colors["RED"],
-    ["OPTIONS"] = colors["MAGENTA"],
-    ["HEAD"] = colors["GREEN"]
+    ["GET"] = "GREEN",
+    ["POST"] = "YELLOW",
+    ["PUT"] = "BLUE",
+    ["PATCH"] = "BLUE",
+    ["DELETE"] = "RED",
+    ["OPTIONS"] = "PURPLE",
+    ["HEAD"] = "GREEN"
 }
 
 local code_colors = {
-    [1] = colors["BLUE"],
-    [2] = colors["GREEN"],
-    [3] = colors["MAGENTA"],
-    [4] = colors["RED"],
-    [5] = colors["RED"]
+    [1] = "BLUE",
+    [2] = "GREEN",
+    [3] = "PURPLE",
+    [4] = "RED",
+    [5] = "RED"
 }
 
 local function get_code_color(code)
-    return code_colors[math.floor(code / 100)] or colors["GRAY"]
+    return code_colors[math.floor(code / 100)] or "BLACK"
 end
 
 function M.on_load(app)
     local plugins = app:get_plugins()
 
-    print(colors["BOLD"] .. colors["BLUE"] .. "--+          +--")
+    print(colors.colorize("--+          +--", color[1]))
 
     for _, p in ipairs(plugins) do
         if p._NAME then
-            print(string.format(
-                colors["RESET"] .. "Plugin " .. "%s" .. colors["RESET"] .. " loaded",
-                p._NAME and (colors["BOLD"] .. colors["GREEN"] .. p._NAME) or "without name"))
+            print(string.format("Plugin %s loaded",
+                p._NAME and (colors.colorize(p._NAME, color[2])) or
+                colors.colorize("without name", {colors = "RED", variant = "BOLD", mode = "HIGH_INTENSITY"})))
         end
     end
 
-    print(colors["BOLD"] .. colors["BLUE"] .. "--+          +--\n")
+    print(colors.colorize("--+          +--", color[1]))
 end
 
 function M.on_start(host, port)
     print(string.format(
-        colors["BOLD"] .. colors["BLUE"] .. "--+          +--\n" ..
-        colors["RESET"] .. "Started @ " .. colors["BOLD"] .. colors["GREEN"] .. "%s:%d\n" ..
-        colors["BOLD"] .. colors["BLUE"] .. "--+          +--\n",
+        colors.colorize("--+          +--", color[1]) .. "\n" ..
+        "Started @ " .. colors.colorize("%s:%d", color[2]) .. "\n" ..
+        colors.colorize("--+          +--", color[1]) .. "\n",
         host,
         port))
 end
 
 function M.on_request(req, res)
     print(string.format(
-        colors["RESET"] .. "Path: " .. colors["BOLD"] .. colors["BLUE"] .. "%s\n" ..
-        colors["RESET"] .. "Method: " .. colors["BOLD"] .. (method_colors[req:get_method()] or colors["GRAY"]) .. "%s\n" ..
-        colors["RESET"] .. "Code: " .. colors["BOLD"] .. get_code_color(res:get_code()) .. "%d\n" ..
-        colors["BOLD"] .. colors["BLUE"] .. "--+          +--",
+        "Path: " .. colors.colorize("%s", color[1]) .. "\n" ..
+        "Method: " .. colors.colorize("%s", {color = method_colors[req:get_method()] or "BLACK", variant = "BOLD", mode = "HIGH_INTENSITY"}) .. "\n" ..
+        "Code: " .. colors.colorize(" %d ", {color = get_code_color(res:get_code()), variant = "BOLD", mode = "BACKGROUND_HIGH_INTENSITY"}) .. "\n" ..
+        colors.colorize("--+          +--", color[1]),
         req:get_path(),
         req:get_method(),
         res:get_code()))
