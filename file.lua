@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "code-nuage/direct-verbosity"
-    version = "0.0.5"
+    version = "0.0.6"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-verbosity.lua"
     dependencies = {
         "code-nuage/direct-colors"
@@ -69,7 +69,8 @@ function M.on_start(host, port)
     print(string.format(
         colors.colorize("--+          +--", color[1]) .. "\n" ..
         "Started @ " .. colors.colorize("%s:%d", color[2]) .. "\n" ..
-        colors.colorize("--+          +--", color[1]) .. "\n",
+        colors.colorize("--+          +--", color[1]) .. "\n\n" ..
+        colors.colorize("--+          +--", color[1]),
         host,
         port))
 end
@@ -77,10 +78,12 @@ end
 function M.on_request(req, res)
     print(string.format(
         "Path: " .. colors.colorize("%s", color[1]) .. "\n" ..
+        "Client: " .. colors.colorize("%s", color[1]) .. "\n" ..
         "Method: " .. colors.colorize("%s", {color = method_colors[req:get_method()] or "BLACK", variant = "BOLD", mode = "HIGH_INTENSITY"}) .. "\n" ..
         "Code: " .. colors.colorize(" %d ", {color = get_code_color(res:get_code()), variant = "BOLD", mode = "BACKGROUND_HIGH_INTENSITY"}) .. "\n" ..
         colors.colorize("--+          +--", color[1]),
         req:get_path(),
+        req:get_header("User-Agent"),
         req:get_method(),
         res:get_code()))
 end
