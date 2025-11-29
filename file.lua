@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "code-nuage/direct-router"
-    version = "0.1.2"
+    version = "0.1.3"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-router.lua"
     dependencies = {
         "code-nuage/direct-server"
@@ -56,10 +56,15 @@ function M:get_port()
     return self.port or 8080
 end
 
+function M:get_routes()
+    return self.routes
+end
+
 function M:get_route(method, path)
-    local route = self.routes[path]
-    if route and route.method == method then
-        return route.callback
+    for _, route in ipairs(self:get_routes()) do
+        if route.path == path and route.method == method then
+            return route.callback
+        end
     end
     return self:get_route_not_found()
 end
@@ -98,10 +103,11 @@ function M:add_route(path, method, callback)
         "Argument <method>: Must be a string.")
     assert(type(callback) == "function",
         "Argument <callback>: Must be a function.")
-    self.routes[path] = {
+    table.insert(self.routes, {
+        path = path,
         method = method,
         callback = callback
-    }
+    })
     return self
 end
 
@@ -163,6 +169,10 @@ function M.request:get_headers()
     return self.headers
 end
 
+function M.request:get_header(key)
+    return self:get_headers()[string.lower(key)]
+end
+
 -- Setters
 function M.request:set_method(method)
     assert(type(method) == "string",
@@ -200,7 +210,7 @@ function M.request:build(payload)
     :set_body(payload["body"])
 
     for key, value in pairs(payload["headers"]) do
-        self:set_header(key, value)
+        self:set_header(string.lower(key), value)
     end
 end
 
