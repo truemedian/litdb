@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "code-nuage/direct-router"
-    version = "0.1.3"
+    version = "0.1.4"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-router.lua"
     dependencies = {
         "code-nuage/direct-server"
@@ -41,7 +41,13 @@ function M:start()
     app:start(function(request_payload)
         local req, res = M.request.new(request_payload), M.response.new()
         local method, path = req:get_method(), req:get_path()
-        self:get_route(method, path)(req, res)
+        local route, params = self:get_route(method, path)
+        if params then
+            for k, v in pairs(params) do
+                req:set_param(k, v)
+            end
+        end
+        route(req, res)
         self:hook("on_request", req, res)
         return res:build()
     end)
@@ -62,8 +68,20 @@ end
 
 function M:get_route(method, path)
     for _, route in ipairs(self:get_routes()) do
-        if route.path == path and route.method == method then
-            return route.callback
+        if route.method == method then
+            if route.path == path and #route.keys == 0 then
+                return route.callback, {}
+            end
+
+            local match = path:match(route.pattern)
+            if match then
+                local params = {}
+                local captures = {path:match(route.pattern)}
+                for i, key in ipairs(route.keys) do
+                    params[key] = captures[i]
+                end
+                return route.callback, params
+            end
         end
     end
     return self:get_route_not_found()
@@ -103,11 +121,27 @@ function M:add_route(path, method, callback)
         "Argument <method>: Must be a string.")
     assert(type(callback) == "function",
         "Argument <callback>: Must be a function.")
+    local keys = {}
+
+    local pattern = path:gsub("(:%w+)", function(key)
+        table.insert(keys, key:sub(2))
+        return "([^/:]+)"
+    end)
+
+    pattern = "^" .. pattern .. "$"
+
     table.insert(self.routes, {
         path = path,
         method = method,
-        callback = callback
+        callback = callback,
+        pattern = pattern,
+        keys = keys
     })
+
+    table.sort(self.routes, function(a, b)
+        return #a.keys < #b.keys
+    end)
+
     return self
 end
 
@@ -147,6 +181,7 @@ function M.request.new(payload)
     local i = setmetatable({}, M.request)
 
     i.headers = {}
+    i.params = {}
     i:build(payload)
 
     return i
@@ -170,7 +205,19 @@ function M.request:get_headers()
 end
 
 function M.request:get_header(key)
+    assert(type(key) == "string",
+        "Argument <key>: Must be a string.")
     return self:get_headers()[string.lower(key)]
+end
+
+function M.request:get_params()
+    return self.params
+end
+
+function M.request:get_param(key)
+    assert(type(key) == "string",
+        "Argument <key>: Must be a string.")
+    return self:get_params()[key]
 end
 
 -- Setters
@@ -199,6 +246,13 @@ function M.request:set_body(body)
     assert(type(body) == "string",
         "Argument <body>: Must be a string.")
     self.body = body
+    return self
+end
+
+function M.request:set_param(key, value)
+    assert(type(key) == "string" and type(value) == "string",
+        "Argument <key> & <value>: Must be strings.")
+    self.params[key] = value
     return self
 end
 
