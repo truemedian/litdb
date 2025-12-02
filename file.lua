@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "code-nuage/direct-logs"
-    version = "0.1.0"
+    version = "0.1.1"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-logs.lua"
     dependencies = {
         "luvit/coro-fs"
@@ -47,14 +47,16 @@ function M.on_start(host, port)
     append_log(log)
 end
 
-function M.on_request(req, _)
-    local log = string.format(
-        "Date: %s Path: %s Client: %s\n",
-        os.date(),
-        req:get_path(),
-        req:get_headers()["user-agent"] or "No agent"
-    )
-    append_log(log)
+function M.on_request(req, res)
+    if res:get_signifiance() == 1 then
+        local log = string.format(
+            "Date: %s Path: %s Client: %s\n",
+            os.date(),
+            req:get_path(),
+            req:get_headers()["user-agent"] or "No agent"
+        )
+        append_log(log)
+    end
 end
 
 return M
