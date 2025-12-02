@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "code-nuage/direct-publicize"
-    version = "0.1.1"
+    version = "0.1.2"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-publicize.lua"
     dependencies = {
         "luvit/coro-fs",
@@ -55,7 +55,7 @@ function M.on_load(app, directory, path_prefix)
                     res:set_code(200)
                     res:set_header("Content-Type", mime.guess(entry.name))
                     res:set_body(data or "")
-                end)
+                end, 2)
             elseif entry.type == "directory" then
                 M.on_load(app, full_path, path_prefix .. "/" .. entry.name)
             end
