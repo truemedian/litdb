@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "code-nuage/direct-router"
-    version = "0.1.4"
+    version = "0.1.5"
     homepage = "https://github.com/code-nuage/direct/blob/main/direct-router.lua"
     dependencies = {
         "code-nuage/direct-server"
@@ -40,6 +40,7 @@ function M:start()
     :set_port(self:get_port())
     app:start(function(request_payload)
         local req, res = M.request.new(request_payload), M.response.new()
+        res:set_not_found_fallback(self:get_route_not_found())
         local method, path = req:get_method(), req:get_path()
         local route, params = self:get_route(method, path)
         if params then
@@ -47,7 +48,8 @@ function M:start()
                 req:set_param(k, v)
             end
         end
-        route(req, res)
+        req:set_signifiance(route.signifiance)
+        route.callback(req, res)
         self:hook("on_request", req, res)
         return res:build()
     end)
@@ -70,7 +72,7 @@ function M:get_route(method, path)
     for _, route in ipairs(self:get_routes()) do
         if route.method == method then
             if route.path == path and #route.keys == 0 then
-                return route.callback, {}
+                return route, {}
             end
 
             local match = path:match(route.pattern)
@@ -80,11 +82,11 @@ function M:get_route(method, path)
                 for i, key in ipairs(route.keys) do
                     params[key] = captures[i]
                 end
-                return route.callback, params
+                return route, params
             end
         end
     end
-    return self:get_route_not_found()
+    return {callback = self:get_route_not_found(), signifiance = 1}
 end
 
 function M:get_route_not_found()
@@ -114,13 +116,14 @@ function M:set_port(port)
     return self
 end
 
-function M:add_route(path, method, callback)
+function M:add_route(path, method, callback, signifiance)
     assert(type(path) == "string",
         "Argument <path>: Must be a string.")
     assert(type(method) == "string",
         "Argument <method>: Must be a string.")
     assert(type(callback) == "function",
         "Argument <callback>: Must be a function.")
+    signifiance = signifiance or 1
     local keys = {}
 
     local pattern = path:gsub("(:%w+)", function(key)
@@ -135,11 +138,12 @@ function M:add_route(path, method, callback)
         method = method,
         callback = callback,
         pattern = pattern,
-        keys = keys
+        keys = keys,
+        signifiance = signifiance
     })
 
     table.sort(self.routes, function(a, b)
-        return #a.keys < #b.keys
+        return #b.keys < #a.keys
     end)
 
     return self
@@ -220,6 +224,10 @@ function M.request:get_param(key)
     return self:get_params()[key]
 end
 
+function M.request:get_signifiance()
+    return self.signifiance
+end
+
 -- Setters
 function M.request:set_method(method)
     assert(type(method) == "string",
@@ -253,6 +261,13 @@ function M.request:set_param(key, value)
     assert(type(key) == "string" and type(value) == "string",
         "Argument <key> & <value>: Must be strings.")
     self.params[key] = value
+    return self
+end
+
+function M.request:set_signifiance(signifiance)
+    assert(type(signifiance) == "number",
+        "Argument <signifiance>: Must be a number.")
+    self.signifiance = signifiance
     return self
 end
 
@@ -293,6 +308,10 @@ function M.response:get_body()
     return self.body or ""
 end
 
+function M.response:get_not_found_fallback(req, res)
+    self.route_not_found(req, res)
+end
+
 -- Setters
 function M.response:set_code(code)
     assert(type(code) == "number",
@@ -312,6 +331,11 @@ function M.response:set_body(body)
     assert(type(body) == "string",
         "Argument <body>: Must be a string.")
     self.body = body
+    return self
+end
+
+function M.response:set_not_found_fallback(callback)
+    self.route_not_found = callback
     return self
 end
 
