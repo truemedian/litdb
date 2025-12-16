@@ -1,6 +1,6 @@
 --[[lit-meta
     name = "code-nuage/evasive-page"
-    version = "0.0.1"
+    version = "0.0.2"
     homepage = "https://github.com/code-nuage/evasive/blob/main/evasive-page.lua"
     dependencies = {
         "luvit/coro-fs",
@@ -96,13 +96,17 @@ function M.component:add_style(path)
     return self
 end
 
-function M.component:add_template(template_path)
+function M.component:add_template(template_path, model)
     assert(type(template_path) == "string",
         "Argument <template>: Must be a string.")
+    assert(type(model) == "nil" or
+        type(model) == "table",
+        "Argument <model>: Must be a table.")
     local template, err = fs.readFile(template_path)
     if err then
         error(err)
     end
+    template = lu:render(template, model)
     table.insert(self.templates, template)
     return self
 end
