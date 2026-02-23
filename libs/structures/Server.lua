@@ -1,0 +1,198 @@
+local uv = require("uv")
+local Player = require("structures/Player")
+local Vehicle = require("structures/Vehicle")
+local KillLog = require("structures/KillLog")
+local JoinLog = require("structures/JoinLog")
+local CommandLog = require("structures/CommandLog")
+
+local function realtime()
+    local seconds, microseconds = uv.gettimeofday()
+    return seconds + (microseconds / 1000000)
+end
+
+local Server, get = require("class")("Server")
+
+function Server:__init(client, serverKey, data)
+    self._client = client
+    self._server_key = serverKey
+    self._id = serverKey:match("%-(.+)")
+    self._ttl = client._options.ttl
+    self:_load(data)
+end
+
+function Server:__tostring()
+    return string.format("Server: %s", self._name)
+end
+
+function Server:_load(data)
+    self._name = data.Name
+    self._join_key = data.JoinKey
+    self._account_verification_requirement = data.AccVerifiedReq
+    self._team_balance = data.TeamBalance
+    self._owner_id = data.OwnerId
+    self._co_owner_ids = data.CoOwnerIds
+    self._current_players = data.CurrentPlayers -- unreliable
+    self._max_players = data.MaxPlayers
+    self._players = setmetatable({}, { __mode = "v" })
+    self._vehicles = setmetatable({}, { __mode = "v" })
+    self._kill_logs = setmetatable({}, { __mode = "v" })
+    self._join_logs = setmetatable({}, { __mode = "v" })
+    self._command_logs = setmetatable({}, { __mode = "v" })
+    self._queue = setmetatable({}, { __mode = "v" })
+    
+    -- data.Players = data.Players or self._client._api:getServerPlayers(self._server_key)
+    -- data.JoinLogs = data.JoinLogs or self._client._api:getServerJoinLogs(self._server_key)
+    -- data.Vehicles = data.Vehicles or self._client._api:getServerVehicles(self._server_key)
+    -- data.KillLogs = data.KillLogs or self._client._api:getServerKillLogs(self._server_key)
+    -- data.CommandLogs = data.CommandLogs or self._client._api:getServerCommandLogs(self._server_key)
+    -- data.Queue = data.Queue or self._client._api:getServerQueue(self._server_key)
+    -- data.Staff = data.Staff or self._client._api:getServerStaff(self._server_key)
+
+    if data.Players then
+        for _, p in pairs(data.Players) do
+            table.insert(self._players, Player(self, p))
+        end
+    end
+
+    if data.Vehicles then
+        for _, v in pairs(data.Vehicles) do
+            table.insert(self._vehicles, Vehicle(self, v))
+        end
+    end
+
+    if data.KillLogs then
+        for _, v in pairs(data.KillLogs) do
+            table.insert(self._kill_logs, KillLog(self, v))
+        end
+    end
+
+    if data.JoinLogs then
+        for _, v in pairs(data.JoinLogs) do
+            table.insert(self._join_logs, JoinLog(self, v))
+        end
+    end
+
+    if data.CommandLogs then
+        for _, v in pairs(data.CommandLogs) do
+            table.insert(self._command_logs, CommandLog(self, v))
+        end
+    end
+
+    if data.Queue then
+        self._queue = data.Queue
+    end
+
+    if data.Staff then
+        self._staff = data.Staff
+    end
+
+    self._last_updated = realtime()
+end
+
+function Server:refresh()
+    local data, err = self._client._api:getServer(self._server_key)
+    if data then
+        return self:_load(data)
+    else
+        return false, err
+    end
+end
+
+function Server:execute(command)
+	command = ":" .. command:gsub("^:", "")
+    local data, err = self._client._api:sendServerCommand(self._server_key, { command = command })
+end
+
+function get.name(self)
+    return self._name
+end
+
+function get.id(self)
+    return self._id
+end
+
+function get.verificationLevel(self)
+    return self._account_verification_requirement
+end
+
+function get.joinCode(self)
+    return self._join_key
+end
+
+function get.teamBalance(self)
+    return not not self._team_balance
+end
+
+function get.owner(self)
+    return self._owner_id
+end
+
+function get.coOwners(self)
+    return self._co_owner_ids
+end
+
+function get.playercount(self)
+    return self._players and #self._players or 0
+end
+
+function get.maxPlayercount(self)
+    return self._max_players
+end
+
+function get.players(self)
+    if (realtime() - self._last_updated) > self._ttl then
+        self:refresh()
+    end
+
+    return self._players
+end
+
+function get.vehicles(self)
+    if (realtime() - self._last_updated) > self._ttl then
+        self:refresh()
+    end
+
+    return self._vehicles
+end
+
+function get.queue(self)
+    if (realtime() - self._last_updated) > self._ttl then
+        self:refresh()
+    end
+
+    return self._queue
+end
+
+function get.staff(self)
+    if (realtime() - self._last_updated) > self._ttl then
+        self:refresh()
+    end
+
+    return self._staff
+end
+
+function get.killLogs(self)
+    if (realtime() - self._last_updated) > self._ttl then
+        self:refresh()
+    end
+
+    return self._kill_logs
+end
+
+function get.joinLogs(self)
+    if (realtime() - self._last_updated) > self._ttl then
+        self:refresh()
+    end
+
+    return self._join_logs
+end
+
+function get.commandLogs(self)
+    if (realtime() - self._last_updated) > self._ttl then
+        self:refresh()
+    end
+
+    return self._command_logs
+end
+
+return Server
