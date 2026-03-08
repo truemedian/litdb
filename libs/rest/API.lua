@@ -45,7 +45,7 @@ function API:authenticate(globalKey)
     return true
 end
 
-function API:request(method, endpoint, payload, key)
+function API:request(method, endpoint, payload, key, base)
     local _, main = coroutine.running()
     if main then
         return false, "Request cannot be made outside of a coroutine"
@@ -53,7 +53,7 @@ function API:request(method, endpoint, payload, key)
 		return false, "Server key was not provided"
 	end
 
-    local url = self._base_url .. endpoint
+    local url = (base or self._base_url) .. endpoint
     local headers = {
         {"User-Agent", USER_AGENT},
         {"Server-Key", key}
@@ -195,7 +195,7 @@ end
 
 function API:getServerBans(key)
 	local endpoint = string.format(endpoints.SERVER_BANS)
-	return self:request("GET", endpoint, nil, key)
+	return self:request("GET", endpoint, nil, key, "https://api.policeroleplay.community/v1")
 end
 
 function API:getServerVehicles(key)
