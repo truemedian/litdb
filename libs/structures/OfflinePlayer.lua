@@ -24,4 +24,12 @@ function get.id(self)
     return self._id
 end
 
+function get.profile(self)
+    return "<https://roblox.com/users/" .. self._id .. "/profile>"
+end
+
+function get.hyperlink(self)
+    return "[" .. self._name .. "](" .. self.profile .. ")"
+end
+
 return OfflinePlayer

@@ -124,7 +124,7 @@ function API:commit(method, url, headers, payload, retries)
 	local retry = false
 	if result.code < 300 then
 		return data, nil, delay
-	elseif result.code == 429 and type(data) == "table" and data.retry_after then
+	elseif result.code == 429 and type(data) == "table" and data.retry_after and data.retry_after ~= json.null then
 		local wait = data.retry_after * 1000
 		if bucket and bucket:sub(1, 7) == "command" then
 			delay.server = wait

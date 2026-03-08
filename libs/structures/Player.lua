@@ -13,14 +13,7 @@ function Player:__init(server, data)
 
     self._callsign = data.Callsign
     self._team = data.Team
-
-    self._permission = enums.permission[data.Permission
-        :gsub("^Server%s+", "")
-        :gsub("[%s%-]+(%w)", function(c)
-            return c:upper()
-        end)
-        :gsub("^%w", string.lower)]
-
+    self._permission = data.Permission
     self._wanted_stars = data.WantedStars
     self._location = data.Location and Location(data.Location, self)
 end
@@ -41,6 +34,14 @@ function get.id(self)
     return self._id
 end
 
+function get.profile(self)
+    return "<https://roblox.com/users/" .. self._id .. "/profile>"
+end
+
+function get.hyperlink(self)
+    return "[" .. self._name .. "](" .. self.profile .. ")"
+end
+
 function get.team(self)
     return self._team
 end
@@ -50,7 +51,12 @@ function get.callsign(self)
 end
 
 function get.permission(self)
-    return self._permission
+    return enums.permission[data.Permission
+        :gsub("^Server%s+", "")
+        :gsub("[%s%-]+(%w)", function(c)
+            return c:upper()
+        end)
+        :gsub("^%w", string.lower)]
 end
 
 function get.wantedStars(self)

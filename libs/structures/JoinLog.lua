@@ -12,7 +12,7 @@ function JoinLog:__init(server, data)
     self._player_name = name
     self._player_id = tonumber(id)
 
-    self._join = data.Join and enums.joinLogType.join or enums.joinLogType.leave
+    self._join = data.Join
 end
 
 function JoinLog:__tostring()
@@ -30,7 +30,7 @@ function get.player(self) -- TODO: Cleanup this temporary solution
 end
 
 function get.type(self)
-    return self._join
+    return self._join and enums.joinLogType.join or enums.joinLogType.leave
 end
 
 return JoinLog

@@ -125,7 +125,89 @@ end
 
 function Server:execute(command)
 	command = ":" .. command:gsub("^:", "")
-    local data, err = self._client._api:sendServerCommand(self._server_key, { command = command })
+    return self._client._api:sendServerCommand(self._server_key, { command = command })
+end
+
+function Server:raw()
+    local raw = {
+        Name = self._name,
+        OwnerId = self._owner_id,
+        CoOwnerIds = self._co_owner_ids,
+        CurrentPlayers = self._current_players,
+        MaxPlayers = self._max_players,
+        JoinKey = self._join_key,
+        AccVerifiedReq = self._account_verification_requirement,
+        TeamBalance = self._team_balance,
+        Players = {},
+        Staff = self._staff,
+        JoinLogs = {},
+        Queue = self._queue,
+        KillLogs = {},
+        CommandLogs = {},
+        ModCalls = {},
+        Vehicles = {}
+    }
+
+    for _, v in pairs(self._players) do
+        table.insert(raw.Players, {
+            Player = v._name .. ":" .. v._id,
+            Team = v._team,
+            Callsign = v._callsign,
+            Location = {
+                LocationX = v._location._x,
+                LocationZ = v._location._z,
+                PostalCode = v._location._postal_code,
+                StreetName = v._street_name,
+                BuildingNumber = v._building_number
+            },
+            Permission = v._permission,
+            WantedStars = v._wanted_stars
+        })
+    end
+
+    for _, v in pairs(self._join_logs) do
+        table.insert(raw.JoinLogs, {
+            Player = v._player_name .. ":" .. v._player_id,
+            Join = v._join,
+            Timestamp = v._timestamp
+        })
+    end
+
+    for _, v in pairs(self._kill_logs) do
+        table.insert(raw.KillLogs, {
+            Killer = v._killer_name .. ":" .. v._killer_id,
+            Killed = v._killed_name .. ":" .. v._killed_id,
+            Timestamp = v._timestamp
+        })
+    end
+
+    for _, v in pairs(self._command_logs) do
+        table.insert(raw.CommandLogs, {
+            Player = v._player_name .. ":" .. v._player_id,
+            Command = v._command,
+            Timestamp = v._timestamp
+        })
+    end
+
+    for _, v in pairs(self._modcalls) do
+        table.insert(raw.ModCalls, {
+            Caller = v._caller_name .. ":" .. v._caller_id,
+            Moderator = (v._moderator_name and (v._moderator_name .. ":" .. v._moderator_id)) or nil,
+            Timestamp = v._timestamp
+        })
+    end
+
+    for _, v in pairs(self._vehicles) do
+        table.insert(raw.Vehicles, {
+            Name = v._name,
+            Owner = v._owner,
+            Texture = v._texture,
+            ColorHex = v._color_hex,
+            ColorName = v._color_name
+        })
+    end
+
+    return raw
 end
 
 function get.name(self)
