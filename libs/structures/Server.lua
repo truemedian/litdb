@@ -129,81 +129,92 @@ function Server:execute(command)
 end
 
 function Server:raw()
+    local function rawPlayer(player)
+        return {
+            name = player.name,
+            id = player.id,
+            profile = player.profile,
+            hyperlink = player.hyperlink,
+            team = player.team,
+            callsign = player.callsign,
+            permission = player.permission,
+            wantedStars = player.wantedStars,
+            location = player.location and {
+                x = player.location.x,
+                z = player.location.z,
+                postalCode = player.location.postalCode,
+                streetName = player.location.streetName,
+                buildingNumber = player.location.buildingNumber,
+            },
+        }
+    end
+
     local raw = {
-        Name = self._name,
-        OwnerId = self._owner_id,
-        CoOwnerIds = self._co_owner_ids,
-        CurrentPlayers = self._current_players,
-        MaxPlayers = self._max_players,
-        JoinKey = self._join_key,
-        AccVerifiedReq = self._account_verification_requirement,
-        TeamBalance = self._team_balance,
-        Players = {},
-        Staff = self._staff,
-        JoinLogs = {},
-        Queue = self._queue,
-        KillLogs = {},
-        CommandLogs = {},
-        ModCalls = {},
-        Vehicles = {}
+        name = self.name,
+        id = self.id,
+        verificationLevel = self.verificationLevel,
+        joinCode = self.joinCode,
+        teamBalance = self.teamBalance,
+        owner = self.owner,
+        coOwners = self.coOwners,
+        playercount = self.playercount,
+        maxPlayercount = self.maxPlayercount,
+        staff = self.staff,
+        queue = self.queue,
+        players = {},
+        vehicles = {},
+        killLogs = {},
+        joinLogs = {},
+        commandLogs = {},
+        modcalls = {},
     }
 
-    for _, v in pairs(self._players) do
-        table.insert(raw.Players, {
-            Player = v._name .. ":" .. v._id,
-            Team = v._team,
-            Callsign = v._callsign,
-            Location = {
-                LocationX = v._location._x,
-                LocationZ = v._location._z,
-                PostalCode = v._location._postal_code,
-                StreetName = v._street_name,
-                BuildingNumber = v._building_number
-            },
-            Permission = v._permission,
-            WantedStars = v._wanted_stars
+    for _, v in pairs(self.players) do
+        table.insert(raw.players, rawPlayer(v))
+    end
+
+    for _, v in pairs(self.vehicles) do
+        table.insert(raw.vehicles, {
+            name = v.name,
+            make = v.make,
+            model = v.model,
+            year = v.year,
+            owner = rawPlayer(v.owner),
+            livery = v.livery,
+            color = v.color,
+            colorHex = v.colorHex,
         })
     end
 
-    for _, v in pairs(self._join_logs) do
-        table.insert(raw.JoinLogs, {
-            Player = v._player_name .. ":" .. v._player_id,
-            Join = v._join,
-            Timestamp = v._timestamp
+    for _, v in pairs(self.killLogs) do
+        table.insert(raw.killLogs, {
+            killer = rawPlayer(v.killer),
+            killed = rawPlayer(v.killed),
+            timestamp = v.timestamp,
         })
     end
 
-    for _, v in pairs(self._kill_logs) do
-        table.insert(raw.KillLogs, {
-            Killer = v._killer_name .. ":" .. v._killer_id,
-            Killed = v._killed_name .. ":" .. v._killed_id,
-            Timestamp = v._timestamp
+    for _, v in pairs(self.joinLogs) do
+        table.insert(raw.joinLogs, {
+            player = rawPlayer(v.player),
+            join = v.join,
+            timestamp = v.timestamp,
         })
     end
 
-    for _, v in pairs(self._command_logs) do
-        table.insert(raw.CommandLogs, {
-            Player = v._player_name .. ":" .. v._player_id,
-            Command = v._command,
-            Timestamp = v._timestamp
+    for _, v in pairs(self.commandLogs) do
+        table.insert(raw.commandLogs, {
+            player = rawPlayer(v.player),
+            command = v.command,
+            timestamp = v.timestamp,
         })
     end
 
-    for _, v in pairs(self._modcalls) do
-        table.insert(raw.ModCalls, {
-            Caller = v._caller_name .. ":" .. v._caller_id,
-            Moderator = (v._moderator_name and (v._moderator_name .. ":" .. v._moderator_id)) or nil,
-            Timestamp = v._timestamp
-        })
-    end
-
-    for _, v in pairs(self._vehicles) do
-        table.insert(raw.Vehicles, {
-            Name = v._name,
-            Owner = v._owner,
-            Texture = v._texture,
-            ColorHex = v._color_hex,
-            ColorName = v._color_name
+    for _, v in pairs(self.modcalls) do
+        table.insert(raw.modcalls, {
+            caller = rawPlayer(v.caller),
+            moderator = v.moderator and rawPlayer(v.moderator),
+            timestamp = v.timestamp,
         })
     end
 
