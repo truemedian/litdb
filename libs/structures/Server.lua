@@ -151,7 +151,6 @@ function Server:raw()
 
     local raw = {
         name = self.name,
-        id = self.id,
         verificationLevel = self.verificationLevel,
         joinCode = self.joinCode,
         teamBalance = self.teamBalance,
