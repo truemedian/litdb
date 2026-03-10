@@ -210,7 +210,7 @@ end
 
 function API:sendServerCommand(key, payload)
 	local endpoint = string.format(endpoints.SERVER_COMMAND)
-	return self:request("POST", endpoint, payload, key)
+	return self:request("POST", endpoint, payload, key, "https://api.policeroleplay.community/v1")
 end
 
 return API
