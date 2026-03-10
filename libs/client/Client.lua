@@ -29,7 +29,7 @@ function Client:__init(options)
     self._options = options
     self._api = API(self, options.apiVersion)
     self._logger = Logger(options.logLevel, options.dateTime)
-    self._servers = setmetatable({}, { __mode = "v" })
+    self._servers = {}
     
     if options.globalKey then
         self._api:authenticate(options.globalKey)
