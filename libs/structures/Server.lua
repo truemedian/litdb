@@ -34,13 +34,13 @@ function Server:_load(data)
     self._co_owner_ids = data.CoOwnerIds
     self._current_players = data.CurrentPlayers -- unreliable
     self._max_players = data.MaxPlayers
-    self._players = setmetatable({}, { __mode = "v" })
-    self._vehicles = setmetatable({}, { __mode = "v" })
-    self._kill_logs = setmetatable({}, { __mode = "v" })
-    self._join_logs = setmetatable({}, { __mode = "v" })
-    self._command_logs = setmetatable({}, { __mode = "v" })
-    self._modcalls = setmetatable({}, { __mode = "v" })
-    self._queue = setmetatable({}, { __mode = "v" })
+    local players = setmetatable({}, { __mode = "v" })
+    local vehicles = setmetatable({}, { __mode = "v" })
+    local kill_logs = setmetatable({}, { __mode = "v" })
+    local join_logs = setmetatable({}, { __mode = "v" })
+    local command_logs = setmetatable({}, { __mode = "v" })
+    local modcalls = setmetatable({}, { __mode = "v" })
+    local queue = setmetatable({}, { __mode = "v" })
     
     -- data.Players = data.Players or self._client._api:getServerPlayers(self._server_key)
     -- data.JoinLogs = data.JoinLogs or self._client._api:getServerJoinLogs(self._server_key)
@@ -53,13 +53,13 @@ function Server:_load(data)
 
     if data.Players then
         for _, p in pairs(data.Players) do
-            table.insert(self._players, Player(self, p))
+            table.insert(players, Player(self, p))
         end
     end
 
     if data.Vehicles then
         for _, v in pairs(data.Vehicles) do
-            table.insert(self._vehicles, Vehicle(self, v))
+            table.insert(vehicles, Vehicle(self, v))
         end
     end
 
@@ -69,7 +69,7 @@ function Server:_load(data)
         end)
 
         for _, v in pairs(data.KillLogs) do
-            table.insert(self._kill_logs, KillLog(self, v))
+            table.insert(kill_logs, KillLog(self, v))
         end
     end
 
@@ -79,7 +79,7 @@ function Server:_load(data)
         end)
 
         for _, v in pairs(data.JoinLogs) do
-            table.insert(self._join_logs, JoinLog(self, v))
+            table.insert(join_logs, JoinLog(self, v))
         end
     end
 
@@ -89,7 +89,7 @@ function Server:_load(data)
         end)
         
         for _, v in pairs(data.CommandLogs) do
-            table.insert(self._command_logs, CommandLog(self, v))
+            table.insert(command_logs, CommandLog(self, v))
         end
     end
 
@@ -99,7 +99,7 @@ function Server:_load(data)
         end)
 
         for _, v in pairs(data.ModCalls) do
-            table.insert(self._modcalls, Modcall(self, v))
+            table.insert(modcalls, Modcall(self, v))
         end
     end
 
@@ -111,6 +111,13 @@ function Server:_load(data)
         self._staff = data.Staff
     end
 
+    self._players = players
+    self._vehicles = vehicles
+    self._kill_logs = kill_logs
+    self._join_logs = join_logs
+    self._command_logs = command_logs
+    self._modcalls = modcalls
+    self._queue = queue
     self._last_updated = realtime()
 end
 
