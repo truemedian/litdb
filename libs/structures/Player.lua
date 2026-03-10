@@ -51,7 +51,7 @@ function get.callsign(self)
 end
 
 function get.permission(self)
-    return enums.permission[data.Permission
+    return enums.permission[self._permission
         :gsub("^Server%s+", "")
         :gsub("[%s%-]+(%w)", function(c)
             return c:upper()
