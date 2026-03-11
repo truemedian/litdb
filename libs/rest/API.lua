@@ -70,25 +70,26 @@ function API:request(method, endpoint, payload, key, base)
     end
 
     local global = self._global
-    local server = method == "POST" and endpoint == "/server/command" and self._buckets["command-" .. key]
+    local server = method == "POST" and endpoint == endpoints.SERVER_COMMAND and self._buckets["command-" .. key]
 
-    global:lock()
     if server then
         server:lock()
+	else
+		global:lock()
     end
 
 	local data, err, delay = self:commit(method, url, headers, payload, 0)
-
-    global:unlockAfter(delay.global)
     if server then
-        server:unlockAfter(delay.server)
+        server:unlockAfter(delay)
+	else
+		global:unlockAfter(delay)
     end
 
     return data, err
 end
 
 function API:commit(method, url, headers, payload, retries)
-	local delay = { global = 0, server = 0 }
+	local delay = 0
 
 	if self._client then
 		self._client:debug("%s %s", method, url)
@@ -111,12 +112,7 @@ function API:commit(method, url, headers, payload, retries)
 	local reset = tonumber(result["x-ratelimit-reset"])
 
 	if remaining == 0 and reset then
-		local wait = math.max(((reset - os.time()) + 1) * 1000, 0)
-		if bucket and bucket:sub(1, 7) == "command" then
-			delay.server = wait
-		else
-			delay.global = wait
-		end
+		delay = math.max(((reset - os.time()) + 1) * 1000, 0)
 	end
 
 	local data = result["content-type"]:sub(1, #JSON) == JSON and json.decode(body, 1, json.null) or body
@@ -125,21 +121,15 @@ function API:commit(method, url, headers, payload, retries)
 	if result.code < 300 then
 		return data, nil, delay
 	elseif result.code == 429 and type(data) == "table" and data.retry_after and data.retry_after ~= json.null then
-		local wait = data.retry_after * 1000
-		if bucket and bucket:sub(1, 7) == "command" then
-			delay.server = wait
-		else
-			delay.global = wait
-		end
+		delay = data.retry_after * 1000
 		retry = retries < 2
 	elseif result.code == 502 then
-		delay.global = delay.global + math.random(0, 2000)
+		delay = delay + math.random(0, 2000)
 		retry = retries < 2
 	end
 
 	if retry then
-		local wait = delay.global > 0 and delay.global or delay.server
-		if wait > 0 then timer.sleep(wait) end
+		if delay > 0 then timer.sleep(delay) end
 		return self:commit(method, url, headers, payload, retries + 1)
 	end
 
