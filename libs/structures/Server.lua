@@ -64,7 +64,7 @@ function Server:_load(data)
 
     if data.KillLogs then
         table.sort(data.KillLogs, function(a, b)
-            return a.Timestamp > b.Timestamp
+            return a.Timestamp < b.Timestamp
         end)
 
         for _, v in pairs(data.KillLogs) do
@@ -74,7 +74,7 @@ function Server:_load(data)
 
     if data.JoinLogs then
         table.sort(data.JoinLogs, function(a, b)
-            return a.Timestamp > b.Timestamp
+            return a.Timestamp < b.Timestamp
         end)
 
         for _, v in pairs(data.JoinLogs) do
@@ -84,7 +84,7 @@ function Server:_load(data)
 
     if data.CommandLogs then
         table.sort(data.CommandLogs, function(a, b)
-            return a.Timestamp > b.Timestamp
+            return a.Timestamp < b.Timestamp
         end)
         
         for _, v in pairs(data.CommandLogs) do
@@ -94,7 +94,7 @@ function Server:_load(data)
 
     if data.ModCalls then
         table.sort(data.ModCalls, function(a, b)
-            return a.Timestamp > b.Timestamp
+            return a.Timestamp < b.Timestamp
         end)
 
         for _, v in pairs(data.ModCalls) do
