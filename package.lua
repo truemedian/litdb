@@ -1,6 +1,6 @@
 return {
   name = "Bilal2453/luasql-odbc",
-  version = "2.8.0-1",
+  version = "2.8.0-2",
   description = "LuaSQL is a simple interface from Lua to a DBMS. This build includes ODBC driver only.",
   tags = {},
   license = "MIT",
@@ -8,7 +8,10 @@ return {
   homepage = "https://github.com/my-luvit/lit-luasql/blob/lit-luasql-odbc/",
   dependencies = {},
   files = {
-    "$OS-$ARCH/*",
+    -- the reason we have x64/x86_64 duplicated is a regression in lit 2.15.0
+    -- which accidentally changed the format
+    "$OS-x64/*",
+    "$OS-x86_64/*",
     "**.lua",
   }
 }
