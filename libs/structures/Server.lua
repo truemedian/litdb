@@ -147,7 +147,7 @@ function Server:getPlayer(query, offline)
     end
 
     if offline then
-        for _, l in pairs(self._server.joinLogs) do
+        for _, l in pairs(self.joinLogs) do
             if l.player.name == query or l.player.id == query then
                 return l.player
             end
@@ -248,7 +248,7 @@ function Server:raw()
 
     for _, v in pairs(self.emergencyCalls) do
         local rawPlayers = {}
-        for _, p in pairs(v.players) do
+        for _, p in pairs(v.responders) do
             table.insert(rawPlayers, rawPlayer(p))
         end
 
@@ -262,7 +262,7 @@ function Server:raw()
                 z = v.position.z
             },
             positionDescriptor = v.positionDescriptor,
-            players = rawPlayers,
+            responders = rawPlayers,
             timestamp = v.timestamp,
         })
     end

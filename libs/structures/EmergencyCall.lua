@@ -10,14 +10,7 @@ function EmergencyCall:__init(server, data)
     self._call_number = tonumber(data.CallNumber)
     self._position = data.Position and Location({LocationX = data.Position[1], LocationZ = data.Position[2]})
     self._position_descriptor = data.PositionDescriptor
-    self._players = {}
-
-    for _, id in pairs(data.Players) do
-        local player = server:getPlayer(id)
-        if player then
-            table.insert(self._players, player)
-        end
-    end
+    self._players = data.Players
     
     self._started_at = data.StartedAt
 end
@@ -34,7 +27,7 @@ function get.team(self)
     return self._team
 end
 
-function get.players(self)
+function get.responders(self)
     return self._players
 end
 
@@ -43,7 +36,7 @@ function get.description(self)
 end
 
 function get.caller(self)
-    return self._server:getPlayer(self._caller, true) or OfflinePlayer(self._server, nil, self._caller_id)
+    return self._caller and (self._server:getPlayer(self._caller, true) or OfflinePlayer(self._server, nil, self._caller))
 end
 
 function get.number(self)
