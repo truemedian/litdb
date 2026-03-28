@@ -4,7 +4,7 @@
 This is a mostly complete backup of the lit.luvit.io database.
 
 > [!NOTE]
-> Last Updated: 2024-12-05
+> Last Updated: 2026-03-27
 
 Because lit is not robust against crashing while uploading a package (an
 unfortunately common occurrence), this backup cannot be complete.
