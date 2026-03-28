@@ -45,3 +45,16 @@ that represent each version of a package.
 
 This repository can also be cloned bare and used as a litdb repository,
 assuming you ensure all references are fetched.
+
+## Backup Process
+
+```
+git clone https://github.com/truemedian/litdb
+cd litdb
+
+git config gc.auto 0
+git config pc.packRefs false
+
+luvit unpack.lua
+luvit init.lua
+```

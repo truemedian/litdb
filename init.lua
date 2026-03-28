@@ -75,6 +75,8 @@ mkdirp(repo .. "/refs/tags")
 
 print("requesting author list")
 
+local sema = 0
+
 local queries = {}
 local authors = request("/packages")
 for author in pairs(authors) do
@@ -83,26 +85,42 @@ for author in pairs(authors) do
 		assert(fs.mkdirSync(repo .. "/refs/tags/" .. author))
 	end
 
-	local packages = request("/packages/" .. author)
-	for package in pairs(packages) do
-		if not fs.accessSync(repo .. "/refs/tags/" .. author .. "/" .. package) then
-			print("new package", author, package)
-			assert(fs.mkdirSync(repo .. "/refs/tags/" .. author .. "/" .. package))
+	coroutine.wrap(function()
+		sema = sema + 1
+
+		local packages = request("/packages/" .. author)
+		for package in pairs(packages) do
+			if not fs.accessSync(repo .. "/refs/tags/" .. author .. "/" .. package) then
+				print("new package", author, package)
+				assert(fs.mkdirSync(repo .. "/refs/tags/" .. author .. "/" .. package))
+			end
+
+			coroutine.wrap(function()
+				sema = sema + 1
+
+				local versions = request("/packages/" .. author .. "/" .. package)
+				for version in pairs(versions) do
+					if not fs.accessSync(repo .. "/refs/tags/" .. author .. "/" .. package .. "/v" .. version) then
+						local query = author .. "/" .. package .. " " .. version
+						if not known_broken[query] then
+							print("new version", query)
+							table.insert(queries, author .. "/" .. package .. " " .. version)
+						else
+							print("skipping", query)
+						end
+					end
+				end
+
+				sema = sema - 1
+			end)()
 		end
 
-		local versions = request("/packages/" .. author .. "/" .. package)
-		for version in pairs(versions) do
-			if not fs.accessSync(repo .. "/refs/tags/" .. author .. "/" .. package .. "/v" .. version) then
-				local query = author .. "/" .. package .. " " .. version
-				if not known_broken[query] then
-					print("new version", query)
-					table.insert(queries, author .. "/" .. package .. " " .. version)
-				else
-					print("skipping", query)
-				end
-			end
-		end
-	end
+		sema = sema - 1
+	end)()
+end
+
+while sema > 0 do
+	timer.sleep(100)
 end
 
 print("found", #queries, "new versions")
@@ -176,7 +194,7 @@ local function fetch_hash(hash, objects)
 	end
 
 	if not data then
-        -- print('fetching', hash)
+		-- print('fetching', hash)
 
 		local message
 		while true do
@@ -191,15 +209,15 @@ local function fetch_hash(hash, objects)
 
 			message = read()
 			if message then
-                if message.opcode == 1 or message.payload:byte(1, 1) == 0 then
-                    if message.payload:sub(2, 13) == "No such hash" then
-                        print("fetching", hash, "no such hash")
-                        return nil
-                    else
-                        error("unexpected error: " .. message.payload:sub(2))
-                    end
-                end
-				
+				if message.opcode == 1 or message.payload:byte(1, 1) == 0 then
+					if message.payload:sub(2, 13) == "No such hash" then
+						print("fetching", hash, "no such hash")
+						return nil
+					else
+						error("unexpected error: " .. message.payload:sub(2))
+					end
+				end
+
 				break
 			else
 				res = nil
@@ -393,4 +411,6 @@ for author in fs.scandirSync(repo .. "/refs/tags") do
 	end
 end
 
-res.socket:close()
+if res then
+	res.socket:close()
+end
